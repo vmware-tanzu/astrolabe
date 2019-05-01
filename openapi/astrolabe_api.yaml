@@ -1,0 +1,442 @@
+#
+# Copyright 2019 VMware, Inc..
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+swagger: '2.0'
+info:
+  title: Astrolabe API
+  version: 1.0.0
+  description: Astrolabe data protection framework API
+basePath: /v1
+schemes:
+  - https
+paths:
+  /astrolabe:
+    get:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: 200 response
+          schema:
+            $ref: '#/definitions/ServiceList'
+      operationId: listServices
+      summary: List available services
+      description: |
+        This returns the list of services that this Astrolabe server supports
+  /astrolabe/tasks:
+    get:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: List of recent task IDs
+          schema:
+            $ref: '#/definitions/TaskIDList'
+      operationId: listTasks
+      description: Lists running and recent tasks
+  '/astrolabe/tasks/{taskID}':
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: The ID of the task to retrieve info for
+          in: path
+          name: taskID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Info for running or recently completed task
+          schema:
+            $ref: '#/definitions/TaskInfo'
+      operationId: getTaskInfo
+      summary: Gets info about a running or recently completed task
+  /astrolabe/tasks/nexus:
+    get:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Task nexus list
+          schema:
+              $ref: '#/definitions/TaskNexusList'
+      operationId: listTaskNexus
+      description: Provides a list of current task nexus
+    post:
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: New task nexus
+          schema:
+            $ref: '#/definitions/TaskNexusID'
+      description: Creates a new nexus for monitoring task completion
+  /astrolabe/tasks/nexus/{taskNexusID}:
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: The nexus to wait on
+          in: path
+          name: taskNexusID
+          required: true
+          type: string
+        - description: Time to wait (milliseconds) before returning if no tasks   complete
+          name: waitTime
+          type: integer
+          in: query
+          required: true
+        - description: |
+            Last finished time seen by this client.  Tasks that have completed after this time tick will be returned, or if no tasks
+            have finished, the call will hang until waitTime has passed or a task finishes.  Starting time tick should
+            be the finished time of the last task that the caller saw completed on this nexus.  Use 0 to get all finished
+            tasks (tasks that have finished and timed out of the server will not be shown)
+          name: lastFinishedNS
+          type: integer
+          in: query
+          required: true
+      responses:
+        '200':
+          description: 200 response
+          schema:
+            $ref: '#/definitions/TaskNexusResponse'
+  /astrolabe/{service}:
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: The service to list protected entities from
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: >-
+            The maximum number of results to return (fewer results may be
+            returned)
+          format: int32
+          in: query
+          name: maxResults
+          required: false
+          type: integer
+        - description: Results will be returned that come after this ID
+          in: query
+          name: idsAfter
+          required: false
+          type: string
+      responses:
+        '200':
+          description: 200 response
+          schema:
+            $ref: '#/definitions/ProtectedEntityList'
+        '404':
+          description: 'Service or Protected Entity not found'
+
+      operationId: listProtectedEntities
+      description: |
+        List protected entities for the service.  Results will be returned in
+        canonical ID order (string sorted).  Fewer results may be returned than
+        expected, the ProtectedEntityList has a field specifying if the list has
+        been truncated.
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - description: The service to copy the protected entity into
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: |
+            How to handle the copy.  create - a new protected entity with the
+            Protected Entity ID will be created.  If the Protected Entity ID
+            already exists, the copy will fail.  create_new - A Protected Entity
+            with a new ID will be created with data and metadata from the source
+            protected entity.  Update - If a protected entity with the same ID
+            exists it will be overwritten.  If there is no PE with that ID, one
+            will be created with the same ID. For complex Persistent Entities,
+            the mode will be applied to all of the component entities that are
+            part of this operation as well.
+          enum:
+            - create
+            - create_new
+            - update
+          in: query
+          name: mode
+          required: true
+          type: string
+        - description: Info of ProtectedEntity to copy
+          in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/ProtectedEntityInfo'
+      responses:
+        '202':
+          description: Create in progress
+          schema:
+            $ref: '#/definitions/CreateInProgressResponse'
+      operationId: copyProtectedEntity
+      description: |
+        Copy a protected entity into the repository.  There is no option to
+        embed data on this path, for a self-contained or partially
+        self-contained object, use the restore from zip file option in the S3
+        API REST API
+  '/astrolabe/{service}/{protectedEntityID}':
+    delete:
+      produces:
+        - application/json
+      parameters:
+        - description: The service for the protected entity
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: The protected entity ID to retrieve info for
+          in: path
+          name: protectedEntityID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 200 response
+          schema:
+            $ref: '#/definitions/ProtectedEntityID'
+      operationId: deleteProtectedEntity
+      description: |
+        Deletes a protected entity or snapshot of a protected entity (if the
+        snapshot ID is specified)
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: The service for the protected entity
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: The protected entity ID to retrieve info for
+          in: path
+          name: protectedEntityID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 200 response
+          schema:
+            $ref: '#/definitions/ProtectedEntityInfo'
+      operationId: getProtectedEntityInfo
+      description: |
+        Get the info for a Protected Entity including name, data access and
+        components
+  '/astrolabe/{service}/{protectedEntityID}/snapshots':
+    get:
+      produces:
+        - application/json
+      parameters:
+        - description: The service for the protected entity
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: The protected entity ID to retrieve info for
+          in: path
+          name: protectedEntityID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'List succeeded'
+          schema:
+            $ref: '#/definitions/ProtectedEntityList'
+        '404':
+          description: 'Service or Protected Entity not found'
+      operationId: listSnapshots
+      description: |
+        Gets the list of snapshots for this protected entity
+    post:
+      produces:
+        - application/json
+      parameters:
+        - description: The service for the protected entity
+          in: path
+          name: service
+          required: true
+          type: string
+        - description: The protected entity ID to snapshot
+          in: path
+          name: protectedEntityID
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'Snapshot created successfully, returns the new snapshot ID'
+          schema:
+            $ref: '#/definitions/ProtectedEntitySnapshotID'
+      operationId: createSnapshot
+      description: |
+        Creates a new snapshot for this protected entity
+definitions:
+  ComponentSpec:
+    properties:
+      id:
+        $ref: "#/definitions/ProtectedEntityID"
+      server:
+        type: string
+    required:
+      - id
+    type: object
+  CreateInProgressResponse:
+    properties:
+      taskID:
+        $ref: "#/definitions/TaskID"
+    type: object
+  DataTransport:
+    properties:
+      transportType:
+        type: string
+      params:
+        type: object
+        additionalProperties:
+          type: string
+    type: object
+  ProtectedEntityID:
+    type: string
+  ProtectedEntitySnapshotID:
+    type: string
+  ProtectedEntityInfo:
+    properties:
+      componentSpecs:
+        items:
+          $ref: "#/definitions/ComponentSpec"
+        type: array
+      combinedTransports:
+        items:
+          $ref: "#/definitions/DataTransport"
+        type: array
+      dataTransports:
+        items:
+          $ref: "#/definitions/DataTransport"
+        type: array
+      id:
+        $ref: "#/definitions/ProtectedEntityID"
+      metadataTransports:
+        items:
+          $ref: "#/definitions/DataTransport"
+        type: array
+      name:
+        type: string
+    required:
+      - id
+      - name
+      - metadataTransports
+      - dataTransports
+      - combinedTransports
+      - componentSpecs
+    type: object
+  ProtectedEntityList:
+    properties:
+      list:
+        items:
+          $ref: "#/definitions/ProtectedEntityID"
+        type: array
+      truncated:
+        type: boolean
+    type: object
+  ServiceList:
+    type: object
+    properties:
+      services:
+        items:
+          type: string
+        type: array
+  TaskID:
+    type: string
+  TaskIDList:
+    items:
+      $ref: "#/definitions/TaskID"
+    type: array
+  TaskInfo:
+    properties:
+      completed:
+        type: boolean
+      details:
+        type: string
+      startedTime:
+        type: string
+      startedTimeNS:
+        type: integer
+        description: Start time in nanoseconds
+      finishedTime:
+        type: string
+      finishedTimeNS:
+        type: integer
+        description: Finished time in nanoseconds
+      id:
+        $ref: "#/definitions/TaskID"
+      progress:
+        type: number
+        minimum: 0.0
+        maximum: 100.0
+      status:
+        enum:
+          - running
+          - success
+          - failed
+          - cancelled
+        type: string
+      result:
+        type: object
+    required:
+      - id
+      - completed
+      - status
+      - startedTime
+      - startedTimeNS
+      - progress
+    type: object
+  TaskNexusID:
+    type: string
+  TaskNexusList:
+    type: array
+    items:
+      $ref: '#/definitions/TaskNexusInfo'
+  TaskNexusInfo:
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/TaskNexusID'
+      associatedTasks:
+        type: array
+        items:
+          $ref: '#/definitions/TaskID'
+  TaskNexusResponse:
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/TaskNexusID'
+      finished:
+        type: array
+        items:
+          $ref: '#/definitions/TaskInfo'
+
+x-components: {}
+
