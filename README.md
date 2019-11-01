@@ -16,3 +16,9 @@ The Astrolabe project consists of:
 * Reference server implementation
 * Reference Protected Entity implementations
 
+Please refer to docs/SPEC.md for details of the specification
+The REST API is specified in openapi/astrolabe_api.yaml
+
+The reference implementation currently includes support for vSphere virtual disks, a generic "file system" and an S3
+generic repository that can be used to store any type of Protected Entity.
+
