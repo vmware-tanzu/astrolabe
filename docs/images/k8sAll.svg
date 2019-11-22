@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="425 69 534 467" width="534" height="467">
+  <defs>
+    <linearGradient x1="0" x2="1" id="Gradient" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a8eed"/>
+      <stop offset="1" stop-color="#00bfc0"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient" xl:href="#Gradient" gradientTransform="translate(531.5 171) rotate(90) scale(240)"/>
+    <font-face font-family="Helvetica Neue" font-size="16" panose-1="2 0 5 3 0 0 0 2 0 4" units-per-em="1000" underline-position="-100" underline-thickness="50" slope="0" x-height="517" cap-height="714" ascent="951.9958" descent="-212.99744" font-weight="400">
+      <font-face-src>
+        <font-face-name name="HelveticaNeue"/>
+      </font-face-src>
+    </font-face>
+    <linearGradient x1="0" x2="1" id="Gradient_2" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9662d0"/>
+      <stop offset="1" stop-color="#6b7ca5"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_2" xl:href="#Gradient_2" gradientTransform="translate(483.5 330.5) rotate(90) scale(71.5)"/>
+    <linearGradient id="Obj_Gradient_3" xl:href="#Gradient_2" gradientTransform="translate(580.5 330.5) rotate(90) scale(71.5)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff914d"/>
+      <stop offset="1" stop-color="#dead26"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_4" xl:href="#Gradient_3" gradientTransform="translate(483.5 445.5) rotate(90) scale(71.5)"/>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -3 7 6" markerWidth="7" markerHeight="6" color="black">
+      <g>
+        <path d="M 4.8 0 L 0 -1.8 L 0 1.8 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker_2" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-6 -3 7 6" markerWidth="7" markerHeight="6" color="black">
+      <g>
+        <path d="M -4.8 0 L 0 1.8 L 0 -1.8 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <linearGradient id="Obj_Gradient_5" xl:href="#Gradient_3" gradientTransform="translate(580.5 445.5) rotate(90) scale(71.5)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#68bc36"/>
+      <stop offset="1" stop-color="#009051"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_6" xl:href="#Gradient_4" gradientTransform="translate(859 69.5) rotate(90) scale(209.5)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_5" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a5a5a5"/>
+      <stop offset="1" stop-color="white"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_7" xl:href="#Gradient_5" gradientTransform="translate(859 325.5) rotate(90) scale(209.5)"/>
+  </defs>
+  <metadata> Produced by OmniGraffle 7.10.2 
+    <dc:date>2019-11-21 21:37:18 +0000</dc:date>
+  </metadata>
+  <g id="Canvas_1" fill-opacity="1" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none">
+    <title>Canvas 1</title>
+    <rect fill="white" x="425" y="69" width="534" height="467"/>
+    <g id="Canvas_1: Layer 1">
+      <title>Layer 1</title>
+      <g id="Graphic_8">
+        <path d="M 431 171 L 632 171 C 634.7614 171 637 173.23858 637 176 L 637 406 C 637 408.7614 634.7614 411 632 411 L 431 411 C 428.2386 411 426 408.7614 426 406 L 426 176 C 426 173.23858 428.2386 171 431 171 Z" fill="url(#Obj_Gradient)"/>
+        <path d="M 431 171 L 632 171 C 634.7614 171 637 173.23858 637 176 L 637 406 C 637 408.7614 634.7614 411 632 411 L 431 411 C 428.2386 411 426 408.7614 426 406 L 426 176 C 426 173.23858 428.2386 171 431 171 Z" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(431 281)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="59.308" y="15">Kubernetes</tspan>
+        </text>
+      </g>
+      <g id="Graphic_7">
+        <rect x="453" y="330.5" width="61" height="71.5" fill="url(#Obj_Gradient_2)"/>
+        <rect x="453" y="330.5" width="61" height="71.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(458 356.25)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="15.428" y="15">PV</tspan>
+        </text>
+      </g>
+      <g id="Graphic_6">
+        <rect x="550" y="330.5" width="61" height="71.5" fill="url(#Obj_Gradient_3)"/>
+        <rect x="550" y="330.5" width="61" height="71.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(555 356.25)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="15.428" y="15">PV</tspan>
+        </text>
+      </g>
+      <g id="Graphic_5">
+        <path d="M 453 509.85 L 453 452.65 C 453 448.7032 466.664 445.5 483.5 445.5 C 500.336 445.5 514 448.7032 514 452.65 L 514 509.85 C 514 513.7968 500.336 517 483.5 517 C 466.664 517 453 513.7968 453 509.85" fill="url(#Obj_Gradient_4)"/>
+        <path d="M 453 509.85 L 453 452.65 C 453 448.7032 466.664 445.5 483.5 445.5 C 500.336 445.5 514 448.7032 514 452.65 L 514 509.85 C 514 513.7968 500.336 517 483.5 517 C 466.664 517 453 513.7968 453 509.85 M 453 452.65 C 453 456.5968 466.664 459.8 483.5 459.8 C 500.336 459.8 514 456.5968 514 452.65" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_4">
+        <line x1="483.5" y1="414.9" x2="483.5" y2="432.6" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_3">
+        <path d="M 550 509.85 L 550 452.65 C 550 448.7032 563.664 445.5 580.5 445.5 C 597.336 445.5 611 448.7032 611 452.65 L 611 509.85 C 611 513.7968 597.336 517 580.5 517 C 563.664 517 550 513.7968 550 509.85" fill="url(#Obj_Gradient_5)"/>
+        <path d="M 550 509.85 L 550 452.65 C 550 448.7032 563.664 445.5 580.5 445.5 C 597.336 445.5 611 448.7032 611 452.65 L 611 509.85 C 611 513.7968 597.336 517 580.5 517 C 563.664 517 550 513.7968 550 509.85 M 550 452.65 C 550 456.5968 563.664 459.8 580.5 459.8 C 597.336 459.8 611 456.5968 611 452.65" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_2">
+        <line x1="580.5" y1="414.9" x2="580.5" y2="432.6" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_10">
+        <rect x="760" y="69.5" width="198" height="209.5" fill="url(#Obj_Gradient_6)"/>
+        <rect x="760" y="69.5" width="198" height="209.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(765 155.802)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="13.56" y="15">Cloud Storage Service</tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="34.872" y="33.448">(S3, DynamoDB)</tspan>
+        </text>
+      </g>
+      <g id="Line_9">
+        <line x1="646.3563" y1="282.11913" x2="750.6437" y2="183.13087" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_12">
+        <rect x="760" y="325.5" width="198" height="209.5" fill="url(#Obj_Gradient_7)"/>
+        <rect x="760" y="325.5" width="198" height="209.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(765 402.578)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="23.016" y="15">Customer Managed </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="7.192" y="33.448">Storage Service (Oracle, </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="31.616" y="51.895996">MongoDB, Minio)</tspan>
+        </text>
+      </g>
+      <g id="Line_11">
+        <line x1="645.5401" y1="300.66835" x2="751.4599" y2="420.58165" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>
