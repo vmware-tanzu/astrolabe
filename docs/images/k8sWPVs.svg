@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="198 232 212 348" width="212" height="348">
+  <defs>
+    <linearGradient x1="0" x2="1" id="Gradient" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a8eed"/>
+      <stop offset="1" stop-color="#00bfc0"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient" xl:href="#Gradient" gradientTransform="translate(304 233) rotate(90) scale(240)"/>
+    <font-face font-family="Helvetica Neue" font-size="16" panose-1="2 0 5 3 0 0 0 2 0 4" units-per-em="1000" underline-position="-100" underline-thickness="50" slope="0" x-height="517" cap-height="714" ascent="951.9958" descent="-212.99744" font-weight="400">
+      <font-face-src>
+        <font-face-name name="HelveticaNeue"/>
+      </font-face-src>
+    </font-face>
+    <linearGradient x1="0" x2="1" id="Gradient_2" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9662d0"/>
+      <stop offset="1" stop-color="#6b7ca5"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_2" xl:href="#Gradient_2" gradientTransform="translate(256 392.5) rotate(90) scale(71.5)"/>
+    <linearGradient id="Obj_Gradient_3" xl:href="#Gradient_2" gradientTransform="translate(353 392.5) rotate(90) scale(71.5)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff914d"/>
+      <stop offset="1" stop-color="#dead26"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_4" xl:href="#Gradient_3" gradientTransform="translate(256 507.5) rotate(90) scale(71.5)"/>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -3 7 6" markerWidth="7" markerHeight="6" color="black">
+      <g>
+        <path d="M 4.8 0 L 0 -1.8 L 0 1.8 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker_2" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-6 -3 7 6" markerWidth="7" markerHeight="6" color="black">
+      <g>
+        <path d="M -4.8 0 L 0 1.8 L 0 -1.8 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <linearGradient id="Obj_Gradient_5" xl:href="#Gradient_3" gradientTransform="translate(353 507.5) rotate(90) scale(71.5)"/>
+  </defs>
+  <metadata> Produced by OmniGraffle 7.10.2 
+    <dc:date>2019-11-21 21:33:02 +0000</dc:date>
+  </metadata>
+  <g id="Canvas_1" fill-opacity="1" stroke="none" stroke-opacity="1" stroke-dasharray="none" fill="none">
+    <title>Canvas 1</title>
+    <rect fill="white" x="198" y="232" width="212" height="348"/>
+    <g id="Canvas_1: Layer 1">
+      <title>Layer 1</title>
+      <g id="Graphic_2">
+        <path d="M 203.5 233 L 404.5 233 C 407.2614 233 409.5 235.23858 409.5 238 L 409.5 468 C 409.5 470.7614 407.2614 473 404.5 473 L 203.5 473 C 200.73858 473 198.5 470.7614 198.5 468 L 198.5 238 C 198.5 235.23858 200.73858 233 203.5 233 Z" fill="url(#Obj_Gradient)"/>
+        <path d="M 203.5 233 L 404.5 233 C 407.2614 233 409.5 235.23858 409.5 238 L 409.5 468 C 409.5 470.7614 407.2614 473 404.5 473 L 203.5 473 C 200.73858 473 198.5 470.7614 198.5 468 L 198.5 238 C 198.5 235.23858 200.73858 233 203.5 233 Z" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(203.5 343)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="59.308" y="15">Kubernetes</tspan>
+        </text>
+      </g>
+      <g id="Graphic_3">
+        <rect x="225.5" y="392.5" width="61" height="71.5" fill="url(#Obj_Gradient_2)"/>
+        <rect x="225.5" y="392.5" width="61" height="71.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(230.5 418.25)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="15.428" y="15">PV</tspan>
+        </text>
+      </g>
+      <g id="Graphic_4">
+        <rect x="322.5" y="392.5" width="61" height="71.5" fill="url(#Obj_Gradient_3)"/>
+        <rect x="322.5" y="392.5" width="61" height="71.5" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(327.5 418.25)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" font-weight="400" fill="black" x="15.428" y="15">PV</tspan>
+        </text>
+      </g>
+      <g id="Graphic_5">
+        <path d="M 225.5 571.85 L 225.5 514.65 C 225.5 510.7032 239.164 507.5 256 507.5 C 272.836 507.5 286.5 510.7032 286.5 514.65 L 286.5 571.85 C 286.5 575.7968 272.836 579 256 579 C 239.164 579 225.5 575.7968 225.5 571.85" fill="url(#Obj_Gradient_4)"/>
+        <path d="M 225.5 571.85 L 225.5 514.65 C 225.5 510.7032 239.164 507.5 256 507.5 C 272.836 507.5 286.5 510.7032 286.5 514.65 L 286.5 571.85 C 286.5 575.7968 272.836 579 256 579 C 239.164 579 225.5 575.7968 225.5 571.85 M 225.5 514.65 C 225.5 518.5968 239.164 521.8 256 521.8 C 272.836 521.8 286.5 518.5968 286.5 514.65" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_6">
+        <line x1="256" y1="476.9" x2="256" y2="494.6" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_8">
+        <path d="M 322.5 571.85 L 322.5 514.65 C 322.5 510.7032 336.164 507.5 353 507.5 C 369.836 507.5 383.5 510.7032 383.5 514.65 L 383.5 571.85 C 383.5 575.7968 369.836 579 353 579 C 336.164 579 322.5 575.7968 322.5 571.85" fill="url(#Obj_Gradient_5)"/>
+        <path d="M 322.5 571.85 L 322.5 514.65 C 322.5 510.7032 336.164 507.5 353 507.5 C 369.836 507.5 383.5 510.7032 383.5 514.65 L 383.5 571.85 C 383.5 575.7968 369.836 579 353 579 C 336.164 579 322.5 575.7968 322.5 571.85 M 322.5 514.65 C 322.5 518.5968 336.164 521.8 353 521.8 C 369.836 521.8 383.5 518.5968 383.5 514.65" stroke="#506fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_7">
+        <line x1="353" y1="476.9" x2="353" y2="494.6" marker-end="url(#FilledArrow_Marker)" marker-start="url(#FilledArrow_Marker_2)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

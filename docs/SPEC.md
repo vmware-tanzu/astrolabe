@@ -21,6 +21,63 @@ Astrolabe provides APIs and data access end points to support backup, remote rep
 disaster recovery and other data protection use cases.  Astrolabe provides a single model
 for discovery and control for all of these use cases ensuring that there will be no gaps.
 
+# Protected Entity
+A Protected Entity is the main abstraction used in Astrolabe.  A Protected Entity consists of
+data and metadata.  A Protected Entity may be a leaf node or it may
+have Components, which are also Protected Entities.  Protected Entities have the ability to
+snapshot themselves, and their Components.  Protected Entities implement the serialization/deserialization
+of their object.  This includes any setup work that is needed to instantiate the Protected Entity.
+
+Protected Entities can expose their data and metadata as bitstreams that can be extracted and
+copied.  Some Protected Entities may not have this ability (e.g. EBS volumes or RDS databases).
+These entities can still be referred to and snapshotted/copied within the Astrolabe framework.
+
+## Protected Entity Examples
+
+The Protected Entities listed here are examples of how Astrolabe may view systems.  The model
+and types of Protected Entities listed here may change and evolve.
+
+### Kubernetes Name Space
+A Kubernetes Name Space Protected Entity can snapshot and serialize/deserialize the metadata (YAMLs) for a Kubernetes
+Name Space.  It also finds Component Protected Entities of the namespace.  Currently this consists
+of the Persistent Volumes, mapped to their lower level PEs (FCD, EBS).  K8S Namespace metadata is provided
+via an S3 URI.
+
+### VMWare First Class Disk
+A VMWare First Class Disk represents a VMWare virtual disk (vmdk).  First Class Disks (FCDs are addressable
+by UUID.  They have an independent lifecycle from a VMWare virtual machine, unlike traditional VMware disks.
+
+An FCD Protected Entity may be snapshotted.  The data and metadata of the FCD is available via the S3 URIs as
+well as via VMWare VADP.
+
+The FCD PE is a leaf node.  It may be copied and restored.
+
+### EBS Volume
+Elastic Block Storage volumes are Amazon Web Service virtual disks.  The EBS PE supports snapshotting of the
+volume.  Access to the metadata and data of the snapshot is not available without cloning a new
+volume from the snapshot.  The snapshot PE, therefore, does not include data or metadata URIs and
+can only be used to create a new EBS PE.
+
+### RDS database
+Relational Database Service is an Amazon service that provides managed relational databases including
+Oracle, SQLServer and Postgres databases.  The RDS PE supports snapshotting.  As with EBS volumes,
+it is not possible to access data or metadata via the PE URIs, however, new RDS databases can be created
+from a snapshot.
+
+# State Document
+One of the key capabilities in Astrolabe is the ability to generate a document that describes
+the state of an application.  This document is the Protected Entity graph, flattened and expressed
+in a standard format (JSON currently, others may be added).  There are two types of Protected Entity
+State Documents.  A *Live* State Document reflects the state of an actual system, and may be subject
+to change.  A *Snapshot* State Document is a static point-in-time.  The contents and topology
+of a Snapshot State Document are guaranteed not to change.
+
+One way to handle the backup of a Protected Entity is to simply copy the State Document.  If the snapshots
+for all of the components are durable snapshots, such as EBS snapshots or RDS snapshots, this is sufficient to
+allow for the state to be restored.
+
+
+
 # Objects
 ## Services
 A *service* in Astrolabe is a class of Protected Entities.
