@@ -84,22 +84,47 @@ func (this ProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.Prot
 }
 
 func (this ProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
+	var err error
 	bucket := this.rpetm.bucket
-	peID := this.rpetm.peinfoName(this.peinfo.GetID())
+
+	peinfoName := this.rpetm.peinfoName(this.peinfo.GetID())
+	_, err = this.deleteSnapshotComponents(ctx, bucket, peinfoName)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to delete peinfo from bucket %q", bucket)
+	}
+
+	mdName := this.rpetm.metadataName(this.peinfo.GetID())
+	_, err = this.deleteSnapshotComponents(ctx, bucket, mdName)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to delete metadata from bucket %q", bucket)
+	}
+
+	dataName := this.rpetm.dataName(this.peinfo.GetID())
+	_, err = this.deleteSnapshotComponents(ctx, bucket, dataName)
+	if err != nil {
+		return false, errors.Wrapf(err, "Failed to delete data from bucket %q", bucket)
+	}
+
+	return true, nil
+}
+
+func (this ProtectedEntity) deleteSnapshotComponents(ctx context.Context, bucket string, componentName string) (bool, error) {
+	//bucket := this.rpetm.bucket
+	//peID := this.rpetm.peinfoName(this.peinfo.GetID())
 	_, err := this.rpetm.s3.DeleteObject(&s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
-		Key: aws.String(peID),
+		Key: aws.String(componentName),
 	})
 	if err != nil {
-		return false, errors.Wrapf(err, "Unable to delete object %q from bucket %q", peID, bucket)
+		return false, errors.Wrapf(err, "Unable to delete object %q from bucket %q", componentName, bucket)
 	}
 
 	err = this.rpetm.s3.WaitUntilObjectNotExists(&s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(peID),
+		Key:    aws.String(componentName),
 	})
 	if err != nil {
-		return false, errors.Wrapf(err, "Error occurred while waiting for object %q to be deleted", peID)
+		return false, errors.Wrapf(err, "Error occurred while waiting for object %q to be deleted", componentName)
 	}
 	return true, nil
 }

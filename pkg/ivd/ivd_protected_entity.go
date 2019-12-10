@@ -168,10 +168,10 @@ func (this IVDProtectedEntity) getMetadataBuf(ctx context.Context) ([]byte, erro
 		return nil, errors.Wrap(err, "Retrieve failed")
 	}
 	retBuf, err := xml.MarshalIndent(md, "  ", "    ")
-	if err == nil {
-		fmt.Println(string(retBuf))
+	if err != nil {
+		return nil, err
 	}
-	return retBuf, err
+	return retBuf, nil
 }
 
 func (this IVDProtectedEntity) getMetadata(ctx context.Context) (metadata, error) {
