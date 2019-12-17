@@ -16,7 +16,7 @@
 
 all: build
 
-build: deps server-gen docs-gen astrolabe ivd kubernetes s3repository fs server cmd
+build: deps server-gen astrolabe ivd kubernetes s3repository fs server cmd
 
 deps:
 	go get k8s.io/klog
