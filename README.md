@@ -73,7 +73,7 @@ Snapshotting and replicating the PV data also provides crash-consistent data pro
 
 All of the models presented above can be combined, depending on customer choice.
 
-![Kubernetes with All of the Above Storage](docs/images/K8sAll.svg)
+![Kubernetes with All of the Above Storage](docs/images/k8sAll.svg)
 
 ## Non-Kubernetes services
 
