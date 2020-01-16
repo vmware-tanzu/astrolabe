@@ -36,43 +36,46 @@ func NewAstrolabeAPI(spec *loads.Document) *AstrolabeAPI {
 		BasicAuthenticator:  security.BasicAuth,
 		APIKeyAuthenticator: security.APIKeyAuth,
 		BearerAuthenticator: security.BearerAuth,
-		JSONConsumer:        runtime.JSONConsumer(),
-		JSONProducer:        runtime.JSONProducer(),
+
+		JSONConsumer: runtime.JSONConsumer(),
+
+		JSONProducer: runtime.JSONProducer(),
+
 		GetAstrolabeTasksNexusTaskNexusIDHandler: GetAstrolabeTasksNexusTaskNexusIDHandlerFunc(func(params GetAstrolabeTasksNexusTaskNexusIDParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetAstrolabeTasksNexusTaskNexusID has not yet been implemented")
+			return middleware.NotImplemented("operation GetAstrolabeTasksNexusTaskNexusID has not yet been implemented")
 		}),
 		PostAstrolabeTasksNexusHandler: PostAstrolabeTasksNexusHandlerFunc(func(params PostAstrolabeTasksNexusParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.PostAstrolabeTasksNexus has not yet been implemented")
+			return middleware.NotImplemented("operation PostAstrolabeTasksNexus has not yet been implemented")
 		}),
 		CopyProtectedEntityHandler: CopyProtectedEntityHandlerFunc(func(params CopyProtectedEntityParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.CopyProtectedEntity has not yet been implemented")
+			return middleware.NotImplemented("operation CopyProtectedEntity has not yet been implemented")
 		}),
 		CreateSnapshotHandler: CreateSnapshotHandlerFunc(func(params CreateSnapshotParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.CreateSnapshot has not yet been implemented")
+			return middleware.NotImplemented("operation CreateSnapshot has not yet been implemented")
 		}),
 		DeleteProtectedEntityHandler: DeleteProtectedEntityHandlerFunc(func(params DeleteProtectedEntityParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.DeleteProtectedEntity has not yet been implemented")
+			return middleware.NotImplemented("operation DeleteProtectedEntity has not yet been implemented")
 		}),
 		GetProtectedEntityInfoHandler: GetProtectedEntityInfoHandlerFunc(func(params GetProtectedEntityInfoParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetProtectedEntityInfo has not yet been implemented")
+			return middleware.NotImplemented("operation GetProtectedEntityInfo has not yet been implemented")
 		}),
 		GetTaskInfoHandler: GetTaskInfoHandlerFunc(func(params GetTaskInfoParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.GetTaskInfo has not yet been implemented")
+			return middleware.NotImplemented("operation GetTaskInfo has not yet been implemented")
 		}),
 		ListProtectedEntitiesHandler: ListProtectedEntitiesHandlerFunc(func(params ListProtectedEntitiesParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.ListProtectedEntities has not yet been implemented")
+			return middleware.NotImplemented("operation ListProtectedEntities has not yet been implemented")
 		}),
 		ListServicesHandler: ListServicesHandlerFunc(func(params ListServicesParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.ListServices has not yet been implemented")
+			return middleware.NotImplemented("operation ListServices has not yet been implemented")
 		}),
 		ListSnapshotsHandler: ListSnapshotsHandlerFunc(func(params ListSnapshotsParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.ListSnapshots has not yet been implemented")
+			return middleware.NotImplemented("operation ListSnapshots has not yet been implemented")
 		}),
 		ListTaskNexusHandler: ListTaskNexusHandlerFunc(func(params ListTaskNexusParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.ListTaskNexus has not yet been implemented")
+			return middleware.NotImplemented("operation ListTaskNexus has not yet been implemented")
 		}),
 		ListTasksHandler: ListTasksHandlerFunc(func(params ListTasksParams) middleware.Responder {
-			return middleware.NotImplemented("operation operations.ListTasks has not yet been implemented")
+			return middleware.NotImplemented("operation ListTasks has not yet been implemented")
 		}),
 	}
 }
@@ -98,9 +101,11 @@ type AstrolabeAPI struct {
 	// BearerAuthenticator generates a runtime.Authenticator from the supplied bearer token auth function.
 	// It has a default implementation in the security package, however you can replace it for your particular usage.
 	BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
+
 	// JSONConsumer registers a consumer for the following mime types:
 	//   - application/json
 	JSONConsumer runtime.Consumer
+
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
@@ -196,51 +201,40 @@ func (o *AstrolabeAPI) Validate() error {
 	}
 
 	if o.GetAstrolabeTasksNexusTaskNexusIDHandler == nil {
-		unregistered = append(unregistered, "Operations.GetAstrolabeTasksNexusTaskNexusIDHandler")
+		unregistered = append(unregistered, "GetAstrolabeTasksNexusTaskNexusIDHandler")
 	}
-
 	if o.PostAstrolabeTasksNexusHandler == nil {
-		unregistered = append(unregistered, "Operations.PostAstrolabeTasksNexusHandler")
+		unregistered = append(unregistered, "PostAstrolabeTasksNexusHandler")
 	}
-
 	if o.CopyProtectedEntityHandler == nil {
-		unregistered = append(unregistered, "Operations.CopyProtectedEntityHandler")
+		unregistered = append(unregistered, "CopyProtectedEntityHandler")
 	}
-
 	if o.CreateSnapshotHandler == nil {
-		unregistered = append(unregistered, "Operations.CreateSnapshotHandler")
+		unregistered = append(unregistered, "CreateSnapshotHandler")
 	}
-
 	if o.DeleteProtectedEntityHandler == nil {
-		unregistered = append(unregistered, "Operations.DeleteProtectedEntityHandler")
+		unregistered = append(unregistered, "DeleteProtectedEntityHandler")
 	}
-
 	if o.GetProtectedEntityInfoHandler == nil {
-		unregistered = append(unregistered, "Operations.GetProtectedEntityInfoHandler")
+		unregistered = append(unregistered, "GetProtectedEntityInfoHandler")
 	}
-
 	if o.GetTaskInfoHandler == nil {
-		unregistered = append(unregistered, "Operations.GetTaskInfoHandler")
+		unregistered = append(unregistered, "GetTaskInfoHandler")
 	}
-
 	if o.ListProtectedEntitiesHandler == nil {
-		unregistered = append(unregistered, "Operations.ListProtectedEntitiesHandler")
+		unregistered = append(unregistered, "ListProtectedEntitiesHandler")
 	}
-
 	if o.ListServicesHandler == nil {
-		unregistered = append(unregistered, "Operations.ListServicesHandler")
+		unregistered = append(unregistered, "ListServicesHandler")
 	}
-
 	if o.ListSnapshotsHandler == nil {
-		unregistered = append(unregistered, "Operations.ListSnapshotsHandler")
+		unregistered = append(unregistered, "ListSnapshotsHandler")
 	}
-
 	if o.ListTaskNexusHandler == nil {
-		unregistered = append(unregistered, "Operations.ListTaskNexusHandler")
+		unregistered = append(unregistered, "ListTaskNexusHandler")
 	}
-
 	if o.ListTasksHandler == nil {
-		unregistered = append(unregistered, "Operations.ListTasksHandler")
+		unregistered = append(unregistered, "ListTasksHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -257,16 +251,12 @@ func (o *AstrolabeAPI) ServeErrorFor(operationID string) func(http.ResponseWrite
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *AstrolabeAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-
 	return nil
-
 }
 
 // Authorizer returns the registered authorizer
 func (o *AstrolabeAPI) Authorizer() runtime.Authorizer {
-
 	return nil
-
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -330,7 +320,6 @@ func (o *AstrolabeAPI) Context() *middleware.Context {
 
 func (o *AstrolabeAPI) initHandlerCache() {
 	o.Context() // don't care about the result, just that the initialization happened
-
 	if o.handlers == nil {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
@@ -339,62 +328,50 @@ func (o *AstrolabeAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/tasks/nexus/{taskNexusID}"] = NewGetAstrolabeTasksNexusTaskNexusID(o.context, o.GetAstrolabeTasksNexusTaskNexusIDHandler)
-
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/astrolabe/tasks/nexus"] = NewPostAstrolabeTasksNexus(o.context, o.PostAstrolabeTasksNexusHandler)
-
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/astrolabe/{service}"] = NewCopyProtectedEntity(o.context, o.CopyProtectedEntityHandler)
-
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/astrolabe/{service}/{protectedEntityID}/snapshots"] = NewCreateSnapshot(o.context, o.CreateSnapshotHandler)
-
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/astrolabe/{service}/{protectedEntityID}"] = NewDeleteProtectedEntity(o.context, o.DeleteProtectedEntityHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/{service}/{protectedEntityID}"] = NewGetProtectedEntityInfo(o.context, o.GetProtectedEntityInfoHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/tasks/{taskID}"] = NewGetTaskInfo(o.context, o.GetTaskInfoHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/{service}"] = NewListProtectedEntities(o.context, o.ListProtectedEntitiesHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe"] = NewListServices(o.context, o.ListServicesHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/{service}/{protectedEntityID}/snapshots"] = NewListSnapshots(o.context, o.ListSnapshotsHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/tasks/nexus"] = NewListTaskNexus(o.context, o.ListTaskNexusHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/astrolabe/tasks"] = NewListTasks(o.context, o.ListTasksHandler)
-
 }
 
 // Serve creates a http handler to serve the API over HTTP
@@ -423,4 +400,16 @@ func (o *AstrolabeAPI) RegisterConsumer(mediaType string, consumer runtime.Consu
 // RegisterProducer allows you to add (or override) a producer for a media type.
 func (o *AstrolabeAPI) RegisterProducer(mediaType string, producer runtime.Producer) {
 	o.customProducers[mediaType] = producer
+}
+
+// AddMiddlewareFor adds a http middleware to existing handler
+func (o *AstrolabeAPI) AddMiddlewareFor(method, path string, builder middleware.Builder) {
+	um := strings.ToUpper(method)
+	if path == "/" {
+		path = ""
+	}
+	o.Init()
+	if h, ok := o.handlers[um][path]; ok {
+		o.handlers[method][path] = builder(h)
+	}
 }

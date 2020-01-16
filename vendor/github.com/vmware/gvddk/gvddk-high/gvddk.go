@@ -106,6 +106,27 @@ func (this DiskReaderWriter) Write(p []byte) (n int, err error) {
 	return bytesWritten, err
 }
 
+func (this DiskReaderWriter) Seek(offset int64, whence int) (int64, error) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+	desiredOffset := *this.offset
+	switch whence {
+	case io.SeekStart:
+		desiredOffset = offset
+	case io.SeekCurrent:
+		desiredOffset += offset
+	case io.SeekEnd:
+		// Fix this later
+		return *this.offset, errors.New("Seek from SeekEnd not implemented")
+	}
+
+	if desiredOffset < 0 {
+		return 0, errors.New("Cannot seek to negative offset")
+	}
+	*this.offset = desiredOffset
+	return *this.offset, nil
+}
+
 func (this DiskReaderWriter) ReadAt(p []byte, off int64) (n int, err error) {
 	return this.diskHandle.ReadAt(p, off)
 }

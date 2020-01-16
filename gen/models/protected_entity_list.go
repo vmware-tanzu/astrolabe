@@ -9,11 +9,12 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ProtectedEntityList protected entity list
+//
 // swagger:model ProtectedEntityList
 type ProtectedEntityList struct {
 
