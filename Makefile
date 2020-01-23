@@ -19,13 +19,6 @@ all: build
 build: deps server-gen astrolabe ivd kubernetes s3repository fs server cmd
 
 deps:
-	go get k8s.io/klog
-	cd $(GOPATH)/src/k8s.io/klog ; git checkout v0.4.0
-	go get github.com/googleapis/gnostic
-	cd $(GOPATH)/src/github.com/googleapis/gnostic ; git checkout v0.4.0
-	go get k8s.io/client-go/kubernetes
-	cd $(GOPATH)/src/k8s.io/client-go ; git checkout release-14.0
-	go get ./...
 	go get github.com/go-swagger/go-swagger
 	go get github.com/go-swagger/go-swagger/...
 	go install github.com/go-swagger/go-swagger/cmd/swagger
