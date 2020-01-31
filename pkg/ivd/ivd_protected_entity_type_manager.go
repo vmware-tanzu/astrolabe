@@ -22,6 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vslm"
@@ -68,9 +70,35 @@ func NewIVDProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s
 	return NewIVDProtectedEntityTypeManagerFromURL(&vcURL, s3URLBase, insecure, logger)
 }
 
+func newKeepAliveClient(ctx context.Context, u *url.URL, insecure bool) (*govmomi.Client, error) {
+	soapClient := soap.NewClient(u, insecure)
+	vimClient, err := vim25.NewClient(ctx, soapClient)
+	if err != nil {
+		return nil, err
+	}
+
+	vimClient.RoundTripper = session.KeepAlive(vimClient.RoundTripper, 10*time.Minute)
+
+	c := &govmomi.Client{
+		Client:         vimClient,
+		SessionManager: session.NewManager(vimClient),
+	}
+
+	// Only login if the URL contains user information.
+	if u.User != nil {
+		err = c.Login(ctx, u.User)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return c, nil
+}
+
 func NewIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3URLBase string, insecure bool, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
 	ctx := context.Background()
-	client, err := govmomi.NewClient(ctx, url, insecure)
+	client, err := newKeepAliveClient(ctx, url, insecure)
+
 	if err != nil {
 		return nil, err
 	}
