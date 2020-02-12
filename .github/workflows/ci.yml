@@ -1,5 +1,9 @@
 name: Astrolabe CI Check
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
 jobs:
   build:
     name: Run CI
