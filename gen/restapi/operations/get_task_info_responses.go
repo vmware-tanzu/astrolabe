@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	models "github.com/vmware-tanzu/astrolabe/gen/models"
+	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
 // GetTaskInfoOKCode is the HTTP code returned for type GetTaskInfoOK
