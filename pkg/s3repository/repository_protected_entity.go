@@ -211,7 +211,8 @@ func (this *ProtectedEntity) copy(ctx context.Context, dataReader io.Reader,
 	}
 	_, err = this.rpetm.s3.PutObject(jsonParams)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "copy S3 PutObject for PE info failed for PE %s bucket %s key %s",
+			peInfo.GetID(), this.rpetm.bucket, peinfoName)
 	}
 	return err
 }
@@ -222,25 +223,8 @@ func (this *ProtectedEntity) getReader(key string) (io.ReadCloser, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Could not get reader for bucket %s, key %s", this.rpetm.bucket, key)
 	}
-	/*
-		downloadMgr := s3manager.NewDownloaderWithClient(&this.rpetm.s3, func(d *s3manager.Downloader) {
-			d.Concurrency = 1
-			d.PartSize = 16 * 1024 * 1024
-		})
-
-		reader, writer := io.Pipe()
-		seqWriterAt := util.NewSeqWriterAt(writer)
-		go func() {
-			defer writer.Close()
-			downloadMgr.Download(seqWriterAt, &s3.GetObjectInput{
-				Bucket: aws.String(this.rpetm.bucket),
-				Key:    aws.String(key),
-			})
-			fmt.Printf("Download finished")
-		}()
-	*/
 	s3BufferedReader := bufio.NewReaderSize(s3Object.Body, 1024*1024)
 	return ioutil.NopCloser(s3BufferedReader), nil
 }
