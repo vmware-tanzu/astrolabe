@@ -22,12 +22,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/cns"
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vslm"
-	types2 "github.com/vmware/govmomi/vslm/types"
+	vslmtypes "github.com/vmware/govmomi/vslm/types"
 	"github.com/vmware/gvddk/gDiskLib"
 	"io"
 	"net/url"
@@ -37,6 +38,7 @@ import (
 type IVDProtectedEntityTypeManager struct {
 	client    *govmomi.Client
 	vsom      *vslm.GlobalObjectManager
+	cnsClient *cns.Client
 	s3URLBase string
 	user      string // These are being kept so we can open VDDK connections, may be able to open a VDDK connection
 	password  string // in IVDProtectedEntityTypeManager instead
@@ -104,12 +106,16 @@ func NewIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3URLBase string, ins
 	}
 
 	vslmClient, err := vslm.NewClient(ctx, client.Client)
-
 	if err != nil {
 		return nil, err
 	}
 
-	retVal, err := newIVDProtectedEntityTypeManagerWithClient(client, s3URLBase, vslmClient, logger)
+	cnsClient, err := cns.NewClient(ctx, client.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	retVal, err := newIVDProtectedEntityTypeManagerWithClient(client, s3URLBase, vslmClient, cnsClient, logger)
 	if err == nil {
 
 		retVal.user = url.User.Username()
@@ -127,7 +133,7 @@ const vSphereMinor = 7
 const disklibLib64 = "/usr/lib/vmware-vix-disklib/lib64"
 
 func newIVDProtectedEntityTypeManagerWithClient(client *govmomi.Client, s3URLBase string, vslmClient *vslm.Client,
-	logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+	cnsClient *cns.Client, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
 
 	vsom := vslm.NewGlobalObjectManager(vslmClient)
 
@@ -138,6 +144,7 @@ func newIVDProtectedEntityTypeManagerWithClient(client *govmomi.Client, s3URLBas
 	retVal := IVDProtectedEntityTypeManager{
 		client:    client,
 		vsom:      vsom,
+		cnsClient: cnsClient,
 		s3URLBase: s3URLBase,
 		logger:    logger,
 	}
@@ -158,12 +165,12 @@ func (this *IVDProtectedEntityTypeManager) GetProtectedEntity(ctx context.Contex
 
 func (this *IVDProtectedEntityTypeManager) GetProtectedEntities(ctx context.Context) ([]astrolabe.ProtectedEntityID, error) {
 	// Kludge because of PR
-	spec := types2.VslmVsoVStorageObjectQuerySpec{
+	spec := vslmtypes.VslmVsoVStorageObjectQuerySpec{
 		QueryField:    "createTime",
 		QueryOperator: "greaterThan",
 		QueryValue:    []string{"0"},
 	}
-	res, err := this.vsom.ListObjectsForSpec(ctx, []types2.VslmVsoVStorageObjectQuerySpec{spec}, 1000)
+	res, err := this.vsom.ListObjectsForSpec(ctx, []vslmtypes.VslmVsoVStorageObjectQuerySpec{spec}, 1000)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +220,7 @@ func (this backingSpec) GetVslmCreateSpecBackingSpec() *types.VslmCreateSpecBack
 
 func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo,
 	options astrolabe.CopyCreateOptions, dataReader io.Reader, metadataReader io.Reader) (astrolabe.ProtectedEntity, error) {
+	this.logger.Debug("ivd PETM copyInt called")
 	if (sourcePEInfo.GetID().GetPeType() != "ivd") {
 		return nil, errors.New("Copy source must be an ivd")
 	}
@@ -242,60 +250,81 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 			}
 		}
 	}
+
+	this.logger.WithField("ourVC", ourVC).WithField("existsInOurVC", existsInOurVC).Debug("Ready to restore from snapshot")
+
 	var retPE IVDProtectedEntity
 	var createTask *vslm.Task
 	var err error
 
+	md, err := readMetadataFromReader(ctx, metadataReader)
+	if err != nil {
+		return nil, err
+	}
+
 	if ourVC && existsInOurVC {
-		if (sourcePEInfo.GetID().HasSnapshot()) {
+		md, err := FilterLabelsFromMetadataForVslmAPIs(md, this.logger)
+		if err != nil {
+			return nil, err
+		}
+		hasSnapshot := sourcePEInfo.GetID().HasSnapshot()
+		if (hasSnapshot) {
 			createTask, err = this.vsom.CreateDiskFromSnapshot(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), NewVimSnapshotIDFromPEID(sourcePEInfo.GetID()),
 				sourcePEInfo.GetName(), nil, nil, "")
 		} else {
 			keepAfterDeleteVm := true
 			cloneSpec := types.VslmCloneSpec{
-				Name:              "",
+				Name:              sourcePEInfo.GetName(),
 				KeepAfterDeleteVm: &keepAfterDeleteVm,
+				Metadata:          md.ExtendedMetadata,
 			}
 			createTask, err = this.vsom.Clone(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), cloneSpec)
-			retVal, err := createTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30);
-			if err != nil {
-				return nil, err
-			}
-			newVSO := retVal.(types.VStorageObject)
-			retPE, err = newIVDProtectedEntity(this, newProtectedEntityID(newVSO.Config.Id))
 		}
 
-	} else {
-		md, err := readMetadataFromReader(ctx, metadataReader)
 		if err != nil {
+			this.logger.WithError(err).WithField("HasSnapshot", hasSnapshot).Error("Failed at creating volume from local snapshot/volume")
 			return nil, err
 		}
-		keepAfterDeleteVm := true
 
-		vslmCreateSpec := types.VslmCreateSpec{
-			Name:              "ivd-created",
-			KeepAfterDeleteVm: &keepAfterDeleteVm,
-			BackingSpec: &types.VslmCreateSpecDiskFileBackingSpec{
-				VslmCreateSpecBackingSpec: types.VslmCreateSpecBackingSpec{
-					Datastore: md.Datastore,
-				},
-				ProvisioningType: string(types.BaseConfigInfoDiskFileBackingInfoProvisioningTypeThin),
-			},
-			CapacityInMB: md.VirtualStorageObject.Config.CapacityInMB,
-			Profile:      nil,
-			Metadata:     md.ExtendedMetadata,
-		}
-		createTask, err = this.vsom.CreateDisk(ctx, vslmCreateSpec)
-		if err != nil {
-			return nil, err
-		}
 		retVal, err := createTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30);
 		if err != nil {
+			this.logger.WithError(err).Error("Failed at waiting for the task of creating volume")
 			return nil, err
 		}
 		newVSO := retVal.(types.VStorageObject)
 		retPE, err = newIVDProtectedEntity(this, newProtectedEntityID(newVSO.Config.Id))
-		retPE.copy(ctx, dataReader, md)
+
+		// if there is any local snasphot, we need to call updateMetadata explicitly
+		// since CreateDiskFromSnapshot doesn't accept metadata as a param. The API need to be changed accordingly.
+		if (hasSnapshot) {
+			updateTask, err := this.vsom.UpdateMetadata(ctx, newVSO.Config.Id, md.ExtendedMetadata, []string{})
+			if err != nil {
+				this.logger.WithError(err).Error("Failed at calling UpdateMetadata")
+				return nil, err
+			}
+			_, err = updateTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30);
+			if err != nil {
+				this.logger.WithError(err).Error("Failed at waiting for the UpdateMetadata task")
+				return nil, err
+			}
+		}
+
+	} else {
+		// To enable cross-cluster restore, need to filter out the cns specific labels, i.e. prefix: cns, in md
+		md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", this.logger)
+
+		this.logger.Debugf("Ready to provision a new volume with the source metadata: %v", md)
+		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.client, this.cnsClient, md, this.logger)
+		retPE, err = newIVDProtectedEntity(this, newProtectedEntityID(volumeVimID))
+		if err != nil {
+			return nil, err
+		}
+		err = retPE.copy(ctx, dataReader, md)
+		if err != nil {
+			this.logger.Errorf("Failed to copy data from data source to newly-provisioned IVD protected entity")
+			return nil, err
+		}
+		this.logger.WithField("volumeId", volumeVimID.Id).WithField("volumeName", md.VirtualStorageObject.Config.Name).Debug("Copied snapshot data to newly-provisioned IVD protected entity")
 	}
 
 	if err != nil {
