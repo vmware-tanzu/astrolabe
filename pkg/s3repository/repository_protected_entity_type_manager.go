@@ -61,6 +61,7 @@ func NewS3RepositoryProtectedEntityTypeManager(typeName string, session session.
 		dataPrefix:   dataPrefix,
 		logger:       logger,
 	}
+	logger.Infof("Created S3 repo type=%s bucket=%s prefix=%s", typeName, bucket, prefix)
 	return &returnPETM, nil
 }
 
@@ -252,6 +253,7 @@ func (this *ProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astro
 
 func (this *ProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo,
 	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+
 	return nil, nil
 }
 
