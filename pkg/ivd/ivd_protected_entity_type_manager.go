@@ -110,6 +110,10 @@ func NewIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3URLBase string, ins
 		return nil, err
 	}
 
+	err = client.UseServiceVersion("vsan")
+	if err != nil {
+		return nil, err
+	}
 	cnsClient, err := cns.NewClient(ctx, client.Client)
 	if err != nil {
 		return nil, err

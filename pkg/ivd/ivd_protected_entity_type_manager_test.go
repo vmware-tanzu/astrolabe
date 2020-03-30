@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -99,15 +100,29 @@ func getVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 	return vcUrl, insecure, nil
 }
 
-func verifyMdIsRestoredAsExpected(md metadata) bool {
-	reservedLabels := []string {
-		"cns.containerCluster.clusterFlavor",
-		"cns.containerCluster.clusterId",
-		"cns.containerCluster.clusterType",
-		"cns.containerCluster.vSphereUser",
-		"cns.k8s.pv.name",
-		"cns.tag",
-		"cns.version",
+func verifyMdIsRestoredAsExpected(md metadata, version string, logger logrus.FieldLogger) bool {
+	var reservedLabels []string
+	if strings.Contains(version, "6.7U3") {
+		reservedLabels = []string {
+			"cns.clusterID",
+			"cns.clusterType",
+			"cns.vSphereUser",
+			"cns.k8s.pvName",
+			"cns.tag",
+		}
+	} else if strings.HasPrefix(version, "7.0") {
+		reservedLabels = []string {
+			"cns.containerCluster.clusterFlavor",
+			"cns.containerCluster.clusterId",
+			"cns.containerCluster.clusterType",
+			"cns.containerCluster.vSphereUser",
+			"cns.k8s.pv.name",
+			"cns.tag",
+			"cns.version",
+		}
+	} else {
+		logger.Debug("Newer VC version than what we expect. Skip the verification.")
+		return true
 	}
 
 	extendedMdMap := make(map[string]string)
@@ -127,7 +142,7 @@ func verifyMdIsRestoredAsExpected(md metadata) bool {
 }
 
 func TestCreateCnsVolume(t *testing.T) {
-	path := os.Getenv("HOME") + "/.kube/config"
+	path := os.Getenv("KUBECONFIG")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		// path/to/whatever does not exist
 		t.Skipf("The KubeConfig file, %v, is not exist", path)
@@ -148,10 +163,13 @@ func TestCreateCnsVolume(t *testing.T) {
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
+
 	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, "/ivd", insecure, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
+	version := ivdPETM.client.Version
+	logger.Debugf("vcUrl = %v, version = %v", vcUrl, version)
 
 	peIDs, err := ivdPETM.GetProtectedEntities(ctx)
 	if err != nil {
@@ -259,7 +277,7 @@ func TestCreateCnsVolume(t *testing.T) {
 		t.Logf("Volume names match, name: %v", md.VirtualStorageObject.Config.Name)
 	}
 
-	if verifyMdIsRestoredAsExpected(newMD) {
+	if verifyMdIsRestoredAsExpected(newMD, version, logger) {
 		t.Logf("Volume metadata is restored as expected")
 	} else {
 		t.Errorf("Volume metadata is NOT restored as expected")
