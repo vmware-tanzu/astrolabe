@@ -23,12 +23,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
+	"github.com/vmware/govmomi/vim25/soap"
 	vim "github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vim25/xml"
 	"github.com/vmware/gvddk/gDiskLib"
 	gvddk_high "github.com/vmware/gvddk/gvddk-high"
 	"io"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"strings"
 
 	//	"github.com/vmware/govmomi/vslm"
@@ -270,22 +272,51 @@ const waitTime = 3600 * time.Second
  * Snapshot APIs
  */
 func (this IVDProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
-	vslmTask, err := this.ipetm.vsom.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrap(err, "Snapshot failed")
-	}
-	ivdSnapshotIDAny, err := vslmTask.Wait(ctx, waitTime)
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrap(err, "Wait failed")
-	}
-	ivdSnapshotID := ivdSnapshotIDAny.(vim.ID)
-	/*
-		ivdSnapshotStr := ivdSnapshotIDAny.(string)
-		ivdSnapshotID := vim.ID{
-			id: ivdSnapshotStr,
+	this.logger.Infof("CreateSnapshot called on IVD Protected Entity, %v", this.id.String())
+	var retVal astrolabe.ProtectedEntitySnapshotID
+	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
+		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
+		vslmTask, err := this.ipetm.vsom.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
+		if err != nil {
+			return false, errors.Wrapf(err, "Failed to create a task for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
-	*/
-	retVal := astrolabe.NewProtectedEntitySnapshotID(ivdSnapshotID.Id)
+		ivdSnapshotIDAny, err := vslmTask.Wait(ctx, waitTime)
+		if err != nil {
+			if soap.IsVimFault(err) {
+				_, ok := soap.ToVimFault(err).(*vim.InvalidState)
+				if ok {
+					this.logger.WithError(err).Error("There is some operation, other than this CreateSnapshot invocation, on the VM attached still being protected by its VM state. Will retry")
+					return false, nil
+				}
+			}
+			return false, errors.Wrapf(err,"Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
+		}
+		ivdSnapshotID := ivdSnapshotIDAny.(vim.ID)
+		this.logger.Debugf("A new snapshot, %v, was created on IVD Protected Entity, %v", ivdSnapshotID.Id, this.GetID().String())
+
+		// Will try RetrieveSnapshotDetail right after the completion of CreateSnapshot to make sure there is no impact from race condition
+		_, err = this.ipetm.vsom.RetrieveSnapshotDetails(ctx, NewVimIDFromPEID(this.GetID()), ivdSnapshotID)
+		if err != nil {
+			if soap.IsSoapFault(err) {
+				faultMsg := soap.ToSoapFault(err).String
+				if strings.Contains(faultMsg, "A specified parameter was not correct: snapshotId") {
+					this.logger.WithError(err).Error("Unexpected InvalidArgument SOAP fault due to the known race condition. Will retry")
+					return false, nil
+				}
+				this.logger.WithError(err).Error("Unexpected SOAP fault")
+			}
+			return false, errors.Wrapf(err, "Failed at retrieving the snapshot detail post the completion of CreateSnapshot invocation on, %v", this.id.String())
+		}
+		this.logger.Debugf("The retrieval of the newly created snapshot, %v, is completed successfully", ivdSnapshotID.Id)
+
+		retVal = astrolabe.NewProtectedEntitySnapshotID(ivdSnapshotID.Id)
+		return true, nil
+	})
+
+	if err != nil {
+		return astrolabe.ProtectedEntitySnapshotID{}, err
+	}
+	this.logger.Infof("CreateSnapshot completed on IVD Protected Entity, %v, with the new snapshot, %v, being created", this.id.String(), retVal.String())
 	return retVal, nil
 }
 
@@ -301,16 +332,44 @@ func (this IVDProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.P
 	return peSnapshotIDs, nil
 }
 func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
-	vslmTask, err := this.ipetm.vsom.DeleteSnapshot(ctx, NewVimIDFromPEID(this.id), NewVimSnapshotIDFromPESnapshotID(snapshotToDelete))
-	this.logger.Infof("IVD DeleteSnapshot API get called. Error: %v", err)
+	this.logger.Infof("DeleteSnapshot called on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
+		this.logger.Debugf("Retrying DeleteSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
+		vslmTask, err := this.ipetm.vsom.DeleteSnapshot(ctx, NewVimIDFromPEID(this.GetID()), NewVimSnapshotIDFromPESnapshotID(snapshotToDelete))
+		if err != nil {
+			return false, errors.Wrapf(err, "Failed to create a task for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+		}
+
+		_, err = vslmTask.Wait(ctx, waitTime)
+		if err != nil {
+			if soap.IsVimFault(err) {
+				switch soap.ToVimFault(err).(type) {
+				case *vim.InvalidArgument:
+					this.logger.WithError(err).Infof("Disk doesn't have given snapshot due to the snapshot stamp was removed in the previous DeleteSnapshot operation which failed with InvalidState fault. And it will be resolved by the next snapshot operation on the same VM. Will NOT retry")
+					return true, nil
+				case *vim.NotFound:
+					this.logger.WithError(err).Infof("There is a temporary catalog mismatch due to a race condition with one another concurrent DeleteSnapshot operation. And it will be resolved by the next consolidateDisks operation on the same VM. Will NOT retry")
+					return true, nil
+				case *vim.InvalidState:
+					this.logger.WithError(err).Error("There is some operation, other than this DeleteSnapshot invocation, on the same VM still being protected by its VM state. Will retry")
+					return false, nil
+				case *vim.TaskInProgress:
+					this.logger.WithError(err).Error("There is some other InProgress operation on the same VM. Will retry")
+					return false, nil
+				case *vim.FileLocked:
+					this.logger.WithError(err).Error("An error occurred while consolidating disks: Failed to lock the file. Will retry")
+					return false, nil
+				}
+			}
+			return false, errors.Wrapf(err,"Failed at waiting for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+		}
+		return true, nil
+	})
+
 	if err != nil {
-		return false, errors.Wrap(err, "DeleteSnapshot failed")
+		return false, err
 	}
-	_, err = vslmTask.Wait(ctx, waitTime)
-	this.logger.Infof("IVD DeleteSnapshot Task is reported to be completed. Error: %v", err)
-	if err != nil {
-		return false, errors.Wrap(err, "Wait failed")
-	}
+	this.logger.Infof("DeleteSnapshot completed on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 	return true, nil
 }
 
