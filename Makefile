@@ -15,41 +15,37 @@
 #
 
 export GO111MODULE=on
+export GOFLAGS=-mod=readonly
 
 all: build
 
-build: deps server-gen astrolabe ivd kubernetes s3repository fs server cmd
+build: server-gen astrolabe ivd kubernetes s3repository fs server cmd
 
-deps:
-	go get github.com/go-swagger/go-swagger
-	go get github.com/go-swagger/go-swagger/...
-	go install github.com/go-swagger/go-swagger/cmd/swagger
-
-cmd: deps
+cmd: 
 	cd cmd/astrolabe_server; go build
 
-astrolabe: deps
+astrolabe: 
 	cd pkg/astrolabe; go build
 
-ivd: deps
+ivd: 
 	cd pkg/ivd; go build
 
-fs: deps
+fs: 
 	cd pkg/ivd; go build
 
-s3repository: deps
+s3repository: 
 	cd pkg/s3repository; go build
 
-kubernetes: deps
+kubernetes: 
 	cd pkg/kubernetes; go build
 
-server: deps
+server: 
 	cd pkg/server; go build
 
 server-gen: gen/restapi/server.go
 
 gen/restapi/server.go: openapi/astrolabe_api.yaml
-	$(GOPATH)/bin/swagger generate server -f openapi/astrolabe_api.yaml -t gen --exclude-main -A astrolabe
+	bin/swagger_linux_amd64 generate server -f openapi/astrolabe_api.yaml -t gen --exclude-main -A astrolabe
 
 docs-gen: docs/api/index.html
 
