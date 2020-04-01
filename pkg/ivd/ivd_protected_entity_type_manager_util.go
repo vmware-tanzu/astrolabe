@@ -8,7 +8,9 @@ import (
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware/govmomi/vim25/mo"
 	vim25types "github.com/vmware/govmomi/vim25/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -16,8 +18,73 @@ import (
 	"strings"
 )
 
-func findAllDatastores(ctx context.Context, client *vim25.Client) ([]vim25types.ManagedObjectReference, error) {
+func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
+	// #1: get hostNames of all node VMs
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeList, err := clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	vmHostNameMap := make(map[string]bool)
+	for _, node := range nodeList.Items {
+		if node.Name == "" {
+			return nil, errors.Errorf("One of the node VM with uid, %v, in the cluster has empty node name", node.UID)
+		}
+		vmHostNameMap[node.Name] = true
+	}
+
+	// #2: go through the VM list in this VC and get their host from vm.runtime
 	finder := find.NewFinder(client)
+
+	vms, err := finder.VirtualMachineList(ctx, "*")
+	if err != nil {
+		return nil, err
+	}
+
+	var vmRefList []vim25types.ManagedObjectReference
+	for _, vm := range vms {
+		vmRefList = append(vmRefList, vm.Reference())
+	}
+
+	pc := property.DefaultCollector(client)
+	var vmMoList []mo.VirtualMachine
+	err = pc.Retrieve(ctx, vmRefList, []string{"runtime", "guest"}, &vmMoList)
+	if err != nil {
+		return nil, err
+	}
+
+	var hostList []vim25types.ManagedObjectReference
+	hostRefMap := make(map[vim25types.ManagedObjectReference]bool)
+	for _, vmMo := range vmMoList {
+		_, ok := vmHostNameMap[vmMo.Guest.HostName]
+		if !ok {
+			continue
+		}
+		_, ok = hostRefMap[*vmMo.Runtime.Host]
+		if !ok {
+			hostRefMap[*vmMo.Runtime.Host] = true
+			hostList = append(hostList, *vmMo.Runtime.Host)
+		}
+	}
+
+	logger.Debugf("hostList = %v", hostList)
+	return hostList, nil
+}
+
+func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
+	finder := find.NewFinder(client)
+
+	hosts, err := findHostsOfNodeVMs(ctx, client, config, logger)
+	if err != nil {
+		return nil, err
+	}
+	nHosts := len(hosts)
+
 	dss, err := finder.DatastoreList(ctx, "*")
 	if err != nil {
 		return nil, err
@@ -25,24 +92,82 @@ func findAllDatastores(ctx context.Context, client *vim25.Client) ([]vim25types.
 
 	var dsList []vim25types.ManagedObjectReference
 	for _, ds := range dss {
-		dsList = append(dsList, ds.Reference())
-	}
-	if len(dsList) == 0 {
-		return nil, errors.New("No datastore can be found")
+		dsType, err := ds.Type(ctx)
+		if err != nil {
+			logger.WithError(err).Warnf("Failed to get type of datastore %v", ds.Reference())
+			continue
+		}
+
+		if dsType == vim25types.HostFileSystemVolumeFileSystemTypeNFS41 {
+			// Currently, provisioning PV on NFS 4.1 datastore is not officially supported.
+			// It will be turned on once it is supported.
+			continue
+		}
+
+		if dsType == vim25types.HostFileSystemVolumeFileSystemTypeNFS {
+			var dsMo mo.Datastore
+			err = ds.Properties(ctx, ds.Reference(), []string{"info"}, &dsMo)
+			if err != nil {
+				logger.WithError(err).Warnf("Failed to get info of datastore %v", ds.Reference())
+				continue
+			}
+			logger.Debugf("NFS name = %v", dsMo.Info.GetDatastoreInfo().Name)
+			nasDsInfo, ok := dsMo.Info.(*vim25types.NasDatastoreInfo)
+			if !ok {
+				logger.Debugf("Failed to get info of NFS datastore %v", ds.Reference())
+				continue
+			}
+			logger.Debugf("NAS RemoteHost = %v", nasDsInfo.Nas.RemoteHost)
+			if strings.Contains(nasDsInfo.Nas.RemoteHost, "eng.vmware.com") {
+				logger.Debugf("Detected a VMware specific NFS volume, %v. Skipping it", nasDsInfo.Name)
+				continue
+			}
+		}
+
+		attachedHosts, err := ds.AttachedHosts(ctx)
+		if err != nil {
+			logger.WithError(err).Warnf("Failed to get all the attached hosts of datastore %v", ds.Reference())
+			continue
+		}
+
+		if len(attachedHosts) < nHosts {
+			continue
+		}
+
+		// make the array of attached hosts a map of attached hosts for the convenience of look-up
+		attachedHostsMap := make(map[vim25types.ManagedObjectReference]vim25types.ManagedObjectReference)
+		for _, host := range attachedHosts {
+			attachedHostsMap[host.Reference()] = ds.Reference()
+		}
+
+		// traverse the hosts of node VMs and filter out datastores that are not accessible from any host of node VMs
+		eligible := true
+		for _, host := range hosts {
+			_, ok := attachedHostsMap[host.Reference()]
+			if !ok {
+				eligible = false
+				break
+			}
+		}
+
+		if eligible {
+			dsList = append(dsList, ds.Reference())
+		}
 	}
 
+	logger.Debugf("Shared datastores from all node VMs: %v", dsList)
 	return dsList, nil
 }
 
 func retrievePlatformInfoFromConfig(config *rest.Config, params map[string]interface{}, logger logrus.FieldLogger) error {
-	clientset, err := kubernetes.NewForConfig(config)
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		logger.WithError(err).Errorf("Failed to get k8s clientset from the given config: %v", config)
+		logger.WithError(err).Errorf("Failed to get k8s clientSet from the given config: %v", config)
 		return err
 	}
 
 	ns := "kube-system"
-	secretApis := clientset.CoreV1().Secrets(ns)
+	secretApis := clientSet.CoreV1().Secrets(ns)
 	vsphere_secret := "vsphere-config-secret"
 	secret, err := secretApis.Get(vsphere_secret, metav1.GetOptions{})
 	if err != nil {
@@ -78,7 +203,7 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, config *rest.Config, 
 
 	// Preparing for the VolumeCreateSpec for the volume provisioning
 	logger.Debug("Preparing for the VolumeCreateSpec for the volume provisioning")
-	dsList, err := findAllDatastores(ctx, client.Client)
+	dsList, err := findSharedDatastoresFromAllNodeVMs(ctx, client.Client, config, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed to find any datastore in the underlying vSphere")
 		return "", err
