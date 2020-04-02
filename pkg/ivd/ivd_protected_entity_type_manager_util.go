@@ -2,12 +2,14 @@ package ivd
 
 import (
 	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/find"
+	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
@@ -17,6 +19,21 @@ import (
 	"k8s.io/client-go/rest"
 	"strings"
 )
+
+func findDataCenterFromAncestors(ctx context.Context, client *vim25.Client, objectRef vim25types.ManagedObjectReference, logger logrus.FieldLogger) (string, error)  {
+	pc := property.DefaultCollector(client)
+	path, err := mo.Ancestors(ctx, client, pc.Reference(), objectRef)
+	if err != nil {
+		return "", err
+	}
+	for i := range path {
+		if path[i].Reference().Type == "Datacenter" {
+			logger.Debugf("Object reference=%v, DC=%v", objectRef, path[i].Name)
+			return path[i].Name, nil
+		}
+	}
+	return "", errors.New("Failed to find the datacenter from ancestors")
+}
 
 func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
 	// #1: get hostNames of all node VMs
@@ -41,20 +58,33 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 	// #2: go through the VM list in this VC and get their host from vm.runtime
 	finder := find.NewFinder(client)
 
-	vms, err := finder.VirtualMachineList(ctx, "*")
+	dcs, err := finder.DatacenterList(ctx, "*")
 	if err != nil {
+		logger.WithError(err).Error("Failed to find the list of data centers in VC")
 		return nil, err
 	}
 
 	var vmRefList []vim25types.ManagedObjectReference
-	for _, vm := range vms {
-		vmRefList = append(vmRefList, vm.Reference())
+	for _, dc := range dcs {
+		path := fmt.Sprintf("%v/vm/*", dc.InventoryPath)
+		vms, err := finder.VirtualMachineList(ctx, path)
+		if err != nil {
+			logger.WithError(err).Error("Failed to find the list of VMs in a data center")
+			return nil, err
+		}
+
+		for _, vm := range vms {
+			vmRefList = append(vmRefList, vm.Reference())
+		}
 	}
+
+	logger.Debugf("vmRefList = %v", vmRefList)
 
 	pc := property.DefaultCollector(client)
 	var vmMoList []mo.VirtualMachine
 	err = pc.Retrieve(ctx, vmRefList, []string{"runtime", "guest"}, &vmMoList)
 	if err != nil {
+		logger.WithError(err).Error("Failed to retrieve VM runtime and guest properties")
 		return nil, err
 	}
 
@@ -65,6 +95,7 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 		if !ok {
 			continue
 		}
+
 		_, ok = hostRefMap[*vmMo.Runtime.Host]
 		if !ok {
 			hostRefMap[*vmMo.Runtime.Host] = true
@@ -79,15 +110,40 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
 	finder := find.NewFinder(client)
 
+
 	hosts, err := findHostsOfNodeVMs(ctx, client, config, logger)
 	if err != nil {
+		logger.WithError(err).Error("Failed to find hosts of all node VMs")
 		return nil, err
 	}
 	nHosts := len(hosts)
+	if nHosts <= 0 {
+		logger.WithError(err).Error("No hosts can be found for node VMs")
+		return nil, errors.New("No hosts can be found for node VMs")
+	}
 
-	dss, err := finder.DatastoreList(ctx, "*")
-	if err != nil {
-		return nil, err
+	dcNameMap := make(map[string]bool)
+	for _, host := range hosts {
+		dcName, err := findDataCenterFromAncestors(ctx, client, host.Reference(), logger)
+		if err != nil {
+			logger.Debugf("Failed to find a datacenter from ancestors of VM, %v", host.Reference())
+			continue
+		}
+		_, ok := dcNameMap[dcName]
+		if !ok {
+			dcNameMap[dcName] = true
+		}
+	}
+
+	var dss []*object.Datastore
+	for dcName, _ := range dcNameMap {
+		path := fmt.Sprintf("/%v/datastore/*", dcName)
+		dssPerDC, err := finder.DatastoreList(ctx, path)
+		if err != nil {
+			logger.WithError(err).Error("Failed to find the list of all datastores in VC")
+			return nil, err
+		}
+		dss = append(dss, dssPerDC...)
 	}
 
 	var dsList []vim25types.ManagedObjectReference
