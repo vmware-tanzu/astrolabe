@@ -39,6 +39,9 @@ type ProtectedEntityTypeManager struct {
 	bucket                                           string
 	objectPrefix, peinfoPrefix, mdPrefix, dataPrefix string
 	logger    logrus.FieldLogger
+	maxSegmentSize int64
+	maxBufferSize int64
+	maxParts int64
 }
 
 func NewS3RepositoryProtectedEntityTypeManager(typeName string, session session.Session, bucket string,
@@ -60,6 +63,9 @@ func NewS3RepositoryProtectedEntityTypeManager(typeName string, session session.
 		mdPrefix:     mdPrefix,
 		dataPrefix:   dataPrefix,
 		logger:       logger,
+		maxSegmentSize:	SegmentSizeLimit,
+		maxBufferSize: MaxBufferSize,
+		maxParts: MaxParts,
 	}
 	logger.Infof("Created S3 repo type=%s bucket=%s prefix=%s", typeName, bucket, prefix)
 	return &returnPETM, nil
@@ -306,7 +312,11 @@ func (this *ProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInf
 		peinfo: rPEInfo,
 	}
 
-	err = rpe.copy(ctx, dataReader, metadataReader)
+	_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID())
+	if err != nil {
+		return nil, err
+	}
+	err = rpe.copy(ctx, this.maxSegmentSize, dataReader, metadataReader)
 	if err != nil {
 		return nil, err
 	}

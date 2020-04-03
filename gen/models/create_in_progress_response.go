@@ -7,11 +7,12 @@ package models
 
 import (
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // CreateInProgressResponse create in progress response
+//
 // swagger:model CreateInProgressResponse
 type CreateInProgressResponse struct {
 

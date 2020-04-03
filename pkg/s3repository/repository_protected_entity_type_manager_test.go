@@ -60,6 +60,7 @@ func setupPETM(t *testing.T, typeName string) (*ProtectedEntityTypeManager, erro
 	return s3petm, err
 }
 
+/*
 func TestCreateDeleteProtectedEntity(t *testing.T) {
 	s3petm, err := setupPETM(t, "test")
 	if err != nil {
@@ -74,6 +75,7 @@ func TestCreateDeleteProtectedEntity(t *testing.T) {
 	t.Logf("Create repo PE %s\n", repoPE.GetID().String())
 
 }
+*/
 
 func TestCopyFSProtectedEntity(t *testing.T) {
 	s3petm, err := setupPETM(t, "fs")
@@ -122,7 +124,7 @@ func TestRetrieveEntity(t *testing.T) {
 	}
 
 	ivdParams := make(map[string]interface{})
-	ivdParams["vcHost"] = "10.161.99.58"
+	ivdParams["vcHost"] = "10.208.22.211:443"
 	ivdParams["insecureVC"] = "Y"
 	ivdParams["vcUser"] = "administrator@vsphere.local"
 	ivdParams["vcPassword"] = "Admin!23"
@@ -193,7 +195,7 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 	}
 
 	ivdParams := make(map[string]interface{})
-	ivdParams["vcHost"] = "10.161.99.58"
+	ivdParams["vcHost"] = "10.208.22.211:443"
 	ivdParams["insecureVC"] = "Y"
 	ivdParams["vcUser"] = "administrator@vsphere.local"
 	ivdParams["vcPassword"] = "Admin!23"
@@ -213,23 +215,35 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 
 	//PESSID := astrolabe.NewProtectedEntitySnapshotID("ecb7fa78-cef9-4459-b898-17a39f582d9b")
 	//ivdPEID := astrolabe.NewProtectedEntityIDWithSnapshotID("ivd", "cf29221a-381b-4036-825a-56bf8294ed38", ivdPESSID)
-	ivdPEID := astrolabe.NewProtectedEntityID("ivd", "9d886896-f7f4-46d4-b6ab-f50b30013467")
-	ivdPE, err := ivdPETM.GetProtectedEntity(ctx, ivdPEID)
+	//ivdPEID := astrolabe.NewProtectedEntityID("ivd", "22dd64e4-987f-4bec-b997-04c12a0e0d86")
+	ivdPEID := astrolabe.NewProtectedEntityID("ivd", "c5ff5363-f6d2-4240-ae2e-8d9f8cee484c")
+	var snapID astrolabe.ProtectedEntitySnapshotID
+	if false {
+		ivdPE, err := ivdPETM.GetProtectedEntity(ctx, ivdPEID)
 
-	snapID, err := ivdPE.Snapshot(ctx)
-	if err != nil {
-		t.Fatal(err)
+		snapID, err = ivdPE.Snapshot(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		snapID = astrolabe.NewProtectedEntitySnapshotID("1c929d85-1148-43d8-aa1d-12098b119325")
 	}
-	snapPEID := astrolabe.NewProtectedEntityIDWithSnapshotID("ivd", ivdPEID.GetID(), *snapID)
-	snapPE, err := ivdPETM.GetProtectedEntity(ctx, snapPEID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s3PE, err := s3petm.Copy(ctx, snapPE, astrolabe.AllocateNewObject)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var s3PE astrolabe.ProtectedEntity
+	snapPEID := astrolabe.NewProtectedEntityIDWithSnapshotID("ivd", ivdPEID.GetID(), snapID)
 
+	if false {
+
+		snapPE, err := ivdPETM.GetProtectedEntity(ctx, snapPEID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s3PE, err = s3petm.Copy(ctx, snapPE, astrolabe.AllocateNewObject)
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		s3PE, err = s3petm.GetProtectedEntity(ctx, snapPEID)
+	}
 	newIVDPE, err := ivdPETM.Copy(ctx, s3PE, astrolabe.AllocateNewObject)
 	if err != nil {
 		t.Fatal(err)

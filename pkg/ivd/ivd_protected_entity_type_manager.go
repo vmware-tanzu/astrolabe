@@ -188,10 +188,15 @@ func (this *IVDProtectedEntityTypeManager) GetProtectedEntities(ctx context.Cont
 func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astrolabe.ProtectedEntity, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	sourcePEInfo, err := sourcePE.GetInfo(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "GetInfo failed")
 	}
 	dataReader, err := sourcePE.GetDataReader(ctx)
-	if dataReader != nil {
+
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDataReader failed")
+	}
+
+	if dataReader != nil {	// If there's no data we will not get a reader and no error
 		defer func() {
 			if err := dataReader.Close(); err != nil {
 				this.logger.Errorf("The deferred data reader is closed with error, %v", err)
@@ -199,15 +204,17 @@ func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE as
 		}()
 	}
 
-	if err != nil {
-		return nil, err
-	}
+
 
 	metadataReader, err := sourcePE.GetMetadataReader(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "GetMetadataReader failed")
 	}
-	return this.copyInt(ctx, sourcePEInfo, options, dataReader, metadataReader)
+	returnPE, err := this.copyInt(ctx, sourcePEInfo, options, dataReader, metadataReader)
+	if err != nil {
+		return nil, errors.Wrap(err, "copyInt failed")
+	}
+	return returnPE, nil
 }
 
 func (this *IVDProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, peInfo astrolabe.ProtectedEntityInfo, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
@@ -249,7 +256,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 					// Doesn't exist in our local system, we can't just clone it
 					existsInOurVC = false
 				} else {
-					return nil, err
+					return nil, errors.Wrap(err, "Retrieve failed")
 				}
 			}
 		}
@@ -275,6 +282,9 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		if (hasSnapshot) {
 			createTask, err = this.vsom.CreateDiskFromSnapshot(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), NewVimSnapshotIDFromPEID(sourcePEInfo.GetID()),
 				sourcePEInfo.GetName(), nil, nil, "")
+			if err != nil {
+				return nil, errors.Wrap(err, "CreateDiskFromSnapshot failed")
+			}
 		} else {
 			keepAfterDeleteVm := true
 			cloneSpec := types.VslmCloneSpec{
@@ -321,7 +331,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.client, this.cnsClient, md, this.logger)
 		retPE, err = newIVDProtectedEntity(this, newProtectedEntityID(volumeVimID))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "CreateDisk failed")
 		}
 		err = retPE.copy(ctx, dataReader, md)
 		if err != nil {

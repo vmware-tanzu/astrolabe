@@ -61,7 +61,14 @@ func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser
 
 	diskReader, vErr := gvddk_high.Open(diskConnectParam, this.logger)
 	if vErr != nil {
-		return nil, errors.New(fmt.Sprintf(vErr.Error() + " with error code: %d", vErr.VixErrorCode()))
+		if vErr.VixErrorCode() == 20005 {
+			// Try the end access once
+			gDiskLib.EndAccess(diskConnectParam)
+			diskReader, vErr = gvddk_high.Open(diskConnectParam, this.logger)
+		}
+		if vErr != nil {
+			return nil, errors.New(fmt.Sprintf(vErr.Error()+" with error code: %d", vErr.VixErrorCode()))
+		}
 	}
 
 	return diskReader, nil
@@ -204,8 +211,8 @@ func (this IVDProtectedEntity) getMetadata(ctx context.Context) (metadata, error
 
 func readMetadataFromReader(ctx context.Context, metadataReader io.Reader) (metadata, error) {
 	mdBuf, err := ioutil.ReadAll(metadataReader) // TODO - limit this so it can't run us out of memory here
-	if err != nil {
-		return metadata{}, err
+	if err != nil && err != io.EOF {
+		return metadata{}, errors.Wrap(err, "ReadAll failed")
 	}
 	return readMetadataFromBuf(ctx, mdBuf)
 }

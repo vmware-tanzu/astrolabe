@@ -9,10 +9,11 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
 // TaskIDList task ID list
+//
 // swagger:model TaskIDList
 type TaskIDList []TaskID
 
