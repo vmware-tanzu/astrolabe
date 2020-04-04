@@ -17,6 +17,7 @@ limitations under the License.
 package gDiskLib
 
 // #cgo LDFLAGS: -L../vmware-vix-disklib-distrib/lib64 -lvixDiskLib
+// #cgo CFLAGS: -I../vmware-vix-disklib-distrib/include
 // #include "gvddk_c.h"
 import "C"
 import (
