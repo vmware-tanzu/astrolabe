@@ -9,7 +9,7 @@ User can choose to either use main functionality via high level api, or use low 
 
 # Dependency
 Gvddk needs Virtual Disk Development Kit (VDDK) to connect with vSphere.
-The VDDK can be downloaded from here: https://code.vmware.com/web/sdk/6.7/vddk.  Gvddk requires the 6.7.3 VDDK release.
+The VDDK can be downloaded from here: https://code.vmware.com/web/sdk/7.0/vddk.  Gvddk requires the 7.0.0 VDDK release.
 After installing, please untar into the gvddk directory:
 
 ```
