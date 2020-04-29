@@ -66,7 +66,7 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 
 	var vmRefList []vim25types.ManagedObjectReference
 	for _, dc := range dcs {
-		path := fmt.Sprintf("%v/vm/*", dc.InventoryPath)
+		path := fmt.Sprintf("%v/vm/...", dc.InventoryPath)
 		vms, err := finder.VirtualMachineList(ctx, path)
 		if err != nil {
 			logger.WithError(err).Error("Failed to find the list of VMs in a data center")
