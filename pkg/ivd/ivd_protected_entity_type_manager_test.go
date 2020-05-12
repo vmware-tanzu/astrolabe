@@ -24,6 +24,9 @@ import (
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
 	vim25types "github.com/vmware/govmomi/vim25/types"
+	k8sv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"net/url"
@@ -43,6 +46,9 @@ func TestProtectedEntityTypeManager(t *testing.T) {
 	t.Logf("%s\n", vcUrl.String())
 
 	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(&vcUrl, "/ivd", true, logrus.New())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	pes, err := ivdPETM.GetProtectedEntities(ctx)
@@ -55,41 +61,88 @@ func TestProtectedEntityTypeManager(t *testing.T) {
 func getVcConfigFromParams(params map[string]interface{}) (*url.URL, bool, error) {
 	var vcUrl url.URL
 	vcUrl.Scheme = "https"
-	vcHostStr, ok := params["VirtualCenter"].(string)
-	if !ok {
-		return nil, false, errors.New("Missing vcHost param")
+	vcHostStr, err := GetVirtualCenterFromParamsMap(params)
+	if err != nil {
+		return nil, false, err
 	}
-	vcHostPortStr, ok := params["port"].(string)
-	if !ok {
-		return nil, false, errors.New("Missing port param")
+	vcHostPortStr, err := GetPortFromParamsMap(params)
+	if err != nil {
+		return nil, false, err
 	}
 
 	vcUrl.Host = fmt.Sprintf("%s:%s", vcHostStr, vcHostPortStr)
 
-	vcUser, ok := params["user"].(string)
-	if !ok {
-		return nil, false, errors.New("Missing vcUser param")
+	vcUser, err := GetUserFromParamsMap(params)
+	if err != nil {
+		return nil, false, err
 	}
-	vcPassword, ok := params["password"].(string)
-	if !ok {
-		return nil, false, errors.New("Missing vcPassword param")
+	vcPassword, err := GetPasswordFromParamsMap(params)
+	if err != nil {
+		return nil, false, err
 	}
 	vcUrl.User = url.UserPassword(vcUser, vcPassword)
 	vcUrl.Path = "/sdk"
 
-	insecure := false
-	insecureStr, ok := params["insecure-flag"].(string)
-	if ok && (insecureStr == "TRUE" || insecureStr == "true") {
-		insecure = true
-	}
+	insecure, err := GetInsecureFlagFromParamsMap(params)
 
 	return &vcUrl, insecure, nil
+}
+
+// TODO: Used only for test, remove when tests are fixed
+func retrievePlatformInfoFromConfig(config *rest.Config, params map[string]interface{}) error {
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Errorf("Failed to get k8s clientset from the given config: %v", config)
+	}
+
+	ns := "kube-system"
+	secretApis := clientset.CoreV1().Secrets(ns)
+	vsphere_secrets := []string{"vsphere-config-secret", "csi-vsphere-config"}
+	var secret *k8sv1.Secret
+	for _, vsphere_secret := range vsphere_secrets {
+		secret, err = secretApis.Get(vsphere_secret, metav1.GetOptions{})
+		if err == nil {
+			break
+		}
+	}
+
+	// No valid secret found.
+	if err != nil {
+		return errors.Errorf("Failed to get k8s secret, %s", vsphere_secrets)
+	}
+
+	sEnc := string(secret.Data["csi-vsphere.conf"])
+	lines := strings.Split(sEnc, "\n")
+
+	for _, line := range lines {
+		if strings.Contains(line, "VirtualCenter") {
+			parts := strings.Split(line, "\"")
+			params["VirtualCenter"] = parts[1]
+		} else if strings.Contains(line, "=") {
+			parts := strings.Split(line, "=")
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// Skip the quotes in the value if present
+			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+				params[key] = value[1 : len(value)-1]
+			} else {
+				params[key] = value
+			}
+		}
+	}
+
+	// If port is missing, add an entry in the params to use the standard https port
+	if _, ok := params["port"]; !ok {
+		params["port"] = "443"
+	}
+
+	return nil
 }
 
 func getVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 	params := make(map[string]interface{})
 
-	err := retrievePlatformInfoFromConfig(config, params, nil)
+	err := retrievePlatformInfoFromConfig(config, params)
 	if err != nil {
 		return nil, false, errors.Errorf("Failed to retrieve VC config secret: %+v", err)
 	}
@@ -206,7 +259,14 @@ func TestCreateCnsVolume(t *testing.T) {
 
 	t.Logf("PE name, %v", md.VirtualStorageObject.Config.Name)
 	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+
+	ivdParams := make(map[string]interface{})
+	err = retrievePlatformInfoFromConfig(config, ivdParams)
+	if err != nil {
+		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
+	}
+
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
 	if err != nil {
 		t.Fatal("Fail to provision a new volume")
 	}
@@ -338,13 +398,17 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get the metadata of the PE, %v: %v", pe.id.String(), err)
 	}
-
-
 	logger.Debugf("IVD md: %v", md.ExtendedMetadata)
+
+	ivdParams := make(map[string]interface{})
+	err = retrievePlatformInfoFromConfig(config, ivdParams)
+	if err != nil {
+		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
+	}
 
 	t.Logf("PE name, %v", md.VirtualStorageObject.Config.Name)
 	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
 	if err != nil {
 		t.Fatal("Fail to provision a new volume")
 	}
