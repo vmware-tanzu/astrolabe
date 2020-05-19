@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"strconv"
 	"strings"
 )
 
@@ -215,43 +216,10 @@ func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Clien
 	return dsList, nil
 }
 
-func retrievePlatformInfoFromConfig(config *rest.Config, params map[string]interface{}, logger logrus.FieldLogger) error {
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logger.WithError(err).Errorf("Failed to get k8s clientSet from the given config: %v", config)
-		return err
-	}
+func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]interface{}, config *rest.Config, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (string, error) {
+	logger.Debugf("createCnsVolumeWithClusterConfig called with args, config params and metadata: %v", md)
 
-	ns := "kube-system"
-	secretApis := clientSet.CoreV1().Secrets(ns)
-	vsphere_secret := "vsphere-config-secret"
-	secret, err := secretApis.Get(vsphere_secret, metav1.GetOptions{})
-	if err != nil {
-		logger.WithError(err).Errorf("Failed to get k8s secret, %s", vsphere_secret)
-		return err
-	}
-	sEnc := string(secret.Data["csi-vsphere.conf"])
-	lines := strings.Split(sEnc, "\n")
-
-	for _, line := range lines {
-		if strings.Contains(line, "VirtualCenter") {
-			parts := strings.Split(line, "\"")
-			params["VirtualCenter"] = parts[1]
-		} else if strings.Contains(line, "=") {
-			parts := strings.Split(line, "=")
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			params[key] = value[1 : len(value)-1]
-		}
-	}
-
-	return nil
-}
-
-func createCnsVolumeWithClusterConfig(ctx context.Context, config *rest.Config, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (string, error) {
-	logger.Debugf("createCnsVolumeWithClusterConfig called with args, metadata: %v", md)
-
-	reservedLabelsMap, err := fillInClusterSpecificParams(config, logger)
+	reservedLabelsMap, err := fillInClusterSpecificParams(params, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed at calling fillInClusterSpecificParams")
 		return "", err
@@ -330,23 +298,16 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, config *rest.Config, 
 	return volumeId, nil
 }
 
-func fillInClusterSpecificParams(config *rest.Config, logger logrus.FieldLogger) (map[string]string, error) {
-	params := make(map[string]interface{})
-	err := retrievePlatformInfoFromConfig(config, params, logger)
+func fillInClusterSpecificParams(params map[string]interface{}, logger logrus.FieldLogger) (map[string]string, error) {
+	clusterId, err := GetClusterFromParamsMap(params)
 	if err != nil {
-		logger.WithError(err).Errorf("Failed to retrieve VC config secret: %+v", err)
+		logger.WithError(err).Errorf("Failed to get Cluster params")
 		return map[string]string{}, err
 	}
 
-	clusterId, ok := params["cluster-id"].(string)
-	if !ok {
-		logger.WithError(err).Errorf("Failed to retrieve cluster id")
-		return map[string]string{}, err
-	}
-
-	user, ok := params["user"].(string)
-	if !ok {
-		logger.WithError(err).Errorf("Failed to retrieve vsphere user")
+	user, err := GetUserFromParamsMap(params)
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to get Cluster params")
 		return map[string]string{}, err
 	}
 	logger.Debugf("Retrieved cluster id, %v, and vSphere user, %v", clusterId, user)
@@ -369,20 +330,12 @@ func fillInClusterSpecificParams(config *rest.Config, logger logrus.FieldLogger)
 	return reservedLabelsMap, nil
 }
 
-func FilterLabelsFromMetadataForVslmAPIs(md metadata, logger logrus.FieldLogger) (metadata, error) {
+func FilterLabelsFromMetadataForVslmAPIs(md metadata, params map[string]interface{}, logger logrus.FieldLogger) (metadata, error) {
 	var kvsList []vim25types.KeyValue
 
 	logger.Debugf("labels of CNS volume before filtering: %v", md.ExtendedMetadata)
 
-	// Retrieving cluster id and vSphere user
-	logger.Debug("Retrieving cluster id and vSphere user required by provisioning volume")
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		logger.WithError(err).Error("Failed to get k8s inClusterConfig")
-		return metadata{}, err
-	}
-
-	reservedLabelsMap, err := fillInClusterSpecificParams(config, logger)
+	reservedLabelsMap, err := fillInClusterSpecificParams(params, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed at calling fillInClusterSpecificParams")
 		return metadata{}, err
@@ -433,22 +386,67 @@ func FilterLabelsFromMetadataForCnsAPIs(md metadata, prefix string, logger logru
 	return md
 }
 
-func CreateCnsVolumeInCluster(ctx context.Context, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (vim25types.ID, error) {
+func CreateCnsVolumeInCluster(ctx context.Context, params map[string]interface{}, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (vim25types.ID, error) {
 	logger.Infof("CreateCnsVolumeInCluster called with args, metadata: %v", md)
 
-	// Retrieving cluster id and vSphere user
-	logger.Debug("Retrieving cluster id and vSphere user required by provisioning volume")
+	// Get the cluster configuration for node, datastore information.
+	logger.Debug("Retrieving cluster configuration")
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		logger.WithError(err).Error("Failed to get k8s inClusterConfig")
 		return vim25types.ID{}, err
 	}
 
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, config, client, cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, params, config, client, cnsClient, md, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed to call createCnsVolumeWithClusterConfig")
 		return vim25types.ID{}, err
 	}
 
 	return NewIDFromString(volumeId), nil
+}
+
+func GetStringFromParamsMap(params map[string]interface{}, key string) (string, error) {
+	valueIF, ok := params[key]
+	if ok {
+		value, ok := valueIF.(string)
+		if !ok {
+			return "", errors.New("Value for params key " + key + " is not a string")
+		}
+		return value, nil
+	} else {
+		return "", errors.New("No such key " + key + " %s in params map")
+	}
+}
+
+func GetVirtualCenterFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, HostVcParamKey)
+}
+
+func GetUserFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, UserVcParamKey)
+}
+
+func GetPasswordFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, PasswordVcParamKey)
+}
+
+func GetPortFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, PortVcParamKey)
+}
+
+func GetDatacenterFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, DatacenterVcParamKey)
+}
+
+func GetClusterFromParamsMap(params map[string]interface{}) (string, error) {
+	return GetStringFromParamsMap(params, ClusterVcParamKey)
+}
+
+func GetInsecureFlagFromParamsMap(params map[string]interface{}) (bool, error) {
+	insecureStr, err :=  GetStringFromParamsMap(params, InsecureFlagVcParamKey)
+	if err == nil {
+		return strconv.ParseBool(insecureStr)
+	}
+	return false, err
 }

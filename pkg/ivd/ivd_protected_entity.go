@@ -115,8 +115,14 @@ func (this IVDProtectedEntity) getDataWriter(ctx context.Context) (io.WriteClose
 func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, readOnly bool) (gDiskLib.ConnectParams, error) {
 	url := this.ipetm.client.URL()
 	serverName := url.Hostname()
-	userName := this.ipetm.user
-	password := this.ipetm.password
+	userName, err := GetUserFromParamsMap(this.ipetm.vcParams)
+	if err != nil {
+		return gDiskLib.ConnectParams{}, err
+	}
+	password, err := GetPasswordFromParamsMap(this.ipetm.vcParams)
+	if err != nil {
+		return gDiskLib.ConnectParams{}, err
+	}
 	fcdId := this.id.GetID()
 	vso, err := this.ipetm.vsom.Retrieve(context.Background(), NewVimIDFromPEID(this.id))
 	if err != nil {

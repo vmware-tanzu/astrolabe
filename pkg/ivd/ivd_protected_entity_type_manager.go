@@ -17,6 +17,7 @@
 package ivd
 
 import (
+	"fmt"
 	"context"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -40,36 +41,47 @@ type IVDProtectedEntityTypeManager struct {
 	vsom      *vslm.GlobalObjectManager
 	cnsClient *cns.Client
 	s3URLBase string
-	user      string // These are being kept so we can open VDDK connections, may be able to open a VDDK connection
-	password  string // in IVDProtectedEntityTypeManager instead
+	vcParams  map[string]interface{} // Save the VC configuration params
 	logger    logrus.FieldLogger
 }
 
 func NewIVDProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3URLBase string,
 	logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+	logger.Infof("Creating NewIVDProtectedEntityTypeManagerFromConfig.")
 	var vcURL url.URL
-	vcHostStr, ok := params["vcHost"].(string)
-	if !ok {
-		return nil, errors.New("Missing vcHost param, cannot initialize IVDProtectedEntityTypeManager")
+	vcHostStr, err := GetVirtualCenterFromParamsMap(params)
+	if err != nil {
+		return nil, err
 	}
+	vcHostPortStr, err := GetPortFromParamsMap(params)
+	if err != nil {
+		return nil, err
+	}
+
 	vcURL.Scheme = "https"
-	vcURL.Host = vcHostStr
-	insecure := false
-	insecureStr, ok := params["insecureVC"].(string)
-	if ok && (insecureStr == "Y" || insecureStr == "y") {
-		insecure = true
+	vcURL.Host = fmt.Sprintf("%s:%s", vcHostStr, vcHostPortStr)
+	insecure, err := GetInsecureFlagFromParamsMap(params)
+	if err != nil {
+		return nil, err
 	}
-	vcUser, ok := params["vcUser"].(string)
-	if !ok {
-		return nil, errors.New("Missing vcUser param, cannot initialize IVDProtectedEntityTypeManager")
+	vcUser, err := GetUserFromParamsMap(params)
+	if err != nil {
+		return nil, err
 	}
-	vcPassword, ok := params["vcPassword"].(string)
-	if !ok {
-		return nil, errors.New("Missing vcPassword param, cannot initialize IVDProtectedEntityTypeManager")
+
+	vcPassword, err := GetPasswordFromParamsMap(params)
+	if err != nil {
+		return nil, err
 	}
 	vcURL.User = url.UserPassword(vcUser, vcPassword)
 	vcURL.Path = "/sdk"
-	return NewIVDProtectedEntityTypeManagerFromURL(&vcURL, s3URLBase, insecure, logger)
+	retVal, err := NewIVDProtectedEntityTypeManagerFromURL(&vcURL, s3URLBase, insecure, logger)
+	if err != nil {
+		logger.Errorf("Failed to create IVDProtectedEntityTypeManager with error, %v", err)
+		return retVal, err
+	}
+	retVal.vcParams = params
+	return retVal, err
 }
 
 func newKeepAliveClient(ctx context.Context, u *url.URL, insecure bool) (*govmomi.Client, error) {
@@ -119,17 +131,7 @@ func NewIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3URLBase string, ins
 		return nil, err
 	}
 
-	retVal, err := newIVDProtectedEntityTypeManagerWithClient(client, s3URLBase, vslmClient, cnsClient, logger)
-	if err == nil {
-
-		retVal.user = url.User.Username()
-		password, hasPassword := url.User.Password()
-		if !hasPassword {
-			return nil, errors.New("No VC Password specified")
-		}
-		retVal.password = password
-	}
-	return retVal, err
+	return newIVDProtectedEntityTypeManagerWithClient(client, s3URLBase, vslmClient, cnsClient, logger)
 }
 
 const vsphereMajor = 6
@@ -274,7 +276,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 	}
 
 	if ourVC && existsInOurVC {
-		md, err := FilterLabelsFromMetadataForVslmAPIs(md, this.logger)
+		md, err := FilterLabelsFromMetadataForVslmAPIs(md, this.vcParams, this.logger)
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +330,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", this.logger)
 
 		this.logger.Debugf("Ready to provision a new volume with the source metadata: %v", md)
-		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.client, this.cnsClient, md, this.logger)
+		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.vcParams, this.client, this.cnsClient, md, this.logger)
 		retPE, err = newIVDProtectedEntity(this, newProtectedEntityID(volumeVimID))
 		if err != nil {
 			return nil, errors.Wrap(err, "CreateDisk failed")
