@@ -129,9 +129,7 @@ func (this ProtectedEntity) getS3Segments(ctx context.Context, bucket string, co
 		Prefix: awsKey,
 	}, func(output *s3.ListObjectsOutput, b bool) bool {
 		for _, componentPart := range output.Contents {
-			this.rpetm.logger.Infof("getS3Segments, componentPart-Key: %v", *componentPart.Key)
 			_, partNumber, startOffset := parseSegmentName(*componentPart.Key)
-			this.rpetm.logger.Infof("getS3Segments parsed, partNumber: %d startOffset: %d", partNumber, startOffset)
 			returnSegments = append(returnSegments, s3Segment{
 				segmentNumber: partNumber,
 				startOffset:   startOffset,
@@ -219,14 +217,14 @@ func (this *ProtectedEntity) uploadStream(ctx context.Context, name string, maxS
 	var startOffset int64
 	// getS3Segments returns a list of existing segments, sorted by part number.  There may be gaps in the list if
 	// segments were not uploaded
-	this.rpetm.logger.Infof("Searching for existing segments bucket: %v name: %v", this.rpetm.bucket, name)
+	this.rpetm.logger.Debugf("Searching for existing segments bucket: %v name: %v", this.rpetm.bucket, name)
 	existingSegments, err := this.getS3Segments(ctx, this.rpetm.bucket, name)
 	if err != nil {
 		return err
 	}
-	if len(existingSegments) <= 0 {
-		this.rpetm.logger.Infof("No existing segments bucket: %v name: %v", this.rpetm.bucket, name)
-	}
+
+	this.rpetm.logger.Infof("Found %d existing segments for bucket: %v name: %v", len(existingSegments), this.rpetm.bucket, name)
+
 	// Check here to make sure that the maxSegmentSize matches existing segments if any.  On mismatch, delete existing segments
 	segmentNumber := 0
 	for true {
@@ -502,10 +500,8 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 func (this *ProtectedEntity) abortPendingMultipartUpload(ctx *context.Context, bucket *string, key *string) {
 	log := this.rpetm.logger
 	var combinedErrors []error
-	watchedCtx := *ctx
-	select {
-	case <-watchedCtx.Done():
-		log.Infof("The context was canceled unexpectedly for key: %v, proceeding with cleanup", *key)
+	if (*ctx).Err() != nil {
+		log.Infof("The context was canceled for key: %v, proceeding with cleanup", *key)
 		log.Infof("Processing pending multipart upload abort for key %v if present", *key)
 		listUploadsInput := &s3.ListMultipartUploadsInput{
 			Bucket: bucket,
@@ -547,8 +543,8 @@ func (this *ProtectedEntity) abortPendingMultipartUpload(ctx *context.Context, b
 			errLog := errors.New("Multiple errors:\n" + combinedString)
 			log.WithError(errLog).Errorf("Errors detected while aborting pending multi-part uploads.")
 		}
-	default:
-		log.Infof("No abort detected for key: %v, no cleanup necessary.", *key)
+	} else {
+		log.Debugf("No abort detected for key: %v, no cleanup necessary.", *key)
 	}
 }
 
@@ -601,12 +597,10 @@ func (this *ProtectedEntity) copy(ctx context.Context, maxSegmentSize int64, dat
 
 func (this *ProtectedEntity) cleanupOnAbortedUpload(ctx *context.Context) {
 	log := this.rpetm.logger
-	watchedCtx := *ctx
 	peInfo := this.peinfo
-	select {
-	case <-watchedCtx.Done():
-		log.Infof("The context was canceled unexpectedly during copy of pe %v, proceeding with cleanup", peInfo.GetName())
-		log.Infof("Attempting to delete any uploaded snapshots for %v", this.peinfo.GetID())
+	if (*ctx).Err() != nil {
+		log.Infof("The context was canceled during copy of pe %v, proceeding with cleanup", peInfo.GetName())
+		log.Debugf("Attempting to delete any uploaded snapshots for %v", this.peinfo.GetID())
 		// New context or else downstream "withContext" calls will error out.
 		status, err := this.DeleteSnapshot(context.Background(), this.peinfo.GetID().GetSnapshotID())
 		if err != nil {
@@ -618,8 +612,8 @@ func (this *ProtectedEntity) cleanupOnAbortedUpload(ctx *context.Context) {
 			return
 		}
 		log.Infof("Successfully deleted any uploaded snapshots for %v present", this.peinfo.GetID())
-	default:
-		log.Infof("The PE: %v was uploaded successfully, no abort detected.", peInfo.GetName())
+	} else {
+		log.Debugf("The PE: %v was uploaded successfully, no abort detected.", peInfo.GetName())
 	}
 }
 
