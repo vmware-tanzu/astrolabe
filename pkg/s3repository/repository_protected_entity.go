@@ -29,7 +29,6 @@ import (
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"io"
 	"io/ioutil"
-	"log"
 	"sort"
 	"strings"
 )
@@ -218,10 +217,14 @@ func (this *ProtectedEntity) uploadStream(ctx context.Context, name string, maxS
 	var startOffset int64
 	// getS3Segments returns a list of existing segments, sorted by part number.  There may be gaps in the list if
 	// segments were not uploaded
+	this.rpetm.logger.Debugf("Searching for existing segments bucket: %v name: %v", this.rpetm.bucket, name)
 	existingSegments, err := this.getS3Segments(ctx, this.rpetm.bucket, name)
 	if err != nil {
 		return err
 	}
+
+	this.rpetm.logger.Infof("Found %d existing segments for bucket: %v name: %v", len(existingSegments), this.rpetm.bucket, name)
+
 	// Check here to make sure that the maxSegmentSize matches existing segments if any.  On mismatch, delete existing segments
 	segmentNumber := 0
 	for true {
@@ -262,7 +265,7 @@ func skipBytes(reader io.Reader, bytesToSkip int64, discardBuf []byte) (int64, e
 		return 0, errors.New("Cannot skip negative bytes")
 	}
 	if bytesToSkip == 0 {
-		return 0, nil	// Bounce out here so we'll never get down to allocating a discard buf
+		return 0, nil // Bounce out here so we'll never get down to allocating a discard buf
 	}
 	var bytesSkipped int64
 	if rs, ok := interface{}(reader).(io.Seeker); ok {
@@ -315,14 +318,17 @@ func parseSegmentName(key string) (baseName string, partNumber int, startOffset 
 }
 
 func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string, part int, startOffset int64, maxSegmentSize int64, reader io.Reader) (int64, error) {
+	log := this.rpetm.logger
+
 	if maxSegmentSize > this.rpetm.maxSegmentSize {
 		return 0, errors.Errorf("maxSegmentSize %d too large (%d is kSegmentSizeLimit)", maxSegmentSize, SegmentSizeLimit)
 	}
 	name := segmentName(baseName, part, startOffset)
 	awsBucketName := aws.String(this.rpetm.bucket)
 	awsKey := aws.String(name)
+	defer this.abortPendingMultipartUpload(&ctx, awsBucketName, awsKey)
+	var uploadID string
 	completedParts := make([]*s3.Part, this.rpetm.maxParts)
-
 	// First, check to see if there's an on-going multipart upload.  We assume that there will not be multiple
 	// repository managers trying to upload simultaneously, so if we find a multipart upload for this key, it needs
 	// to be restarted
@@ -333,7 +339,10 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 
 	multiPartUploadsOutput, err := this.rpetm.s3.ListMultipartUploadsWithContext(ctx, listUploadsInput)
 
-	var uploadID string
+	if err != nil {
+		return 0, err
+	}
+
 	if len(multiPartUploadsOutput.Uploads) > 0 {
 		if len(multiPartUploadsOutput.Uploads) == 1 {
 			listPartsInput := &s3.ListPartsInput{
@@ -370,6 +379,7 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 	var bytesUploaded int64 = 0
 	uploadBuffer := make([]byte, s3PartSize)
 	for moreBits {
+		log.Infof("Upload ongoing, Part: %d Bytes Uploaded: %d MB", partNumber, bytesUploaded/(1024*1024))
 		// If the part has already been uploaded, we will skip
 		uploadPart := completedParts[partNumber] == nil
 		if uploadPart {
@@ -389,20 +399,20 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 				// We don't have enough data to do a multipart upload
 				uploader := s3manager.NewUploader(&this.rpetm.session)
 
-				result, err := uploader.Upload(&s3manager.UploadInput{
+				result, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 					Body:   bufferReader,
 					Bucket: awsBucketName,
 					Key:    awsKey,
 				})
 				if err == nil {
-					log.Println("Successfully uploaded to", result.Location)
+					log.Infof("Successfully uploaded to", result.Location)
 				}
 
 				if err != nil {
 					return bytesUploaded, err
 				}
 				bytesUploaded += int64(bytesRead)
-				moreBits = false;
+				moreBits = false
 			} else {
 				// Wait until here to start the multi-part upload in case we're too small
 				if uploadID == "" {
@@ -410,12 +420,10 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 						Bucket: awsBucketName,
 						Key:    awsKey,
 					}
-
-					resp, err := this.rpetm.s3.CreateMultipartUpload(uploadInput)
+					resp, err := this.rpetm.s3.CreateMultipartUploadWithContext(ctx, uploadInput)
 					if err != nil {
 						return 0, err
 					}
-
 					uploadID = *resp.UploadId
 				}
 
@@ -427,12 +435,12 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 					UploadId:      &uploadID,
 					ContentLength: aws.Int64(int64(bytesRead)),
 				}
-				partOutput, err := this.rpetm.s3.UploadPart(partInput)
+				partOutput, err := this.rpetm.s3.UploadPartWithContext(ctx, partInput)
 				if err != nil {
 					return bytesUploaded, err
 				}
 
-				log.Print(partOutput)
+				log.Debug(partOutput)
 				bytesRead64 := int64(bytesRead)
 				completedPart := s3.Part{
 					ETag:       partOutput.ETag,
@@ -443,7 +451,7 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 			}
 			bytesUploaded += int64(bytesRead)
 		} else {
-			log.Printf("Skipping part %d, found pre-existing part", partNumber)
+			log.Infof("Skipping part %d, found pre-existing part", partNumber)
 			bytesSkipped, err := skipBytes(reader, *completedParts[partNumber].Size, uploadBuffer)
 			if err == io.EOF {
 				moreBits = false
@@ -489,8 +497,60 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 	return bytesUploaded, err
 }
 
+func (this *ProtectedEntity) abortPendingMultipartUpload(ctx *context.Context, bucket *string, key *string) {
+	log := this.rpetm.logger
+	var combinedErrors []error
+	if (*ctx).Err() != nil {
+		log.Infof("The context was canceled for key: %v, proceeding with cleanup", *key)
+		log.Infof("Processing pending multipart upload abort for key %v if present", *key)
+		listUploadsInput := &s3.ListMultipartUploadsInput{
+			Bucket: bucket,
+			Prefix: key,
+		}
+		multiPartUploadsOutput, err := this.rpetm.s3.ListMultipartUploads(listUploadsInput)
+		if err != nil {
+			log.Errorf("Received error when retrieving pending multipart uploads for key %v during cleanup", *key)
+			combinedErrors = append(combinedErrors, err)
+			return
+		}
+		if len(multiPartUploadsOutput.Uploads) > 0 {
+			log.Infof("Found %d pending multipart uploads for key: %v", len(multiPartUploadsOutput.Uploads), *key)
+			for _, multiPartUpload := range multiPartUploadsOutput.Uploads {
+				uploadId := *multiPartUpload.UploadId
+				log.Infof("Found pending multipart upload for key: %v with upload-id: %v", *key, uploadId)
+				abortMultipartUploadInput := s3.AbortMultipartUploadInput{
+					Bucket:       bucket,
+					Key:          key,
+					RequestPayer: nil,
+					UploadId:     &uploadId,
+				}
+				_, err := this.rpetm.s3.AbortMultipartUpload(&abortMultipartUploadInput)
+				if err != nil {
+					log.Errorf("Received error: %v when aborting pending multipart upload for key: %v with uploadId: %v during cleanup", err.Error(), *key, uploadId)
+					combinedErrors = append(combinedErrors, err)
+					continue
+				}
+				log.Infof("Successfully aborted the pending multipart upload for key: %v with uploadId: %v", *key, uploadId)
+			}
+		} else {
+			log.Infof("No pending upload with key %v", *key)
+		}
+		if len(combinedErrors) > 0 {
+			var combinedString string
+			for _, curErr := range combinedErrors {
+				combinedString += curErr.Error() + "\n"
+			}
+			errLog := errors.New("Multiple errors:\n" + combinedString)
+			log.WithError(errLog).Errorf("Errors detected while aborting pending multi-part uploads.")
+		}
+	} else {
+		log.Debugf("No abort detected for key: %v, no cleanup necessary.", *key)
+	}
+}
+
 func (this *ProtectedEntity) copy(ctx context.Context, maxSegmentSize int64, dataReader io.Reader,
 	metadataReader io.Reader) error {
+	defer this.cleanupOnAbortedUpload(&ctx)
 	peInfo := this.peinfo
 	peinfoName := this.rpetm.peinfoName(peInfo.GetID())
 
@@ -527,12 +587,34 @@ func (this *ProtectedEntity) copy(ctx context.Context, maxSegmentSize int64, dat
 		ContentLength: aws.Int64(int64(len(peInfoBuf))),
 		ContentType:   aws.String(peInfoFileType),
 	}
-	_, err = this.rpetm.s3.PutObject(jsonParams)
+	_, err = this.rpetm.s3.PutObjectWithContext(ctx, jsonParams)
 	if err != nil {
 		return errors.Wrapf(err, "copy S3 PutObject for PE info failed for PE %s bucket %s key %s",
 			peInfo.GetID(), this.rpetm.bucket, peinfoName)
 	}
 	return err
+}
+
+func (this *ProtectedEntity) cleanupOnAbortedUpload(ctx *context.Context) {
+	log := this.rpetm.logger
+	peInfo := this.peinfo
+	if (*ctx).Err() != nil {
+		log.Infof("The context was canceled during copy of pe %v, proceeding with cleanup", peInfo.GetName())
+		log.Debugf("Attempting to delete any uploaded snapshots for %v", this.peinfo.GetID())
+		// New context or else downstream "withContext" calls will error out.
+		status, err := this.DeleteSnapshot(context.Background(), this.peinfo.GetID().GetSnapshotID())
+		if err != nil {
+			log.Errorf("Received error %v when deleting local snapshots of %v during cleanup", err.Error(), this.peinfo.GetID())
+			return
+		}
+		if !status {
+			log.Errorf("Failed in deleting local snapshots of %v during cleanup", this.peinfo.GetID())
+			return
+		}
+		log.Infof("Successfully deleted any uploaded snapshots for %v present", this.peinfo.GetID())
+	} else {
+		log.Debugf("The PE: %v was uploaded successfully, no abort detected.", peInfo.GetName())
+	}
 }
 
 func (this *ProtectedEntity) getReader(ctx context.Context, key string) (io.ReadCloser, error) {
@@ -546,16 +628,16 @@ func (this *ProtectedEntity) getReader(ctx context.Context, key string) (io.Read
 }
 
 type s3SegmentReader struct {
-	s3                                               s3.S3
-	bucket string
-	segments [] s3Segment
-	offset int64
-	curSegment * s3Segment
-	s3Reader io.ReadCloser
+	s3                     s3.S3
+	bucket                 string
+	segments               []s3Segment
+	offset                 int64
+	curSegment             *s3Segment
+	s3Reader               io.ReadCloser
 	readerStart, readerEnd int64
 }
 
-func newS3SegmentReader(s3 s3.S3, s3Sgements [] s3Segment, bucket string) (s3SegmentReader, error) {
+func newS3SegmentReader(s3 s3.S3, s3Sgements []s3Segment, bucket string) (s3SegmentReader, error) {
 	var nextStartOffset int64 = 0
 	for segmentNum, checkSegment := range s3Sgements {
 		if checkSegment.segmentNumber != segmentNum {
@@ -567,10 +649,10 @@ func newS3SegmentReader(s3 s3.S3, s3Sgements [] s3Segment, bucket string) (s3Seg
 		nextStartOffset += checkSegment.length
 	}
 	return s3SegmentReader{
-		s3:          s3,
-		bucket:      bucket,
-		segments:    s3Sgements,
-		offset:      0,
+		s3:       s3,
+		bucket:   bucket,
+		segments: s3Sgements,
+		offset:   0,
 	}, nil
 }
 
@@ -616,7 +698,7 @@ func (this *s3SegmentReader) Seek(offset int64, whence int) (int64, error) {
 
 	if this.s3Reader == nil {
 		for _, curSegment := range this.segments {
-			if curSegment.startOffset <= absOffset && curSegment.startOffset + curSegment.length > absOffset {
+			if curSegment.startOffset <= absOffset && curSegment.startOffset+curSegment.length > absOffset {
 				s3Object, err := this.s3.GetObject(&s3.GetObjectInput{
 					Bucket: aws.String(this.bucket),
 					Key:    aws.String(curSegment.key),
@@ -633,7 +715,7 @@ func (this *s3SegmentReader) Seek(offset int64, whence int) (int64, error) {
 		}
 	}
 	if this.curSegment == nil {
-		return 0, io.EOF	// Indexing past end of our segment list
+		return 0, io.EOF // Indexing past end of our segment list
 	}
 	segmentOffset := absOffset - this.curSegment.startOffset
 

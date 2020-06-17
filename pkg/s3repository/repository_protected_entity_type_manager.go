@@ -314,13 +314,23 @@ func (this *ProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInf
 
 	_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID())
 	if err != nil {
+		this.checkIfCanceledError(&err)
 		return nil, err
 	}
 	err = rpe.copy(ctx, this.maxSegmentSize, dataReader, metadataReader)
 	if err != nil {
+		this.checkIfCanceledError(&err)
 		return nil, err
 	}
 	return rpe, nil
+}
+
+func (this *ProtectedEntityTypeManager) checkIfCanceledError(err *error) {
+	// S3 APIs wrap the context canceled error in awserr, inspecting strings to
+	// determine if the err is of context canceled type
+	if strings.Contains((*err).Error(), context.Canceled.Error()) {
+		*err = context.Canceled
+	}
 }
 
 func (this *ProtectedEntityTypeManager) getDataTransports(id astrolabe.ProtectedEntityID) ([]astrolabe.DataTransport,
