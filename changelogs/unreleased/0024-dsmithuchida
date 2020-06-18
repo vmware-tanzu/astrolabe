@@ -1,0 +1,3 @@
+Added astrolabe.S3Config to fully specify the Astrolabe S3 server.  This allows
+for creation of pre-signed URLs in S3 data/metadata transports (this does
+not change the way the S3 repository is handled)

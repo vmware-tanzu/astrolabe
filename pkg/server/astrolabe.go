@@ -20,105 +20,20 @@ import (
 	"context"
 	"github.com/labstack/echo"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"log"
-	"net"
 	"net/http"
-	"strconv"
-	"strings"
 )
 
 type Astrolabe struct {
 	petm         *DirectProtectedEntityManager
 	api_services map[string]*ServiceAPI
 	s3_services  map[string]*ServiceS3
-	s3URLBase    string
 }
 
-func NewAstrolabe(confDirPath string, port int) *Astrolabe {
-
-	s3URLBase, pem := NewProtectedEntityManager(confDirPath, port)
-	api_services := make(map[string]*ServiceAPI)
-	s3_services := make(map[string]*ServiceS3)
-	for _, curService := range pem.ListEntityTypeManagers() {
-		serviceName := curService.GetTypeName()
-		api_services[serviceName] = NewServiceAPI(curService)
-		s3_services[serviceName] = NewServiceS3(curService)
-	}
-
-	retAstrolabe := Astrolabe{
-		api_services: api_services,
-		s3_services:  s3_services,
-		s3URLBase:    s3URLBase,
-	}
-
-	return &retAstrolabe
-}
-
-func NewProtectedEntityManager(confDirPath string, port int) (string, astrolabe.ProtectedEntityManager) {
-	s3URLBase, err := configS3URL(port)
-	if err != nil {
-		log.Fatal("Could not get host IP address", err)
-	}
-	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath, s3URLBase)
+func NewProtectedEntityManager(confDirPath string) (astrolabe.ProtectedEntityManager) {
+	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath)
 	var pem astrolabe.ProtectedEntityManager
 	pem = dpem
-	return s3URLBase, pem
-}
-
-func NewAstrolabeRepository() *Astrolabe {
-	return nil
-}
-
-func (this *Astrolabe) Get(c echo.Context) error {
-	var servicesList strings.Builder
-	needsComma := false
-	for serviceName := range this.api_services {
-		if needsComma {
-			servicesList.WriteString(",")
-		}
-		servicesList.WriteString(serviceName)
-		needsComma = true
-	}
-	return c.String(http.StatusOK, servicesList.String())
-}
-
-func (this *Astrolabe) ConnectAstrolabeAPIToEcho(echo *echo.Echo) error {
-	echo.GET("/astrolabe", this.Get)
-
-	for serviceName, service := range this.api_services {
-		echo.GET("/astrolabe/"+serviceName, service.listObjects)
-		echo.POST("/astrolabe/"+serviceName, service.handleCopyObject)
-		echo.GET("/astrolabe/"+serviceName+"/:id", service.handleObjectRequest)
-		echo.GET("/astrolabe/"+serviceName+"/:id/snapshots", service.handleSnapshotListRequest)
-
-	}
-	return nil
-}
-
-func configS3URL(port int) (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return "http://" + ipnet.IP.String() + ":" + strconv.Itoa(port) + "/s3/", nil
-			}
-		}
-	}
-	return "", nil
-}
-
-func (this *Astrolabe) ConnectMiniS3ToEcho(echo *echo.Echo) error {
-	echo.GET("/s3", this.Get)
-
-	for serviceName, service := range this.s3_services {
-		echo.GET("/s3/"+serviceName, service.listObjects)
-		echo.GET("/s3/"+serviceName+"/:objectKey", service.handleObjectRequest)
-	}
-	return nil
+	return pem
 }
 
 const fileSuffix = ".pe.json"

@@ -18,7 +18,15 @@ package astrolabe
 
 import (
 	"encoding/json"
+	"github.com/pkg/errors"
+	"github.com/aws/aws-sdk-go/aws"
+	credentials2 "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/vmware-tanzu/astrolabe/gen/models"
+	"net"
+	"strconv"
+	"time"
 )
 
 // DataTransport is our internal interface representing the data transport for Protected Entity
@@ -44,11 +52,42 @@ func NewDataTransport(transportType string, params map[string]string) DataTransp
 	}
 }
 
+const(
+	S3TransportType = "s3"
+	S3URLParam = "url"
+	S3HostParam = "host"
+	S3BucketParam = "bucket"
+	S3KeyParam = "key"
+	S3UseHTTPParam = "http"
+)
+
+type S3Config struct {
+	Port int			`json:"port,omitempty"`
+	Host net.IP			`json:"host,omitempty"`
+	AccessKey string	`json:"accessKey,omitempty"`
+	Secret string		`json:"secret,omitempty"`
+	Prefix string		`json:"prefix,omitempty"`
+	URLBase string		`json:"urlBase,omitempty"`
+	Region string       `json:"region,omitempty"`
+	UseHttp bool        `json:"http,omitempty"`
+}
+
+func (this S3Config) getURL() (string) {
+	var protocol string
+	//Only use http if it's specified, otherwise https
+	if this.UseHttp {
+		protocol = "http://"
+	} else {
+		protocol = "https://"
+	}
+	return protocol + this.Host.String() + ":" + strconv.Itoa(this.Port) + "/"+this.Prefix+"/"
+}
+
 func NewDataTransportForS3URL(url string) DataTransport {
 	return DataTransport{
-		transportType: "s3",
+		transportType: S3TransportType,
 		params: map[string]string{
-			"url": url,
+			S3URLParam: url,
 		},
 	}
 }
@@ -56,14 +95,65 @@ func NewDataTransportForS3URL(url string) DataTransport {
 func NewDataTransportForS3(host string, bucket string, key string) DataTransport {
 	url := "http://" + host + "/" + bucket + "/" + key
 	return DataTransport{
-		transportType: "s3",
+		transportType: S3TransportType,
 		params: map[string]string{
-			"url":    url,
-			"host":   host,
-			"bucket": bucket,
-			"key":    key,
+			S3URLParam:    url,
+			S3HostParam:   host,
+			S3BucketParam: bucket,
+			S3KeyParam:    key,
 		},
 	}
+}
+
+const (
+	DataExt = ""
+	MDExt = ".md"
+	CombinedExt = ".zip"
+	PEInfoExt = ".peinfo"
+)
+
+func NewS3DataTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (DataTransport, error) {
+	return NewS3TransportForPEID(peid, DataExt, s3Config)
+}
+
+func NewS3MDTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (DataTransport, error) {
+	return NewS3TransportForPEID(peid, MDExt, s3Config)
+}
+
+func NewS3CombinedTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (DataTransport, error) {
+	return NewS3TransportForPEID(peid, CombinedExt, s3Config)
+}
+
+func NewS3PEInfoTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (DataTransport, error) {
+	return NewS3TransportForPEID(peid, PEInfoExt, s3Config)
+}
+
+
+func NewS3TransportForPEID(peid ProtectedEntityID, ext string, s3Config S3Config) (DataTransport, error) {
+	credentials := credentials2.NewStaticCredentials(s3Config.AccessKey, s3Config.Secret, "")
+	s3ForcePathStyle := true
+	sess, err := session.NewSession(&aws.Config{
+		Endpoint: aws.String(s3Config.getURL()),
+		Credentials: credentials,
+		Region: aws.String(s3Config.Region),
+		S3ForcePathStyle: &s3ForcePathStyle,
+	},
+	)
+
+	if err != nil {
+		return DataTransport{}, errors.Wrap(err, "Could not create AWS session")
+	}
+	// Create S3 service client
+	svc := s3.New(sess)
+	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: aws.String(peid.peType),
+		Key:    aws.String(peid.String() + ext),
+	})
+
+	// We don't want the URL going invalid while we might be using it and we don't want it valid forever.  If we can't
+	// do all of our data transfer with this URL in a month there's probably something wrong
+	urlStr, err := req.Presign(30 * 24 * time.Hour)
+	return NewDataTransportForS3URL(urlStr), nil
 }
 func (this DataTransport) GetTransportType() string {
 	return this.transportType
