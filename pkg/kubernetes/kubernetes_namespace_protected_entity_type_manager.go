@@ -30,9 +30,10 @@ type KubernetesNamespaceProtectedEntityTypeManager struct {
 	clientset  *kubernetes.Clientset
 	namespaces map[string]*KubernetesNamespaceProtectedEntity
 	logger     logrus.FieldLogger
+	s3Config   astrolabe.S3Config
 }
 
-func NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3URLBase string,
+func NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
 	logger logrus.FieldLogger) (*KubernetesNamespaceProtectedEntityTypeManager, error) {
 	masterURL := params["masterURL"].(string)
 	kubeconfigPath := params["kubeconfigPath"].(string)
@@ -47,6 +48,7 @@ func NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params map[strin
 	returnTypeManager := KubernetesNamespaceProtectedEntityTypeManager{
 		clientset: clientset,
 		logger:    logger,
+		s3Config:  s3Config,
 	}
 	returnTypeManager.namespaces = make(map[string]*KubernetesNamespaceProtectedEntity)
 	err = returnTypeManager.loadNamespaceEntities()
