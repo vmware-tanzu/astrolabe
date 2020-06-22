@@ -33,6 +33,7 @@ import (
 func main() {
 	confDirStr := flag.String("confDir", "", "Configuration directory")
 	apiPortStr := flag.String("apiPort", "1323", "REST API port")
+	insecure := flag.Bool("insecure", false, "Only use HTTP")
 	flag.Parse()
 	if *confDirStr == "" {
 		log.Println("confDir is not defined")
@@ -44,7 +45,7 @@ func main() {
 		fmt.Errorf("apiPort %s is not an integer", *apiPortStr)
 		os.Exit(1)
 	}
-	_, pem := server.NewProtectedEntityManager(*confDirStr, apiPort)
+	pem := server.NewProtectedEntityManager(*confDirStr)
 	tm := server.NewTaskManager()
 	apiHandler := server.NewOpenAPIAstrolabeHandler(pem, tm)
 	// load embedded swagger file
@@ -56,6 +57,9 @@ func main() {
 	// create new service API
 	api := operations.NewAstrolabeAPI(swaggerSpec)
 	server := restapi.NewServer(api)
+	if *insecure {
+		server.EnabledListeners = []string{"http"}
+	}
 	defer server.Shutdown()
 
 	// parse flags

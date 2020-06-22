@@ -415,7 +415,7 @@ func GetStringFromParamsMap(params map[string]interface{}, key string) (string, 
 		}
 		return value, nil
 	} else {
-		return "", errors.New("No such key " + key + " %s in params map")
+		return "", errors.New("No such key " + key + " in params map")
 	}
 }
 

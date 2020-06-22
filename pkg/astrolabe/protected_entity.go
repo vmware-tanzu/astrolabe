@@ -94,6 +94,15 @@ func (this ProtectedEntityID) String() string {
 	return returnString
 }
 
+func (this ProtectedEntityID) IDWithSnapshot(snapshotID ProtectedEntitySnapshotID) ProtectedEntityID {
+	newID := ProtectedEntityID{
+		peType:     this.peType,
+		id:         this.id,
+		snapshotID: snapshotID,
+	}
+	return newID
+}
+
 func (this ProtectedEntityID) GetModelProtectedEntityID() models.ProtectedEntityID {
 	return models.ProtectedEntityID(this.String())
 }
@@ -119,6 +128,10 @@ func NewProtectedEntitySnapshotID(pesiString string) ProtectedEntitySnapshotID {
 		id: pesiString,
 	}
 	return returnPESI
+}
+
+func NewProtectedEntitySnapshotIDFromModel(mpei models.ProtectedEntitySnapshotID) (ProtectedEntitySnapshotID){
+	return NewProtectedEntitySnapshotID(string(mpei))
 }
 
 func (this ProtectedEntitySnapshotID) GetID() string {

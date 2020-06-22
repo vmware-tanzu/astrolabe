@@ -1,0 +1,3 @@
+Added a REST client (pkg/client) that can talk with the Swagger server 
+(not secure yet, demo use only)
+Added a CLI (cmd/astrolabe) that uses the REST client
