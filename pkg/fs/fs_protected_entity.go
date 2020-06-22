@@ -128,7 +128,7 @@ func (this FSProtectedEntity) GetDataReader(context.Context) (io.ReadCloser, err
 
 }
 
-func (this FSProtectedEntity) GetMetadataReader(context.Context) (io.Reader, error) {
+func (this FSProtectedEntity) GetMetadataReader(context.Context) (io.ReadCloser, error) {
 	return nil, nil
 }
 

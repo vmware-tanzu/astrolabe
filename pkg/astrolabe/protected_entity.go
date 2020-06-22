@@ -155,5 +155,5 @@ type ProtectedEntity interface {
 	// GetMetadataReader returns a reader for the metadata of the ProtectedEntity.  The ProtectedEntity will pick the
 	// best data path to provide the Reader stream.  If the ProtectedEntity does not have any metadata, nil will be
 	// returned
-	GetMetadataReader(ctx context.Context) (io.Reader, error)
+	GetMetadataReader(ctx context.Context) (io.ReadCloser, error)
 }
