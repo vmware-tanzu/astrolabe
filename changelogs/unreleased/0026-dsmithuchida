@@ -1,0 +1,1 @@
+Changed GetMetadataReader to return a ReadCloser rather than a Reader.
