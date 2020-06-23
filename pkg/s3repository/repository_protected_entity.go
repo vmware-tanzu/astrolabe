@@ -204,7 +204,7 @@ func (this ProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser, e
 	return nil, nil
 }
 
-func (this ProtectedEntity) GetMetadataReader(ctx context.Context) (io.Reader, error) {
+func (this ProtectedEntity) GetMetadataReader(ctx context.Context) (io.ReadCloser, error) {
 	if len(this.peinfo.GetMetadataTransports()) > 0 {
 		metadataName := this.rpetm.metadataName(this.GetID())
 		return this.getReader(ctx, metadataName)

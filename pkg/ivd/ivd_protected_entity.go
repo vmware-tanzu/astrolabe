@@ -168,13 +168,13 @@ func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, read
 	return params, nil
 }
 
-func (this IVDProtectedEntity) GetMetadataReader(ctx context.Context) (io.Reader, error) {
+func (this IVDProtectedEntity) GetMetadataReader(ctx context.Context) (io.ReadCloser, error) {
 	infoBuf, err := this.getMetadataBuf(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return bytes.NewReader(infoBuf), nil
+	return ioutil.NopCloser(bytes.NewReader(infoBuf)), nil
 }
 
 func (this IVDProtectedEntity) getMetadataBuf(ctx context.Context) ([]byte, error) {

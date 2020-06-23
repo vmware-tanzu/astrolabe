@@ -35,7 +35,7 @@ func (this *KubernetesNamespaceProtectedEntity) GetDataReader(context.Context) (
 	return nil, nil
 }
 
-func (this *KubernetesNamespaceProtectedEntity) GetMetadataReader(context.Context) (io.Reader, error) {
+func (this *KubernetesNamespaceProtectedEntity) GetMetadataReader(context.Context) (io.ReadCloser, error) {
 	return nil, nil
 }
 
