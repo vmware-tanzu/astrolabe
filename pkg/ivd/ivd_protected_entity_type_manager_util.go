@@ -14,6 +14,7 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	vim25types "github.com/vmware/govmomi/vim25/types"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -449,4 +450,54 @@ func GetInsecureFlagFromParamsMap(params map[string]interface{}) (bool, error) {
 		return strconv.ParseBool(insecureStr)
 	}
 	return false, err
+}
+
+func RetrievePlatformInfoFromConfig(config *rest.Config, params map[string]interface{}) error {
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Errorf("Failed to get k8s clientset from the given config: %v", config)
+	}
+
+	ns := "kube-system"
+	secretApis := clientset.CoreV1().Secrets(ns)
+	vsphere_secrets := []string{"vsphere-config-secret", "csi-vsphere-config"}
+	var secret *corev1.Secret
+	for _, vsphere_secret := range vsphere_secrets {
+		secret, err = secretApis.Get(vsphere_secret, metav1.GetOptions{})
+		if err == nil {
+			break
+		}
+	}
+
+	// No valid secret found.
+	if err != nil {
+		return errors.Errorf("Failed to get k8s secret, %s", vsphere_secrets)
+	}
+
+	sEnc := string(secret.Data["csi-vsphere.conf"])
+	lines := strings.Split(sEnc, "\n")
+
+	for _, line := range lines {
+		if strings.Contains(line, "VirtualCenter") {
+			parts := strings.Split(line, "\"")
+			params["VirtualCenter"] = parts[1]
+		} else if strings.Contains(line, "=") {
+			parts := strings.Split(line, "=")
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			// Skip the quotes in the value if present
+			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
+				params[key] = value[1 : len(value)-1]
+			} else {
+				params[key] = value
+			}
+		}
+	}
+
+	// If port is missing, add an entry in the params to use the standard https port
+	if _, ok := params["port"]; !ok {
+		params["port"] = "443"
+	}
+
+	return nil
 }

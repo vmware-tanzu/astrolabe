@@ -118,7 +118,8 @@ func (this *ProtectedEntityID) UnmarshalJSON(b []byte) error {
 	return fillInProtectedEntityIDFromString(this, idStr)
 }
 
-type ProtectedEntitySnapshotID struct {
+type
+ProtectedEntitySnapshotID struct {
 	// We should move this to actually being a UUID internally
 	id string
 }
