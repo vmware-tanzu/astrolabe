@@ -19,10 +19,13 @@ export GOFLAGS=-mod=readonly
 
 all: build
 
-build: server-gen astrolabe ivd kubernetes s3repository fs server cmd
+build: server-gen client-gen astrolabe ivd kubernetes s3repository fs server client astrolabe_server astrolabe_cli 
 
-cmd: 
+astrolabe_server: 
 	cd cmd/astrolabe_server; go build
+
+astrolabe_cli:
+	cd cmd/astrolabe ; go build
 
 astrolabe: 
 	cd pkg/astrolabe; go build
@@ -42,6 +45,9 @@ kubernetes:
 server: 
 	cd pkg/server; go build
 
+client:
+	cd pkg/client; go build
+
 server-gen: gen/restapi/server.go
 
 gen/restapi/server.go: openapi/astrolabe_api.yaml
@@ -51,3 +57,6 @@ docs-gen: docs/api/index.html
 
 docs/api/index.html: openapi/astrolabe_api.yaml
 	java -jar bin/swagger-codegen-cli-2.2.1.jar generate -o docs/api -i openapi/astrolabe_api.yaml -l html2
+
+client-gen:
+	bin/swagger_linux_amd64 generate client -f openapi/astrolabe_api.yaml -A astrolabe -t gen
