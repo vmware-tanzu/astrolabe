@@ -2,7 +2,7 @@ package pvc
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
@@ -11,12 +11,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"strings"
-)
-
-const (
-	pvcPEType = "pvc"
-	pvcPEIDSep = "/"
 )
 
 type PVCProtectedEntityTypeManager struct {
@@ -27,19 +21,7 @@ type PVCProtectedEntityTypeManager struct {
 }
 
 func NewProtectedEntityIDFromPVCName(namespace string, pvcName string) astrolabe.ProtectedEntityID {
-	idStr := namespace + pvcPEIDSep + pvcName
-	return astrolabe.NewProtectedEntityID(pvcPEType, idStr)
-}
-
-func GetNamespaceAndNameFromPEID(peid astrolabe.ProtectedEntityID) (namespace string, name string, err error) {
-	if peid.GetPeType() != pvcPEType {
-		return "", "", errors.New(fmt.Sprintf("%s + is not of type %s", peid.GetPeType(), pvcPEType))
-	}
-	parts := strings.Split(peid.GetID(), pvcPEIDSep)
-	if len(parts) != 2 {
-		return "", "", errors.New(fmt.Sprintf("%s has %d parts, expected 2", peid.GetID(), len(parts)))
-	}
-	return parts[0], parts[1], nil
+	return astrolabe.NewProtectedEntityIDWithNamespace(astrolabe.PvcPEType, pvcName, namespace)
 }
 
 /*
@@ -47,13 +29,13 @@ Creates a PVC ProtectectEntityTypeManager
 K8S configuration is provided through parameters
 restConfig - *rest.Config - if set, this will be used
 if restConfig is not set, masterURL and kubeConfigPath will be used.  Either can be set
- */
+*/
 func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
 	logger logrus.FieldLogger) (*PVCProtectedEntityTypeManager, error) {
 	var err error
 	var config *rest.Config
 	config, ok := params["restConfig"].(*rest.Config)
- 	if !ok {
+	if !ok {
 		masterURL, _ := util.GetStringFromParamsMap(params, "masterURL", logger)
 		kubeconfigPath, _ := util.GetStringFromParamsMap(params, "kubeconfigPath", logger)
 		config, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfigPath)
@@ -67,8 +49,8 @@ func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s
 	}
 	return &PVCProtectedEntityTypeManager{
 		clientSet: clientSet,
-		s3Config: s3Config,
-		logger: logger,
+		s3Config:  s3Config,
+		logger:    logger,
 	}, nil
 }
 
@@ -77,11 +59,11 @@ func (this *PVCProtectedEntityTypeManager) SetProtectedEntityManager(pem astrola
 }
 
 func (this *PVCProtectedEntityTypeManager) GetTypeName() string {
-	return pvcPEType
+	return astrolabe.PvcPEType
 }
 
 func (this *PVCProtectedEntityTypeManager) GetProtectedEntity(ctx context.Context, peid astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
-	namespace, name, err := GetNamespaceAndNameFromPEID(peid)
+	namespace, name, err := astrolabe.GetNamespaceAndNameFromPEID(peid)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not get namespace and name from peid %s", peid.String())
 	}
