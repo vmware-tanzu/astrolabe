@@ -67,18 +67,18 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 	if logger == nil {
 		logger = logrus.New()
 	}
-	for serviceName, params := range configInfo.peConfigs {
+	for serviceName, params := range configInfo.PEConfigs {
 		var curService astrolabe.ProtectedEntityTypeManager
 		switch serviceName {
 		case "ivd":
-			curService, err = ivd.NewIVDProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = ivd.NewIVDProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		case "k8sns":
-			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config,
+			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config,
 				logger)
 		case "fs":
-			curService, err = fs.NewFSProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = fs.NewFSProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		case "pvc":
-			curService, err = pvc.NewPVCProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = pvc.NewPVCProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		default:
 			logger.Warnf("Unknown service type, %v", serviceName)
 		}
@@ -90,18 +90,18 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 			petms = append(petms, curService)
 		}
 	}
-	return NewDirectProtectedEntityManager(petms, configInfo.s3Config)
+	return NewDirectProtectedEntityManager(petms, configInfo.S3Config)
 }
 
 type ConfigInfo struct {
-	peConfigs map[string]map[string]interface{}
-	s3Config  astrolabe.S3Config
+	PEConfigs map[string]map[string]interface{}
+	S3Config  astrolabe.S3Config
 }
 
 func NewConfigInfo(peConfigs map[string]map[string]interface{}, s3Config astrolabe.S3Config) ConfigInfo {
 	return ConfigInfo{
-		peConfigs: peConfigs,
-		s3Config:  s3Config,
+		PEConfigs: peConfigs,
+		S3Config:  s3Config,
 	}
 }
 

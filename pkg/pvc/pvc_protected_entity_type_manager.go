@@ -9,6 +9,7 @@ import (
 	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"strings"
 )
@@ -41,13 +42,24 @@ func GetNamespaceAndNameFromPEID(peid astrolabe.ProtectedEntityID) (namespace st
 	return parts[0], parts[1], nil
 }
 
+/*
+Creates a PVC ProtectectEntityTypeManager
+K8S configuration is provided through parameters
+restConfig - *rest.Config - if set, this will be used
+if restConfig is not set, masterURL and kubeConfigPath will be used.  Either can be set
+ */
 func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
 	logger logrus.FieldLogger) (*PVCProtectedEntityTypeManager, error) {
-	masterURL, _ := util.GetStringFromParamsMap(params, "masterURL", logger)
-	kubeconfigPath, _ := util.GetStringFromParamsMap(params, "kubeconfigPath", logger)
-	config, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfigPath)
-	if err != nil {
-		return nil, err
+	var err error
+	var config *rest.Config
+	config, ok := params["restConfig"].(*rest.Config)
+ 	if !ok {
+		masterURL, _ := util.GetStringFromParamsMap(params, "masterURL", logger)
+		kubeconfigPath, _ := util.GetStringFromParamsMap(params, "kubeconfigPath", logger)
+		config, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfigPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
