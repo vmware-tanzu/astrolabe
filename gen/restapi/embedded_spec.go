@@ -368,6 +368,14 @@ func init() {
             "name": "protectedEntityID",
             "in": "path",
             "required": true
+          },
+          {
+            "description": "Parameters for the snapshot.",
+            "name": "params",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/SnapshotParamList"
+            }
           }
         ],
         "responses": {
@@ -490,6 +498,40 @@ func init() {
             "type": "string"
           }
         }
+      }
+    },
+    "SnapshotPEParamItem": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "object"
+        }
+      }
+    },
+    "SnapshotPEParamList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SnapshotPEParamItem"
+      }
+    },
+    "SnapshotParamItem": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/definitions/SnapshotPEParamList"
+        }
+      }
+    },
+    "SnapshotParamList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SnapshotParamItem"
       }
     },
     "TaskID": {
@@ -944,6 +986,14 @@ func init() {
             "name": "protectedEntityID",
             "in": "path",
             "required": true
+          },
+          {
+            "description": "Parameters for the snapshot.",
+            "name": "params",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/SnapshotParamList"
+            }
           }
         ],
         "responses": {
@@ -1066,6 +1116,40 @@ func init() {
             "type": "string"
           }
         }
+      }
+    },
+    "SnapshotPEParamItem": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "object"
+        }
+      }
+    },
+    "SnapshotPEParamList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SnapshotPEParamItem"
+      }
+    },
+    "SnapshotParamItem": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/definitions/SnapshotPEParamList"
+        }
+      }
+    },
+    "SnapshotParamList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SnapshotParamItem"
       }
     },
     "TaskID": {

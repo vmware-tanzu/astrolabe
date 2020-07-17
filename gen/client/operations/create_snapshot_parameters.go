@@ -14,6 +14,8 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
 // NewCreateSnapshotParams creates a new CreateSnapshotParams object
@@ -60,6 +62,11 @@ for the create snapshot operation typically these are written to a http.Request
 */
 type CreateSnapshotParams struct {
 
+	/*Params
+	  Parameters for the snapshot.
+
+	*/
+	Params models.SnapshotParamList
 	/*ProtectedEntityID
 	  The protected entity ID to snapshot
 
@@ -109,6 +116,17 @@ func (o *CreateSnapshotParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithParams adds the params to the create snapshot params
+func (o *CreateSnapshotParams) WithParams(params models.SnapshotParamList) *CreateSnapshotParams {
+	o.SetParams(params)
+	return o
+}
+
+// SetParams adds the params to the create snapshot params
+func (o *CreateSnapshotParams) SetParams(params models.SnapshotParamList) {
+	o.Params = params
+}
+
 // WithProtectedEntityID adds the protectedEntityID to the create snapshot params
 func (o *CreateSnapshotParams) WithProtectedEntityID(protectedEntityID string) *CreateSnapshotParams {
 	o.SetProtectedEntityID(protectedEntityID)
@@ -138,6 +156,12 @@ func (o *CreateSnapshotParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return err
 	}
 	var res []error
+
+	if o.Params != nil {
+		if err := r.SetBodyParam(o.Params); err != nil {
+			return err
+		}
+	}
 
 	// path param protectedEntityID
 	if err := r.SetPathParam("protectedEntityID", o.ProtectedEntityID); err != nil {

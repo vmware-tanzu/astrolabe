@@ -75,7 +75,7 @@ paths:
         '200':
           description: Task nexus list
           schema:
-              $ref: '#/definitions/TaskNexusList'
+            $ref: '#/definitions/TaskNexusList'
       operationId: listTaskNexus
       description: Provides a list of current task nexus
     post:
@@ -286,6 +286,12 @@ paths:
           name: protectedEntityID
           required: true
           type: string
+        - description: Parameters for the snapshot.
+          in: body
+          name: params
+          required: false
+          schema:
+            $ref: '#/definitions/SnapshotParamList'
       responses:
         '200':
           description: 'Snapshot created successfully, returns the new snapshot ID'
@@ -437,6 +443,27 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TaskInfo'
+  SnapshotPEParamItem:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        type: object
 
+  SnapshotPEParamList:
+    type: array
+    items:
+      $ref: '#/definitions/SnapshotPEParamItem'
+  SnapshotParamItem:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        $ref: '#/definitions/SnapshotPEParamList'
+  SnapshotParamList:
+    type: array
+    items:
+      $ref: '#/definitions/SnapshotParamItem'
 x-components: {}
-

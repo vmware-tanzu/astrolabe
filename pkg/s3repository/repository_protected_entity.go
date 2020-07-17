@@ -77,7 +77,7 @@ func (ProtectedEntity) GetCombinedInfo(ctx context.Context) ([]astrolabe.Protect
 	panic("implement me")
 }
 
-func (ProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
+func (ProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	return astrolabe.ProtectedEntitySnapshotID{}, errors.New("Snapshot not supported")
 }
 

@@ -19,7 +19,7 @@ export GOFLAGS=-mod=readonly
 
 all: build
 
-build: server-gen client-gen astrolabe ivd kubernetes pvc s3repository fs server client astrolabe_server astrolabe_cli
+build: model-gen client-gen astrolabe ivd kubernetes pvc s3repository fs server client astrolabe_server astrolabe_cli
 
 astrolabe_server: 
 	cd cmd/astrolabe_server; go build
@@ -51,7 +51,11 @@ server:
 client:
 	cd pkg/client; go build
 
-server-gen: gen/restapi/server.go
+#
+# Should be no reason to use server-gen but leaving here just in case.  Output goes into gen/cmd/astrolabe_server
+#
+server-gen: 
+	bin/swagger_linux_amd64 generate server -f openapi/astrolabe_api.yaml -A astrolabe -t gen
 
 gen/restapi/server.go: openapi/astrolabe_api.yaml
 	bin/swagger_linux_amd64 generate server -f openapi/astrolabe_api.yaml -t gen --exclude-main -A astrolabe
@@ -63,3 +67,6 @@ docs/api/index.html: openapi/astrolabe_api.yaml
 
 client-gen:
 	bin/swagger_linux_amd64 generate client -f openapi/astrolabe_api.yaml -A astrolabe -t gen
+
+model-gen:
+	bin/swagger_linux_amd64 generate model -f openapi/astrolabe_api.yaml -t gen

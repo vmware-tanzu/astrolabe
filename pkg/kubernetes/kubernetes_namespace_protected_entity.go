@@ -59,7 +59,7 @@ func (this *KubernetesNamespaceProtectedEntity) GetCombinedInfo(ctx context.Cont
 
 }
 
-func (this *KubernetesNamespaceProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
+func (this *KubernetesNamespaceProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	return astrolabe.ProtectedEntitySnapshotID{}, nil
 
 }
