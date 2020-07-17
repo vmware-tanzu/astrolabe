@@ -39,7 +39,7 @@ func TestGetPVCComponents(t *testing.T) {
 	}
 
 	// get pvc params
-	pvcParams :=make(map[string]interface{})
+	pvcParams := make(map[string]interface{})
 	pvcParams["kubeconfigPath"] = path
 
 	configParams := make(map[string]map[string]interface{})
@@ -47,7 +47,7 @@ func TestGetPVCComponents(t *testing.T) {
 	configParams["ivd"] = ivdParams
 
 	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
-		URLBase:   "VOID_URL",
+		URLBase: "VOID_URL",
 	})
 
 	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
@@ -106,7 +106,7 @@ func TestSnapshotOps(t *testing.T) {
 	}
 
 	// get pvc params
-	pvcParams :=make(map[string]interface{})
+	pvcParams := make(map[string]interface{})
 	pvcParams["kubeconfigPath"] = path
 
 	configParams := make(map[string]map[string]interface{})
@@ -114,14 +114,14 @@ func TestSnapshotOps(t *testing.T) {
 	configParams["ivd"] = ivdParams
 
 	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
-		URLBase:   "VOID_URL",
+		URLBase: "VOID_URL",
 	})
 
 	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
 
 	pvc_petm := pem.GetProtectedEntityTypeManager("pvc")
 	if pvc_petm == nil {
-		t.Fatal(err)
+		t.Fatal("Failed to get PVC ProtectedEntityTypeManager")
 	}
 
 	ctx := context.Background()
@@ -151,7 +151,7 @@ func TestSnapshotOps(t *testing.T) {
 	logger.Infof("There are %v snapshots for the PVC PE, %v, before snapshotting it", prevSnapshotsNum, pvcPE.GetID().String())
 
 	logger.Infof("Snapshotting the PVC PE, %v", selectedPEID.String())
-	peSnapshotID, err := pvcPE.Snapshot(ctx)
+	peSnapshotID, err := pvcPE.Snapshot(ctx, make(map[string]map[string]interface{}))
 	if err != nil {
 		logger.Errorf("Failed to snapshot PVC PE with PEID = %v", pvcPE.GetID().String())
 		t.Fatal(err)
@@ -176,6 +176,5 @@ func TestSnapshotOps(t *testing.T) {
 	curSnapshotsNum := len(peSnapshotIDs)
 	logger.Infof("There are %v snapshots for the PVC PE, %v, after snapshotting it", curSnapshotsNum, pvcPE.GetID().String())
 
-	assert.Equal(t, curSnapshotsNum - prevSnapshotsNum, 1, "there should be one more snapshot available")
+	assert.Equal(t, curSnapshotsNum-prevSnapshotsNum, 1, "there should be one more snapshot available")
 }
-

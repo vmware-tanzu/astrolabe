@@ -15,6 +15,7 @@ import (
 
 type PVCProtectedEntityTypeManager struct {
 	clientSet *kubernetes.Clientset
+	isGuest   bool
 	pem       astrolabe.ProtectedEntityManager
 	s3Config  astrolabe.S3Config
 	logger    logrus.FieldLogger
@@ -47,8 +48,10 @@ func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s
 	if err != nil {
 		return nil, err
 	}
+	_, isGuest := params["svcNamespace"]
 	return &PVCProtectedEntityTypeManager{
 		clientSet: clientSet,
+		isGuest:   isGuest,
 		s3Config:  s3Config,
 		logger:    logger,
 	}, nil
