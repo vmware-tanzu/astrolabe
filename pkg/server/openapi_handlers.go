@@ -104,11 +104,25 @@ func (this OpenAPIAstrolabeHandler) CreateSnapshot(params operations.CreateSnaps
 	if err != nil {
 
 	}
+
+	snapshotParams := make(map[string]map[string]interface{})
+
+	if params.Params != nil {
+		for _, curPEParams := range params.Params {
+			if curPEParams.Value != nil {
+				curPEParamsMap := make(map[string]interface{})
+				for _, curParam := range curPEParams.Value {
+					curPEParamsMap[curParam.Key] = curParam.Value
+				}
+				snapshotParams[curPEParams.Key] = curPEParamsMap
+			}
+		}
+	}
 	pe, err := petm.GetProtectedEntity(context.Background(), peid)
 	if err != nil {
 
 	}
-	snapshotID, err := pe.Snapshot(context.Background())
+	snapshotID, err := pe.Snapshot(context.Background(), snapshotParams)
 	if err != nil {
 
 	}

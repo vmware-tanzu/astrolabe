@@ -78,7 +78,7 @@ func (this PVCProtectedEntity) GetCombinedInfo(ctx context.Context) ([]astrolabe
 	panic("implement me")
 }
 
-func (this PVCProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
+func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	if this.id.HasSnapshot() {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.New("Cannot create snapshot of snapshot")
 	}
@@ -94,7 +94,7 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context) (astrolabe.Protecte
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.New(fmt.Sprintf("Expected 1 component, %s has %d", this.id.String(), len(components)))
 	}
 	// PVC will always have only one component, i.e., the PV it claims.
-	subSnapshotID, err := components[0].Snapshot(ctx)
+	subSnapshotID, err := components[0].Snapshot(ctx, params)
 	if err != nil {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
 	}

@@ -87,7 +87,7 @@ func (this FSProtectedEntity) GetCombinedInfo(ctx context.Context) ([]astrolabe.
 /*
  * Snapshot APIs
  */
-func (this FSProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
+func (this FSProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	return astrolabe.ProtectedEntitySnapshotID{}, nil
 }
 

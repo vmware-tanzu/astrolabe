@@ -284,7 +284,7 @@ const waitTime = 3600 * time.Second
 /*
  * Snapshot APIs
  */
-func (this IVDProtectedEntity) Snapshot(ctx context.Context) (astrolabe.ProtectedEntitySnapshotID, error) {
+func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	this.logger.Infof("CreateSnapshot called on IVD Protected Entity, %v", this.id.String())
 	var retVal astrolabe.ProtectedEntitySnapshotID
 	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
