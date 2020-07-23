@@ -279,16 +279,27 @@ func (this PVCProtectedEntity) GetComponents(ctx context.Context) ([]astrolabe.P
 	return []astrolabe.ProtectedEntity{pvPE}, nil
 }
 
+/*
+Get ProtectedEntity for Persistent Volume referenced by this PVC ProtectedEntity.
+Candidates are, IVD ProtectedEntity(non-GuestCluster) and ParaVirt ProtectedEntity(GuestCluster).
+*/
 func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *core_v1.PersistentVolume) (astrolabe.ProtectedEntity, error) {
 	if pv.Spec.CSI != nil {
 		if pv.Spec.CSI.Driver == VSphereCSIProvisioner {
 			if pv.Spec.AccessModes[0] == core_v1.ReadWriteOnce {
-				ivdPEID := astrolabe.NewProtectedEntityIDWithSnapshotID("ivd", pv.Spec.CSI.VolumeHandle, this.id.GetSnapshotID())
-				ivdPE, err := this.ppetm.pem.GetProtectedEntity(ctx, ivdPEID)
-				if err != nil {
-					return nil, errors.Wrapf(err, "Could not get Protected Entity for ivd %s", ivdPEID.String())
+				var pvIDstr string
+				if this.ppetm.isGuest {
+					pvIDstr = pv.Name        // use pv name rather than pv volume handle as the ID of paravirt PE, since it is easier to retrieve pv volume handle from pv name
+				} else {
+					pvIDstr = pv.Spec.CSI.VolumeHandle
 				}
-				return ivdPE, nil
+				pvPEType := this.getComponentPEType()
+				pvPEID := astrolabe.NewProtectedEntityIDWithSnapshotID(pvPEType, pvIDstr, this.id.GetSnapshotID())
+				pvPE, err := this.ppetm.pem.GetProtectedEntity(ctx, pvPEID)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Could not get Protected Entity for PV %s", pvPEID.String())
+				}
+				return pvPE, nil
 			} else {
 				return nil, errors.Errorf("Unexpected access mode, %v, for Persistent Volume %s", pv.Spec.AccessModes[0], pv.Name)
 			}
@@ -296,6 +307,7 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 	}
 	return nil, errors.Errorf("Could not find PE for Persistent Volume %s", pv.Name)
 }
+
 func (this PVCProtectedEntity) GetID() astrolabe.ProtectedEntityID {
 	return this.id
 }
@@ -326,4 +338,19 @@ func (this PVCProtectedEntity) GetPVC() (*core_v1.PersistentVolumeClaim, error) 
 		return nil, errors.Wrapf(err, "Could not get retrieve pvc with namespace %s, id %s", namespace, name)
 	}
 	return pvc, nil
+}
+
+func (this PVCProtectedEntity) getComponentPEType() string {
+	var peType string
+	typeManagers := this.ppetm.pem.ListEntityTypeManagers()
+	// always return the first non-pvc type as PVC PE will always have only one component, either ivd or paravirt-pv
+	for _, typeManager := range typeManagers {
+		peType := typeManager.GetTypeName()
+		if peType == astrolabe.PvcPEType {
+			continue
+		}
+		return peType
+	}
+
+	return peType
 }
