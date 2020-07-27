@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-func findDataCenterFromAncestors(ctx context.Context, client *vim25.Client, objectRef vim25types.ManagedObjectReference, logger logrus.FieldLogger) (string, error)  {
+func findDataCenterFromAncestors(ctx context.Context, client *vim25.Client, objectRef vim25types.ManagedObjectReference, logger logrus.FieldLogger) (string, error) {
 	pc := property.DefaultCollector(client)
 	path, err := mo.Ancestors(ctx, client, pc.Reference(), objectRef)
 	if err != nil {
@@ -111,7 +111,6 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 
 func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
 	finder := find.NewFinder(client)
-
 
 	hosts, err := findHostsOfNodeVMs(ctx, client, config, logger)
 	if err != nil {
@@ -237,8 +236,8 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]int
 	var metadataList []cnstypes.BaseCnsEntityMetadata
 	metadata := &cnstypes.CnsKubernetesEntityMetadata{
 		CnsEntityMetadata: cnstypes.CnsEntityMetadata{
-			EntityName:  md.VirtualStorageObject.Config.Name,
-			Labels:      md.ExtendedMetadata,
+			EntityName: md.VirtualStorageObject.Config.Name,
+			Labels:     md.ExtendedMetadata,
 		},
 		EntityType: string(cnstypes.CnsKubernetesEntityTypePV),
 	}
@@ -246,7 +245,7 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]int
 
 	var cnsVolumeCreateSpecList []cnstypes.CnsVolumeCreateSpec
 	cnsVolumeCreateSpec := cnstypes.CnsVolumeCreateSpec{
-		Name:        md.VirtualStorageObject.Config.Name,
+		Name:       md.VirtualStorageObject.Config.Name,
 		VolumeType: string(cnstypes.CnsVolumeTypeBlock),
 		Datastores: dsList,
 		Metadata: cnstypes.CnsVolumeMetadata{
@@ -318,13 +317,13 @@ func fillInClusterSpecificParams(params map[string]interface{}, logger logrus.Fi
 	//    cns.containerCluster.clusterType -- always "KUBERNETES", and no other type available for the moment
 	//    cns.containerCluster.clusterFlavor -- the most recent govmomi version doesn't provide field to set the cluster flavor
 	//    others are not cluster specfic, but cns specific
-	reservedLabelsMap := map[string]string {
+	reservedLabelsMap := map[string]string{
 		//"cns.containerCluster.clusterFlavor",
 		//"cns.containerCluster.clusterType",
 		//"cns.k8s.pv.name",
 		//"cns.tag",
 		//"cns.version",
-		"cns.containerCluster.clusterId": clusterId,
+		"cns.containerCluster.clusterId":   clusterId,
 		"cns.containerCluster.vSphereUser": user,
 	}
 
@@ -343,8 +342,8 @@ func FilterLabelsFromMetadataForVslmAPIs(md metadata, params map[string]interfac
 	}
 
 	for key, value := range reservedLabelsMap {
-		kvsList = append(kvsList, vim25types.KeyValue {
-			Key: key,
+		kvsList = append(kvsList, vim25types.KeyValue{
+			Key:   key,
 			Value: value,
 		})
 	}
@@ -354,8 +353,8 @@ func FilterLabelsFromMetadataForVslmAPIs(md metadata, params map[string]interfac
 		if !ok {
 			value = label.Value
 		}
-		kvsList = append(kvsList, vim25types.KeyValue {
-			Key: label.Key,
+		kvsList = append(kvsList, vim25types.KeyValue{
+			Key:   label.Key,
 			Value: value,
 		})
 	}
@@ -374,8 +373,8 @@ func FilterLabelsFromMetadataForCnsAPIs(md metadata, prefix string, logger logru
 
 	for _, label := range md.ExtendedMetadata {
 		if !strings.HasPrefix(label.Key, prefix) {
-			kvsList = append(kvsList, vim25types.KeyValue {
-				Key: label.Key,
+			kvsList = append(kvsList, vim25types.KeyValue{
+				Key:   label.Key,
 				Value: label.Value,
 			})
 		}
@@ -445,7 +444,7 @@ func GetClusterFromParamsMap(params map[string]interface{}) (string, error) {
 }
 
 func GetInsecureFlagFromParamsMap(params map[string]interface{}) (bool, error) {
-	insecureStr, err :=  GetStringFromParamsMap(params, InsecureFlagVcParamKey)
+	insecureStr, err := GetStringFromParamsMap(params, InsecureFlagVcParamKey)
 	if err == nil {
 		return strconv.ParseBool(insecureStr)
 	}

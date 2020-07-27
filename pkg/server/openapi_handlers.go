@@ -29,11 +29,10 @@ type OpenAPIAstrolabeHandler struct {
 	tm  TaskManager
 }
 
-
 func NewOpenAPIAstrolabeHandler(pem astrolabe.ProtectedEntityManager, tm TaskManager) OpenAPIAstrolabeHandler {
 	return OpenAPIAstrolabeHandler{
 		pem: pem,
-		tm: tm,
+		tm:  tm,
 	}
 }
 func (this OpenAPIAstrolabeHandler) AttachHandlers(api *operations.AstrolabeAPI) {
@@ -92,7 +91,7 @@ func (this OpenAPIAstrolabeHandler) GetProtectedEntityInfo(params operations.Get
 	}
 	peInfo, err := pe.GetInfo(context.Background())
 	peInfoResponse := peInfo.GetModelProtectedEntityInfo()
-	return operations.NewGetProtectedEntityInfoOK().WithPayload(&peInfoResponse);
+	return operations.NewGetProtectedEntityInfoOK().WithPayload(&peInfoResponse)
 }
 
 func (this OpenAPIAstrolabeHandler) CreateSnapshot(params operations.CreateSnapshotParams) middleware.Responder {
@@ -134,7 +133,6 @@ func (this OpenAPIAstrolabeHandler) ListSnapshots(params operations.ListSnapshot
 	return nil
 }
 
-
 func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyProtectedEntityParams) middleware.Responder {
 	petm := this.pem.GetProtectedEntityTypeManager(params.Service)
 	if petm == nil {
@@ -162,4 +160,3 @@ func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyPr
 	task.Result = newPE.GetID().GetModelProtectedEntityID()
 	return operations.NewCopyProtectedEntityAccepted()
 }
-

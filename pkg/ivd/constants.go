@@ -2,7 +2,7 @@ package ivd
 
 // Keys for VCenter parameters
 const (
-	HostVcParamKey           = "VirtualCenter"
+	HostVcParamKey         = "VirtualCenter"
 	UserVcParamKey         = "user"
 	PasswordVcParamKey     = "password"
 	PortVcParamKey         = "port"
@@ -10,4 +10,3 @@ const (
 	InsecureFlagVcParamKey = "insecure-flag"
 	ClusterVcParamKey      = "cluster-id"
 )
-

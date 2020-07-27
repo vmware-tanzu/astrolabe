@@ -27,9 +27,9 @@ import (
 type ProtectedEntityInfo interface {
 	GetID() ProtectedEntityID
 	GetName() string
-	GetDataTransports() [] DataTransport
-	GetMetadataTransports() [] DataTransport
-	GetCombinedTransports() [] DataTransport
+	GetDataTransports() []DataTransport
+	GetMetadataTransports() []DataTransport
+	GetCombinedTransports() []DataTransport
 	GetComponentIDs() []ProtectedEntityID
 	GetModelProtectedEntityInfo() models.ProtectedEntityInfo
 }
@@ -55,9 +55,8 @@ func NewProtectedEntityInfo(id ProtectedEntityID, name string, dataTransports []
 	}
 }
 
-func NewProtectedEntityInfoFromModel(mpei * models.ProtectedEntityInfo) (ProtectedEntityInfo, error) {
-	pei := ProtectedEntityInfoImpl{
-	}
+func NewProtectedEntityInfoFromModel(mpei *models.ProtectedEntityInfo) (ProtectedEntityInfo, error) {
+	pei := ProtectedEntityInfoImpl{}
 	err := pei.FillFromModel(mpei)
 	if err != nil {
 		return nil, err
@@ -158,7 +157,7 @@ func (this *ProtectedEntityInfoImpl) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (this *ProtectedEntityInfoImpl) FillFromModel(jsonStruct * models.ProtectedEntityInfo) error {
+func (this *ProtectedEntityInfoImpl) FillFromModel(jsonStruct *models.ProtectedEntityInfo) error {
 	var err error
 	this.id, err = NewProtectedEntityIDFromString(string(jsonStruct.ID))
 	if err != nil {

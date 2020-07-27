@@ -35,12 +35,13 @@ func GenerateTaskID() TaskID {
 	if err != nil {
 		log.Panic("Cannot create UUID")
 	}
-	return TaskID {
+	return TaskID{
 		id: newUUID.String(),
 	}
 }
 
 type TaskStatus int
+
 const (
 	Running TaskStatus = iota
 	Success
@@ -58,21 +59,20 @@ type Task interface {
 	GetFinishedTime() time.Time
 	GetStartedTime() time.Time
 	GetProgress() float64
-	GetResult() interface {}
-	GetModelTaskInfo() (models.TaskInfo)
+	GetResult() interface{}
+	GetModelTaskInfo() models.TaskInfo
 	Cancel() error
 }
 
-
 type GenericTask struct {
 	// Fields are public so we don't need setters from users of this structure
-	ID TaskID
-	Completed bool
-	TaskStatus TaskStatus
-	Details string
+	ID                        TaskID
+	Completed                 bool
+	TaskStatus                TaskStatus
+	Details                   string
 	StartedTime, FinishedTime time.Time
-	Progress float64
-	Result interface {}
+	Progress                  float64
+	Result                    interface{}
 }
 
 func NewGenericTask() GenericTask {
@@ -100,27 +100,27 @@ func (this GenericTask) GetDetails() string {
 	return this.Details
 }
 
-func (this GenericTask)  GetFinishedTime() time.Time {
+func (this GenericTask) GetFinishedTime() time.Time {
 	return this.FinishedTime
 }
 
-func (this GenericTask)  GetStartedTime() time.Time {
+func (this GenericTask) GetStartedTime() time.Time {
 	return this.StartedTime
 }
 
-func (this GenericTask)  GetProgress() float64 {
+func (this GenericTask) GetProgress() float64 {
 	return this.Progress
 }
 
-func (this GenericTask)  GetStatus() TaskStatus {
+func (this GenericTask) GetStatus() TaskStatus {
 	return this.TaskStatus
 }
 
-func (this GenericTask) GetResult() interface {} {
+func (this GenericTask) GetResult() interface{} {
 	return this.Result
 }
 
-func (this GenericTask)  GetModelTaskInfo() (models.TaskInfo) {
+func (this GenericTask) GetModelTaskInfo() models.TaskInfo {
 	startedTimeStr := this.StartedTime.Format(time.RFC3339)
 	var taskStatus = this.TaskStatus.String()
 	return models.TaskInfo{
@@ -135,6 +135,6 @@ func (this GenericTask)  GetModelTaskInfo() (models.TaskInfo) {
 	}
 }
 
-func (this GenericTask)  Cancel() error {
+func (this GenericTask) Cancel() error {
 	return nil
 }

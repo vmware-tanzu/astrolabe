@@ -56,7 +56,7 @@ func (this *ServiceS3) handleObjectRequest(echoContext echo.Context) error {
 	objectKey := echoContext.Param("objectKey")
 	var objectStream io.Reader
 	var idStr, source, contentType string
-	if (strings.HasSuffix(objectKey, ".md")) {
+	if strings.HasSuffix(objectKey, ".md") {
 		idStr = strings.TrimSuffix(objectKey, ".md")
 		source = "md"
 		contentType = "application/octet-stream"
@@ -67,17 +67,17 @@ func (this *ServiceS3) handleObjectRequest(echoContext echo.Context) error {
 	}
 
 	_, pe, err := getProtectedEntityForIDStr(this.petm, idStr, echoContext)
-	if (err != nil) {
+	if err != nil {
 
 	}
 
-	switch (source) {
+	switch source {
 	case "md":
 		objectStream, err = pe.GetMetadataReader(nil)
 	case "data":
 		objectStream, err = pe.GetDataReader(nil)
 	}
-	if (err != nil) {
+	if err != nil {
 
 	}
 

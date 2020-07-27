@@ -30,7 +30,7 @@ type TaskManager struct {
 }
 
 func NewTaskManager() TaskManager {
-	newTM := TaskManager {
+	newTM := TaskManager{
 		keepRunning: true,
 	}
 	go newTM.cleanUpLoop()
@@ -58,11 +58,11 @@ func (this *TaskManager) AddTask(addTask astrolabe.Task) {
 func (this *TaskManager) RetrieveTask(taskID astrolabe.TaskID) (retTask astrolabe.Task, ok bool) {
 	this.mutex.RLock()
 	defer this.mutex.Unlock()
-	retTask, ok =  this.tasks[taskID]
+	retTask, ok = this.tasks[taskID]
 	return
 }
 
-func (this * TaskManager) cleanUpLoop() {
+func (this *TaskManager) cleanUpLoop() {
 	for this.keepRunning {
 		this.cleanUp()
 		time.Sleep(time.Minute)
@@ -73,7 +73,7 @@ func (this *TaskManager) cleanUp() {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	for id, task := range this.tasks {
-		if time.Now().Sub(task.GetFinishedTime()) > 3600 * time.Second {
+		if time.Now().Sub(task.GetFinishedTime()) > 3600*time.Second {
 			delete(this.tasks, id)
 		}
 	}

@@ -18,11 +18,11 @@ package astrolabe
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	credentials2 "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/pkg/errors"
 	"github.com/vmware-tanzu/astrolabe/gen/models"
 	"net"
 	"strconv"
@@ -52,27 +52,27 @@ func NewDataTransport(transportType string, params map[string]string) DataTransp
 	}
 }
 
-const(
+const (
 	S3TransportType = "s3"
-	S3URLParam = "url"
-	S3HostParam = "host"
-	S3BucketParam = "bucket"
-	S3KeyParam = "key"
-	S3UseHTTPParam = "http"
+	S3URLParam      = "url"
+	S3HostParam     = "host"
+	S3BucketParam   = "bucket"
+	S3KeyParam      = "key"
+	S3UseHTTPParam  = "http"
 )
 
 type S3Config struct {
-	Port int			`json:"port,omitempty"`
-	Host net.IP			`json:"host,omitempty"`
-	AccessKey string	`json:"accessKey,omitempty"`
-	Secret string		`json:"secret,omitempty"`
-	Prefix string		`json:"prefix,omitempty"`
-	URLBase string		`json:"urlBase,omitempty"`
-	Region string       `json:"region,omitempty"`
-	UseHttp bool        `json:"http,omitempty"`
+	Port      int    `json:"port,omitempty"`
+	Host      net.IP `json:"host,omitempty"`
+	AccessKey string `json:"accessKey,omitempty"`
+	Secret    string `json:"secret,omitempty"`
+	Prefix    string `json:"prefix,omitempty"`
+	URLBase   string `json:"urlBase,omitempty"`
+	Region    string `json:"region,omitempty"`
+	UseHttp   bool   `json:"http,omitempty"`
 }
 
-func (this S3Config) getURL() (string) {
+func (this S3Config) getURL() string {
 	var protocol string
 	//Only use http if it's specified, otherwise https
 	if this.UseHttp {
@@ -80,7 +80,7 @@ func (this S3Config) getURL() (string) {
 	} else {
 		protocol = "https://"
 	}
-	return protocol + this.Host.String() + ":" + strconv.Itoa(this.Port) + "/"+this.Prefix+"/"
+	return protocol + this.Host.String() + ":" + strconv.Itoa(this.Port) + "/" + this.Prefix + "/"
 }
 
 func NewDataTransportForS3URL(url string) DataTransport {
@@ -106,10 +106,10 @@ func NewDataTransportForS3(host string, bucket string, key string) DataTransport
 }
 
 const (
-	DataExt = ""
-	MDExt = ".md"
+	DataExt     = ""
+	MDExt       = ".md"
 	CombinedExt = ".zip"
-	PEInfoExt = ".peinfo"
+	PEInfoExt   = ".peinfo"
 )
 
 func NewS3DataTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (DataTransport, error) {
@@ -128,14 +128,13 @@ func NewS3PEInfoTransportForPEID(peid ProtectedEntityID, s3Config S3Config) (Dat
 	return NewS3TransportForPEID(peid, PEInfoExt, s3Config)
 }
 
-
 func NewS3TransportForPEID(peid ProtectedEntityID, ext string, s3Config S3Config) (DataTransport, error) {
 	credentials := credentials2.NewStaticCredentials(s3Config.AccessKey, s3Config.Secret, "")
 	s3ForcePathStyle := true
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(s3Config.getURL()),
-		Credentials: credentials,
-		Region: aws.String(s3Config.Region),
+		Endpoint:         aws.String(s3Config.getURL()),
+		Credentials:      credentials,
+		Region:           aws.String(s3Config.Region),
 		S3ForcePathStyle: &s3ForcePathStyle,
 	},
 	)
@@ -167,7 +166,7 @@ func (this DataTransport) GetParam(key string) (string, bool) {
 func (this DataTransport) getModelDataTransport() models.DataTransport {
 	return models.DataTransport{
 		TransportType: this.transportType,
-		Params: this.params,
+		Params:        this.params,
 	}
 }
 

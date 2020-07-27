@@ -29,7 +29,7 @@ type Astrolabe struct {
 	s3_services  map[string]*ServiceS3
 }
 
-func NewProtectedEntityManager(confDirPath string) (astrolabe.ProtectedEntityManager) {
+func NewProtectedEntityManager(confDirPath string) astrolabe.ProtectedEntityManager {
 	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath)
 	var pem astrolabe.ProtectedEntityManager
 	pem = dpem
