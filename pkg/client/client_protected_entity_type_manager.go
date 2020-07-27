@@ -59,11 +59,13 @@ func (this ClientProtectedEntityTypeManager) GetProtectedEntities(ctx context.Co
 	return returnPEIDs, nil
 }
 
-func (this ClientProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this ClientProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+    options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	panic("implement me")
 }
 
-func (this ClientProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, info astrolabe.ProtectedEntityInfo, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this ClientProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, info astrolabe.ProtectedEntityInfo, params map[string]map[string]interface{},
+	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	panic("implement me")
 }
 

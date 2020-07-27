@@ -138,14 +138,14 @@ func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyPr
 	if petm == nil {
 
 	}
-	pei, err := astrolabe.NewProtectedEntityInfoFromModel(params.Body)
+	pei, err := astrolabe.NewProtectedEntityInfoFromModel(params.Body.ProtectedEntityInfo)
 	if err != nil {
 
 	}
 	copyParams := make(map[string]map[string]interface{})
 
-	if params.Params != nil {
-		for _, curPEParams := range params.Params {
+	if params.Body.CopyParams != nil {
+		for _, curPEParams := range params.Body.CopyParams {
 			if curPEParams.Value != nil {
 				curPEParamsMap := make(map[string]interface{})
 				for _, curParam := range curPEParams.Value {
