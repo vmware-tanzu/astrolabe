@@ -105,7 +105,7 @@ func GetVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 func verifyMdIsRestoredAsExpected(md metadata, version string, logger logrus.FieldLogger) bool {
 	var reservedLabels []string
 	if strings.Contains(version, "6.7U3") {
-		reservedLabels = []string {
+		reservedLabels = []string{
 			"cns.clusterID",
 			"cns.clusterType",
 			"cns.vSphereUser",
@@ -113,7 +113,7 @@ func verifyMdIsRestoredAsExpected(md metadata, version string, logger logrus.Fie
 			"cns.tag",
 		}
 	} else if strings.HasPrefix(version, "7.0") {
-		reservedLabels = []string {
+		reservedLabels = []string{
 			"cns.containerCluster.clusterFlavor",
 			"cns.containerCluster.clusterId",
 			"cns.containerCluster.clusterType",
@@ -180,8 +180,8 @@ func TestCreateCnsVolume(t *testing.T) {
 	md := metadata{
 		vim25types.VStorageObject{
 			DynamicData: vim25types.DynamicData{},
-			Config:      vim25types.VStorageObjectConfigInfo{
-				BaseConfigInfo:  vim25types.BaseConfigInfo{
+			Config: vim25types.VStorageObjectConfigInfo{
+				BaseConfigInfo: vim25types.BaseConfigInfo{
 					DynamicData:                 vim25types.DynamicData{},
 					Id:                          vim25types.ID{},
 					Name:                        "xyz",
@@ -222,7 +222,7 @@ func TestCreateCnsVolume(t *testing.T) {
 	var volumeIDListToDelete []cnstypes.CnsVolumeId
 	volumeIDList = append(volumeIDListToDelete, cnstypes.CnsVolumeId{Id: volumeId})
 
-	defer func () {
+	defer func() {
 		// Always delete the newly created volume at the end of test
 		t.Logf("Deleting volume: %+v", volumeIDList)
 		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
@@ -248,7 +248,7 @@ func TestCreateCnsVolume(t *testing.T) {
 			t.Fatalf("Failed to delete volume: fault=%+v", deleteVolumeOperationRes.Fault)
 		}
 		t.Logf("Volume deleted sucessfully")
-	} ()
+	}()
 
 	// Step 4: Query the volume result for the newly created protected entity/volume
 	queryFilter.VolumeIds = volumeIDList
@@ -278,7 +278,6 @@ func TestCreateCnsVolume(t *testing.T) {
 		t.Logf("Volume names match, name: %v", md.VirtualStorageObject.Config.Name)
 	}
 }
-
 
 func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	path := os.Getenv("KUBECONFIG")
@@ -364,7 +363,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	var volumeIDListToDelete []cnstypes.CnsVolumeId
 	volumeIDList = append(volumeIDListToDelete, cnstypes.CnsVolumeId{Id: volumeId})
 
-	defer func () {
+	defer func() {
 		// Always delete the newly created volume at the end of test
 		t.Logf("Deleting volume: %+v", volumeIDList)
 		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
@@ -390,7 +389,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 			t.Fatalf("Failed to delete volume: fault=%+v", deleteVolumeOperationRes.Fault)
 		}
 		t.Logf("Volume deleted sucessfully")
-	} ()
+	}()
 
 	// Step 4: Query the volume result for the newly created protected entity/volume
 	queryFilter.VolumeIds = volumeIDList

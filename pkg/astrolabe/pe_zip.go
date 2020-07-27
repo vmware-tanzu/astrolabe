@@ -26,19 +26,19 @@ import (
 func ZipProtectedEntity(ctx context.Context, entity ProtectedEntity, writer io.Writer) error {
 	zipWriter := zip.NewWriter(writer)
 	peInfo, err := entity.GetInfo(ctx)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	jsonBuf, err := json.Marshal(peInfo)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	peInfoWriter, err := zipWriter.Create(entity.GetID().String() + ".peinfo")
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	_, err = peInfoWriter.Write(jsonBuf)
-	if (err != nil) {
+	if err != nil {
 		return err
 	}
 	return nil

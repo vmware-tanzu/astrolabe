@@ -17,8 +17,8 @@
 package ivd
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
@@ -198,15 +198,13 @@ func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE as
 		return nil, errors.Wrap(err, "GetDataReader failed")
 	}
 
-	if dataReader != nil {	// If there's no data we will not get a reader and no error
+	if dataReader != nil { // If there's no data we will not get a reader and no error
 		defer func() {
 			if err := dataReader.Close(); err != nil {
 				this.logger.Errorf("The deferred data reader is closed with error, %v", err)
 			}
 		}()
 	}
-
-
 
 	metadataReader, err := sourcePE.GetMetadataReader(ctx)
 	if err != nil {
@@ -234,7 +232,7 @@ func (this backingSpec) GetVslmCreateSpecBackingSpec() *types.VslmCreateSpecBack
 func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo,
 	options astrolabe.CopyCreateOptions, dataReader io.Reader, metadataReader io.Reader) (astrolabe.ProtectedEntity, error) {
 	this.logger.Debug("ivd PETM copyInt called")
-	if (sourcePEInfo.GetID().GetPeType() != "ivd") {
+	if sourcePEInfo.GetID().GetPeType() != "ivd" {
 		return nil, errors.New("Copy source must be an ivd")
 	}
 	ourVC := false
@@ -249,7 +247,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		}
 	}
 
-	if (ourVC) {
+	if ourVC {
 		_, err := this.vsom.Retrieve(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()))
 		if err != nil {
 			if soap.IsSoapFault(err) {
@@ -281,7 +279,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 			return nil, err
 		}
 		hasSnapshot := sourcePEInfo.GetID().HasSnapshot()
-		if (hasSnapshot) {
+		if hasSnapshot {
 			createTask, err = this.vsom.CreateDiskFromSnapshot(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), NewVimSnapshotIDFromPEID(sourcePEInfo.GetID()),
 				sourcePEInfo.GetName(), nil, nil, "")
 			if err != nil {
@@ -302,7 +300,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 			return nil, err
 		}
 
-		retVal, err := createTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30);
+		retVal, err := createTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30)
 		if err != nil {
 			this.logger.WithError(err).Error("Failed at waiting for the task of creating volume")
 			return nil, err
@@ -312,13 +310,13 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 
 		// if there is any local snasphot, we need to call updateMetadata explicitly
 		// since CreateDiskFromSnapshot doesn't accept metadata as a param. The API need to be changed accordingly.
-		if (hasSnapshot) {
+		if hasSnapshot {
 			updateTask, err := this.vsom.UpdateMetadata(ctx, newVSO.Config.Id, md.ExtendedMetadata, []string{})
 			if err != nil {
 				this.logger.WithError(err).Error("Failed at calling UpdateMetadata")
 				return nil, err
 			}
-			_, err = updateTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30);
+			_, err = updateTask.WaitNonDefault(ctx, time.Hour*24, time.Second*10, true, time.Second*30)
 			if err != nil {
 				this.logger.WithError(err).Error("Failed at waiting for the UpdateMetadata task")
 				return nil, err

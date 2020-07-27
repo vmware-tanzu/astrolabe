@@ -18,8 +18,8 @@ package fs
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"io"
@@ -28,21 +28,21 @@ import (
 )
 
 type FSProtectedEntityTypeManager struct {
-	root      string
-	s3Config  astrolabe.S3Config
-	logger    logrus.FieldLogger
+	root     string
+	s3Config astrolabe.S3Config
+	logger   logrus.FieldLogger
 }
 
 const kTYPE_NAME = "fs"
 
-func NewFSProtectedEntityTypeManagerFromConfig(params map[string]interface{},s3Config astrolabe.S3Config,
+func NewFSProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
 	logger logrus.FieldLogger) (*FSProtectedEntityTypeManager, error) {
 	root := params["root"].(string)
 
 	returnTypeManager := FSProtectedEntityTypeManager{
-		root:      root,
-		s3Config:  s3Config,
-		logger:    logger,
+		root:     root,
+		s3Config: s3Config,
+		logger:   logger,
 	}
 	return &returnTypeManager, nil
 }

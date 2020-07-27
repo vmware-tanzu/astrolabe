@@ -289,7 +289,7 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 			if pv.Spec.AccessModes[0] == core_v1.ReadWriteOnce {
 				var pvIDstr string
 				if this.ppetm.isGuest {
-					pvIDstr = pv.Name        // use pv name rather than pv volume handle as the ID of paravirt PE, since it is easier to retrieve pv volume handle from pv name
+					pvIDstr = pv.Name // use pv name rather than pv volume handle as the ID of paravirt PE, since it is easier to retrieve pv volume handle from pv name
 				} else {
 					pvIDstr = pv.Spec.CSI.VolumeHandle
 				}

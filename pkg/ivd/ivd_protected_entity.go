@@ -50,7 +50,7 @@ type IVDProtectedEntity struct {
 type metadata struct {
 	VirtualStorageObject vim.VStorageObject         `xml:"virtualStorageObject"`
 	Datastore            vim.ManagedObjectReference `xml:"datastore"`
-	ExtendedMetadata     []vim.KeyValue          `xml:"extendedMetadata"`
+	ExtendedMetadata     []vim.KeyValue             `xml:"extendedMetadata"`
 }
 
 func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser, error) {
@@ -73,7 +73,6 @@ func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser
 
 	return diskReader, nil
 }
-
 
 func (this IVDProtectedEntity) copy(ctx context.Context, dataReader io.Reader,
 	metadata metadata) error {
@@ -106,7 +105,7 @@ func (this IVDProtectedEntity) getDataWriter(ctx context.Context) (io.WriteClose
 
 	diskWriter, vErr := gvddk_high.Open(diskConnectParam, this.logger)
 	if vErr != nil {
-		return nil, errors.New(fmt.Sprintf(vErr.Error() + " with error code: %d", vErr.VixErrorCode()))
+		return nil, errors.New(fmt.Sprintf(vErr.Error()+" with error code: %d", vErr.VixErrorCode()))
 	}
 
 	return diskWriter, nil
@@ -199,7 +198,7 @@ func (this IVDProtectedEntity) getMetadata(ctx context.Context) (metadata, error
 	}
 	datastore := vso.Config.BaseConfigInfo.GetBaseConfigInfo().Backing.GetBaseConfigInfoBackingInfo().Datastore
 	var ssID *vim.ID = nil
-	if (this.id.HasSnapshot()) {
+	if this.id.HasSnapshot() {
 
 		ssID = &vim.ID{
 			Id: this.id.GetSnapshotID().GetID(),
@@ -302,7 +301,7 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 					return false, nil
 				}
 			}
-			return false, errors.Wrapf(err,"Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
+			return false, errors.Wrapf(err, "Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
 		ivdSnapshotID := ivdSnapshotIDAny.(vim.ID)
 		this.logger.Debugf("A new snapshot, %v, was created on IVD Protected Entity, %v", ivdSnapshotID.Id, this.GetID().String())
@@ -374,7 +373,7 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 					return false, nil
 				}
 			}
-			return false, errors.Wrapf(err,"Failed at waiting for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+			return false, errors.Wrapf(err, "Failed at waiting for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 		}
 		return true, nil
 	})

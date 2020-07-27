@@ -173,7 +173,7 @@ func tarDir(src string, writer io.Writer) error {
 
 		// update the name to correctly reflect the desired destination when untaring
 		header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
-		if (header.Name == "") {
+		if header.Name == "" {
 			return nil // Don't put an empty record for the root
 		}
 		// write the header

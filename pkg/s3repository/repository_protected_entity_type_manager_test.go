@@ -24,7 +24,7 @@ import (
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
 	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
-    "log"
+	"log"
 	"testing"
 )
 
