@@ -66,7 +66,7 @@ type CreateSnapshotParams struct {
 	  Parameters for the snapshot.
 
 	*/
-	Params models.SnapshotParamList
+	Params models.OperationParamList
 	/*ProtectedEntityID
 	  The protected entity ID to snapshot
 
@@ -117,13 +117,13 @@ func (o *CreateSnapshotParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithParams adds the params to the create snapshot params
-func (o *CreateSnapshotParams) WithParams(params models.SnapshotParamList) *CreateSnapshotParams {
+func (o *CreateSnapshotParams) WithParams(params models.OperationParamList) *CreateSnapshotParams {
 	o.SetParams(params)
 	return o
 }
 
 // SetParams adds the params to the create snapshot params
-func (o *CreateSnapshotParams) SetParams(params models.SnapshotParamList) {
+func (o *CreateSnapshotParams) SetParams(params models.OperationParamList) {
 	o.Params = params
 }
 

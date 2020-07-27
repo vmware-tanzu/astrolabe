@@ -33,6 +33,6 @@ type ProtectedEntityTypeManager interface {
 	GetTypeName() string
 	GetProtectedEntity(ctx context.Context, id ProtectedEntityID) (ProtectedEntity, error)
 	GetProtectedEntities(ctx context.Context) ([]ProtectedEntityID, error)
-	Copy(ctx context.Context, pe ProtectedEntity, options CopyCreateOptions) (ProtectedEntity, error)
-	CopyFromInfo(ctx context.Context, info ProtectedEntityInfo, options CopyCreateOptions) (ProtectedEntity, error)
+	Copy(ctx context.Context, pe ProtectedEntity, params map[string]map[string]interface{}, options CopyCreateOptions) (ProtectedEntity, error)
+	CopyFromInfo(ctx context.Context, info ProtectedEntityInfo, params map[string]map[string]interface{}, options CopyCreateOptions) (ProtectedEntity, error)
 }

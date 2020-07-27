@@ -63,10 +63,10 @@ for the copy protected entity operation typically these are written to a http.Re
 type CopyProtectedEntityParams struct {
 
 	/*Body
-	  Info of ProtectedEntity to copy
+	  Copy Parameters including protected entity to copy
 
 	*/
-	Body *models.ProtectedEntityInfo
+	Body *models.CopyParameters
 	/*Mode
 	  How to handle the copy.  create - a new protected entity with the
 	Protected Entity ID will be created.  If the Protected Entity ID
@@ -126,13 +126,13 @@ func (o *CopyProtectedEntityParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the copy protected entity params
-func (o *CopyProtectedEntityParams) WithBody(body *models.ProtectedEntityInfo) *CopyProtectedEntityParams {
+func (o *CopyProtectedEntityParams) WithBody(body *models.CopyParameters) *CopyProtectedEntityParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the copy protected entity params
-func (o *CopyProtectedEntityParams) SetBody(body *models.ProtectedEntityInfo) {
+func (o *CopyProtectedEntityParams) SetBody(body *models.CopyParameters) {
 	o.Body = body
 }
 

@@ -142,8 +142,21 @@ func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyPr
 	if err != nil {
 
 	}
+	copyParams := make(map[string]map[string]interface{})
+
+	if params.Params != nil {
+		for _, curPEParams := range params.Params {
+			if curPEParams.Value != nil {
+				curPEParamsMap := make(map[string]interface{})
+				for _, curParam := range curPEParams.Value {
+					curPEParamsMap[curParam.Key] = curParam.Value
+				}
+				copyParams[curPEParams.Key] = curPEParamsMap
+			}
+		}
+	}
 	startedTime := time.Now()
-	newPE, err := petm.CopyFromInfo(context.Background(), pei, astrolabe.AllocateNewObject)
+	newPE, err := petm.CopyFromInfo(context.Background(), pei, copyParams, astrolabe.AllocateNewObject)
 	var taskStatus astrolabe.TaskStatus
 	if err != nil {
 		taskStatus = astrolabe.Failed

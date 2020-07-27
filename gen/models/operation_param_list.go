@@ -13,13 +13,13 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// SnapshotParamList snapshot param list
+// OperationParamList operation param list
 //
-// swagger:model SnapshotParamList
-type SnapshotParamList []*SnapshotParamItem
+// swagger:model OperationParamList
+type OperationParamList []*OperationParamItem
 
-// Validate validates this snapshot param list
-func (m SnapshotParamList) Validate(formats strfmt.Registry) error {
+// Validate validates this operation param list
+func (m OperationParamList) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {

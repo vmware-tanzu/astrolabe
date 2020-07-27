@@ -10,10 +10,10 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// SnapshotPEParamItem snapshot p e param item
+// OperationPEParamItem operation p e param item
 //
-// swagger:model SnapshotPEParamItem
-type SnapshotPEParamItem struct {
+// swagger:model OperationPEParamItem
+type OperationPEParamItem struct {
 
 	// key
 	Key string `json:"key,omitempty"`
@@ -22,13 +22,13 @@ type SnapshotPEParamItem struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-// Validate validates this snapshot p e param item
-func (m *SnapshotPEParamItem) Validate(formats strfmt.Registry) error {
+// Validate validates this operation p e param item
+func (m *OperationPEParamItem) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *SnapshotPEParamItem) MarshalBinary() ([]byte, error) {
+func (m *OperationPEParamItem) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -36,8 +36,8 @@ func (m *SnapshotPEParamItem) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *SnapshotPEParamItem) UnmarshalBinary(b []byte) error {
-	var res SnapshotPEParamItem
+func (m *OperationPEParamItem) UnmarshalBinary(b []byte) error {
+	var res OperationPEParamItem
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

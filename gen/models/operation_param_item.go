@@ -11,20 +11,20 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// SnapshotParamItem snapshot param item
+// OperationParamItem operation param item
 //
-// swagger:model SnapshotParamItem
-type SnapshotParamItem struct {
+// swagger:model OperationParamItem
+type OperationParamItem struct {
 
 	// key
 	Key string `json:"key,omitempty"`
 
 	// value
-	Value SnapshotPEParamList `json:"value,omitempty"`
+	Value OperationPEParamList `json:"value,omitempty"`
 }
 
-// Validate validates this snapshot param item
-func (m *SnapshotParamItem) Validate(formats strfmt.Registry) error {
+// Validate validates this operation param item
+func (m *OperationParamItem) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateValue(formats); err != nil {
@@ -37,7 +37,7 @@ func (m *SnapshotParamItem) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *SnapshotParamItem) validateValue(formats strfmt.Registry) error {
+func (m *OperationParamItem) validateValue(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Value) { // not required
 		return nil
@@ -54,7 +54,7 @@ func (m *SnapshotParamItem) validateValue(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *SnapshotParamItem) MarshalBinary() ([]byte, error) {
+func (m *OperationParamItem) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -62,8 +62,8 @@ func (m *SnapshotParamItem) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *SnapshotParamItem) UnmarshalBinary(b []byte) error {
-	var res SnapshotParamItem
+func (m *OperationParamItem) UnmarshalBinary(b []byte) error {
+	var res OperationParamItem
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

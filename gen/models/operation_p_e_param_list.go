@@ -13,13 +13,13 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// SnapshotPEParamList snapshot p e param list
+// OperationPEParamList operation p e param list
 //
-// swagger:model SnapshotPEParamList
-type SnapshotPEParamList []*SnapshotPEParamItem
+// swagger:model OperationPEParamList
+type OperationPEParamList []*OperationPEParamItem
 
-// Validate validates this snapshot p e param list
-func (m SnapshotPEParamList) Validate(formats strfmt.Registry) error {
+// Validate validates this operation p e param list
+func (m OperationPEParamList) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {
