@@ -627,6 +627,11 @@ func (this *ProtectedEntity) getReader(ctx context.Context, key string) (io.Read
 	return ioutil.NopCloser(s3BufferedReader), nil
 }
 
+func (this ProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+	return errors.New("Cannot overwrite PEs in S3 repository")
+}
+
 type s3SegmentReader struct {
 	s3                     s3.S3
 	bucket                 string

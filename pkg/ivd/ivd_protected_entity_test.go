@@ -69,7 +69,10 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	formatter.FullTimestamp = true
 	logger.SetFormatter(formatter)
 	logger.SetLevel(logrus.DebugLevel)
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, "/ivd", true, logger)
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, logger)
 	if err != nil {
 		t.Skipf("Failed to get a new ivd PETM: %v", err)
 	}
@@ -255,7 +258,10 @@ func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, vc
 
 	ctx := context.Background()
 
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, "/ivd", true, log)
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, log)
 	if err != nil {
 		log.Error("Failed to get a new ivd PETM")
 		return
@@ -309,7 +315,7 @@ func createSnapshotLocked(mutex *sync.Mutex, ctx context.Context, ivdPE astrolab
 		mutex.Unlock()
 		log.Debugf("Released the lock on CreateSnapshot")
 	}()
-	peSnapID, err := ivdPE.Snapshot(ctx)
+	peSnapID, err := ivdPE.Snapshot(ctx, nil)
 	if err != nil {
 		log.Error("Failed to snapshot the IVD protected entity")
 		return astrolabe.ProtectedEntitySnapshotID{}, err
@@ -521,7 +527,10 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	formatter.FullTimestamp = true
 	logger.SetFormatter(formatter)
 	logger.SetLevel(logrus.DebugLevel)
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, "/ivd", true, logger)
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, logger)
 	if err != nil {
 		t.Skipf("Failed to get a new ivd PETM: %v", err)
 	}
@@ -671,7 +680,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 			t.Skipf("Failed to get IVD protected entity for the IVD, %v", ivdId)
 		}
 
-		snapID, err := ivdPE.Snapshot(ctx)
+		snapID, err := ivdPE.Snapshot(ctx, nil)
 		if err != nil {
 			t.Errorf("Failed to snapshot the IVD protected entity, %v", ivdId)
 		}

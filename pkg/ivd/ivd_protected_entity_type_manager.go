@@ -75,7 +75,7 @@ func NewIVDProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s
 	}
 	vcURL.User = url.UserPassword(vcUser, vcPassword)
 	vcURL.Path = "/sdk"
-	retVal, err := NewIVDProtectedEntityTypeManagerFromURL(&vcURL, s3Config, insecure, logger)
+	retVal, err := newIVDProtectedEntityTypeManagerFromURL(&vcURL, s3Config, insecure, logger)
 	if err != nil {
 		logger.Errorf("Failed to create IVDProtectedEntityTypeManager with error, %v", err)
 		return retVal, err
@@ -109,7 +109,8 @@ func newKeepAliveClient(ctx context.Context, u *url.URL, insecure bool) (*govmom
 	return c, nil
 }
 
-func NewIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3Config astrolabe.S3Config, insecure bool, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+//TODO - merge this into NewIVDProtectedEntityTypeManagerFromConfig and switch usage
+func newIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3Config astrolabe.S3Config, insecure bool, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
 	ctx := context.Background()
 	client, err := newKeepAliveClient(ctx, url, insecure)
 
@@ -335,10 +336,10 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		if err != nil {
 			return nil, errors.Wrap(err, "CreateDisk failed")
 		}
-		err = retPE.copy(ctx, dataReader, md)
+		_, err = retPE.copy(ctx, dataReader, md)
 		if err != nil {
 			this.logger.Errorf("Failed to copy data from data source to newly-provisioned IVD protected entity")
-			return nil, err
+			return nil, errors.Wrapf(err, "Failed to copy data from data source to newly-provisioned IVD protected entity")
 		}
 		this.logger.WithField("volumeId", volumeVimID.Id).WithField("volumeName", md.VirtualStorageObject.Config.Name).Debug("Copied snapshot data to newly-provisioned IVD protected entity")
 	}

@@ -109,6 +109,11 @@ func (this FSProtectedEntity) GetID() astrolabe.ProtectedEntityID {
 	return this.id
 }
 
+func (this FSProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+	return nil
+}
+
 func NewIDFromString(idStr string) vim.ID {
 	return vim.ID{
 		Id: idStr,

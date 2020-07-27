@@ -86,3 +86,8 @@ func (this *KubernetesNamespaceProtectedEntity) GetComponents(ctx context.Contex
 func (this *KubernetesNamespaceProtectedEntity) GetID() astrolabe.ProtectedEntityID {
 	return this.id
 }
+
+func (this *KubernetesNamespaceProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+	return nil
+}
