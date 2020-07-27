@@ -76,7 +76,7 @@ func (this *ServiceAPI) handleObjectRequest(echoContext echo.Context) error {
 }
 
 func (this *ServiceAPI) snapshot(echoContext echo.Context, pe astrolabe.ProtectedEntity) {
-	snapshotID, err := pe.Snapshot(context.Background())
+	snapshotID, err := pe.Snapshot(context.Background(), make(map[string]map[string]interface{}))
 	if err != nil {
 		echoContext.String(http.StatusNotFound, "Snapshot failed for id "+pe.GetID().String()+" error = "+err.Error())
 		return

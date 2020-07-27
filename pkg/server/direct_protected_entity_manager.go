@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
@@ -36,11 +37,13 @@ import (
 type DirectProtectedEntityManager struct {
 	typeManager map[string]astrolabe.ProtectedEntityTypeManager
 	s3Config    astrolabe.S3Config
+	logger      logrus.FieldLogger
 }
 
-func NewDirectProtectedEntityManager(petms []astrolabe.ProtectedEntityTypeManager, s3Config astrolabe.S3Config) (returnPEM *DirectProtectedEntityManager) {
+func NewDirectProtectedEntityManager(petms []astrolabe.ProtectedEntityTypeManager, s3Config astrolabe.S3Config, logger logrus.FieldLogger) (returnPEM *DirectProtectedEntityManager) {
 	returnPEM = &DirectProtectedEntityManager{
 		typeManager: make(map[string]astrolabe.ProtectedEntityTypeManager),
+		logger:      logger,
 	}
 	for _, curPETM := range petms {
 		returnPEM.typeManager[curPETM.GetTypeName()] = curPETM
@@ -67,18 +70,18 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 	if logger == nil {
 		logger = logrus.New()
 	}
-	for serviceName, params := range configInfo.peConfigs {
+	for serviceName, params := range configInfo.PEConfigs {
 		var curService astrolabe.ProtectedEntityTypeManager
 		switch serviceName {
 		case "ivd":
-			curService, err = ivd.NewIVDProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = ivd.NewIVDProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		case "k8sns":
-			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config,
+			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config,
 				logger)
 		case "fs":
-			curService, err = fs.NewFSProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = fs.NewFSProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		case "pvc":
-			curService, err = pvc.NewPVCProtectedEntityTypeManagerFromConfig(params, configInfo.s3Config, logger)
+			curService, err = pvc.NewPVCProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
 		default:
 			logger.Warnf("Unknown service type, %v", serviceName)
 		}
@@ -90,18 +93,18 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 			petms = append(petms, curService)
 		}
 	}
-	return NewDirectProtectedEntityManager(petms, configInfo.s3Config)
+	return NewDirectProtectedEntityManager(petms, configInfo.S3Config, logger)
 }
 
 type ConfigInfo struct {
-	peConfigs map[string]map[string]interface{}
-	s3Config  astrolabe.S3Config
+	PEConfigs map[string]map[string]interface{}
+	S3Config  astrolabe.S3Config
 }
 
 func NewConfigInfo(peConfigs map[string]map[string]interface{}, s3Config astrolabe.S3Config) ConfigInfo {
 	return ConfigInfo{
-		peConfigs: peConfigs,
-		s3Config:  s3Config,
+		PEConfigs: peConfigs,
+		S3Config:  s3Config,
 	}
 }
 
@@ -189,7 +192,13 @@ func readS3ConfigFile(s3ConfFile string) (*astrolabe.S3Config, error) {
 }
 
 func (this *DirectProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
-	return this.typeManager[id.GetPeType()].GetProtectedEntity(ctx, id)
+	typeManager, ok := this.typeManager[id.GetPeType()]
+	if !ok {
+		errMsg := fmt.Sprintf("PeType, %v, is not available", id.GetPeType())
+		this.logger.Error(errMsg)
+		return nil, errors.New(errMsg)
+	}
+	return typeManager.GetProtectedEntity(ctx, id)
 }
 
 func (this *DirectProtectedEntityManager) GetProtectedEntityTypeManager(peType string) astrolabe.ProtectedEntityTypeManager {
@@ -202,4 +211,11 @@ func (this *DirectProtectedEntityManager) ListEntityTypeManagers() []astrolabe.P
 		returnArr = append(returnArr, curPETM)
 	}
 	return returnArr
+}
+
+func (this *DirectProtectedEntityManager) RegisterExternalProtectedEntityTypeManagers(petms []astrolabe.ProtectedEntityTypeManager) {
+	for _, curPETM := range petms {
+		this.logger.Infof("Registered External ProtectedEntityTypeManager: %v", curPETM.GetTypeName())
+		this.typeManager[curPETM.GetTypeName()] = curPETM
+	}
 }

@@ -9,8 +9,11 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
 // NewCreateSnapshotParams creates a new CreateSnapshotParams object
@@ -29,6 +32,10 @@ type CreateSnapshotParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Parameters for the snapshot.
+	  In: body
+	*/
+	Params models.SnapshotParamList
 	/*The protected entity ID to snapshot
 	  Required: true
 	  In: path
@@ -50,6 +57,22 @@ func (o *CreateSnapshotParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	o.HTTPRequest = r
 
+	if runtime.HasBody(r) {
+		defer r.Body.Close()
+		var body models.SnapshotParamList
+		if err := route.Consumer.Consume(r.Body, &body); err != nil {
+			res = append(res, errors.NewParseError("params", "body", "", err))
+		} else {
+			// validate body object
+			if err := body.Validate(route.Formats); err != nil {
+				res = append(res, err)
+			}
+
+			if len(res) == 0 {
+				o.Params = body
+			}
+		}
+	}
 	rProtectedEntityID, rhkProtectedEntityID, _ := route.Params.GetOK("protectedEntityID")
 	if err := o.bindProtectedEntityID(rProtectedEntityID, rhkProtectedEntityID, route.Formats); err != nil {
 		res = append(res, err)
