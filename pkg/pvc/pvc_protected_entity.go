@@ -289,7 +289,7 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 			if pv.Spec.AccessModes[0] == core_v1.ReadWriteOnce {
 				var pvIDstr string
 				if this.ppetm.isGuest {
-					pvIDstr = pv.Name        // use pv name rather than pv volume handle as the ID of paravirt PE, since it is easier to retrieve pv volume handle from pv name
+					pvIDstr = pv.Name // use pv name rather than pv volume handle as the ID of paravirt PE, since it is easier to retrieve pv volume handle from pv name
 				} else {
 					pvIDstr = pv.Spec.CSI.VolumeHandle
 				}
@@ -299,6 +299,7 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 				if err != nil {
 					return nil, errors.Wrapf(err, "Could not get Protected Entity for PV %s", pvPEID.String())
 				}
+				this.logger.Infof("getProtectedEntityForPV: type: %s, pvIDstr: %s, snapshot: %s", pvPEType, pvIDstr, this.id.GetSnapshotID())
 				return pvPE, nil
 			} else {
 				return nil, errors.Errorf("Unexpected access mode, %v, for Persistent Volume %s", pv.Spec.AccessModes[0], pv.Name)
@@ -318,7 +319,10 @@ func (this PVCProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser
 
 func (this PVCProtectedEntity) GetMetadataReader(ctx context.Context) (io.ReadCloser, error) {
 	if this.id.HasSnapshot() {
-		panic("Fix me - snapshot MD retrieval not implemented")
+		// NOTE(xyang): Remove panic here so that we can call
+		// GetMetadataReader in createSnapshot in backupdriver
+		//panic("Fix me - snapshot MD retrieval not implemented")
+		this.logger.Infof("Fix me - snapshot MD retrieval not implemented")
 	}
 	pvc, err := this.GetPVC()
 	if err != nil {

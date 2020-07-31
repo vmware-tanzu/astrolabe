@@ -2,11 +2,14 @@ package pvc
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/util"
+	v1 "k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -136,4 +139,47 @@ func (this *PVCProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 	}
 
 	return data, md, combined, nil
+}
+
+// CreateFromMetadata creates a new PVC (dynamic provisioning path) with serialized PVC info
+func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Context, buf []byte /*metadataReader io.Reader*/) (astrolabe.ProtectedEntity, error) {
+	pvc := v1.PersistentVolumeClaim{}
+	err := pvc.Unmarshal(buf)
+	if err != nil {
+		return nil, err
+	}
+	this.logger.Infof("CreateFromMetadata: retrieve PVC %s/%s from metadata: %v", pvc.Namespace, pvc.Name, pvc)
+	peID := NewProtectedEntityIDFromPVCName(pvc.Namespace, pvc.Name)
+	this.logger.Infof("CreateFromMetadata: generated peID: %s", peID.String())
+
+	// Creates a new PVC (dynamic provisioning path)
+	if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(&pvc); err == nil || apierrs.IsAlreadyExists(err) {
+		// Save succeeded.
+		if err != nil {
+			this.logger.Infof("PVC %s/%s already exists, reusing", pvc.Namespace, pvc.Name)
+			err = nil
+		} else {
+			this.logger.Infof("PVC %s/%s saved", pvc.Namespace, pvc.Name)
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create PVC %s/%s in the API server: %v", pvc.Namespace, pvc.Name, err)
+	}
+	this.logger.Infof("CreateFromMetadata: created PVC: %s/%s", pvc.Namespace, pvc.Name)
+
+	err = WaitForPersistentVolumeClaimPhase(v1.ClaimBound, this.clientSet, pvc.Namespace, pvc.Name, Poll, ClaimBindingTimeout, this.logger)
+	if err != nil {
+		return nil, fmt.Errorf("PVC %q did not become Bound: %v", pvc.Name, err)
+	}
+
+	this.logger.Infof("CreateFromMetadata: PVC %s/%s is bound.", pvc.Namespace, pvc.Name)
+
+	pe, err := this.pem.GetProtectedEntity(ctx, peID)
+	if err != nil {
+		this.logger.WithError(err).Errorf("Failed to get the ProtectedEntity from peID %s", peID.String())
+		return nil, err
+	}
+
+	this.logger.Infof("CreateFromMetadata: retrieved ProtectedEntity for ID %s", peID.String())
+	return pe, nil
 }
