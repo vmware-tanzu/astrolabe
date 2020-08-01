@@ -142,7 +142,7 @@ func (this *PVCProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 }
 
 // CreateFromMetadata creates a new PVC (dynamic provisioning path) with serialized PVC info
-func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Context, buf []byte /*metadataReader io.Reader*/) (astrolabe.ProtectedEntity, error) {
+func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Context, buf []byte) (astrolabe.ProtectedEntity, error) {
 	pvc := v1.PersistentVolumeClaim{}
 	err := pvc.Unmarshal(buf)
 	if err != nil {
@@ -151,6 +151,18 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 	this.logger.Infof("CreateFromMetadata: retrieve PVC %s/%s from metadata: %v", pvc.Namespace, pvc.Name, pvc)
 	peID := NewProtectedEntityIDFromPVCName(pvc.Namespace, pvc.Name)
 	this.logger.Infof("CreateFromMetadata: generated peID: %s", peID.String())
+
+	// Clears out fields before creating a new PVC in the API server
+	pvc.CreationTimestamp = metav1.Time{}
+	pvc.DeletionTimestamp = nil
+	annotations := map[string]string{}
+	pvc.Annotations = annotations
+	var finalizers []string
+	pvc.Finalizers = finalizers
+	pvc.ResourceVersion = ""
+	pvc.UID = ""
+	pvc.Spec.VolumeName = ""
+	pvc.Status = v1.PersistentVolumeClaimStatus{}
 
 	// Creates a new PVC (dynamic provisioning path)
 	if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(&pvc); err == nil || apierrs.IsAlreadyExists(err) {
