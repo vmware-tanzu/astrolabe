@@ -231,7 +231,7 @@ func (this *ProtectedEntityTypeManager) GetProtectedEntities(ctx context.Context
 
 const peInfoFileType = "application/json"
 
-func (this *ProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astrolabe.ProtectedEntity,
+func (this *ProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
 	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	sourcePEInfo, err := sourcePE.GetInfo(ctx)
 	if err != nil {
@@ -257,7 +257,7 @@ func (this *ProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astro
 	return this.copyInt(ctx, sourcePEInfo, options, dataReader, metadataReader)
 }
 
-func (this *ProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo,
+func (this *ProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo, params map[string]map[string]interface{},
 	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 
 	return nil, nil
