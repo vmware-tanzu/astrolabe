@@ -126,6 +126,11 @@ func (this ClientProtectedEntity) GetMetadataReader(ctx context.Context) (io.Rea
 	return getBestReaderForTransports(ctx, transports)
 }
 
+func (this ClientProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+	return nil
+}
+
 func getBestReaderForTransports(ctx context.Context, transports []astrolabe.DataTransport) (io.ReadCloser, error) {
 	for _, checkTransport := range transports {
 		switch checkTransport.GetTransportType() {

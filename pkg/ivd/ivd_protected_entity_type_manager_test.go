@@ -43,7 +43,7 @@ func TestProtectedEntityTypeManager(t *testing.T) {
 
 	t.Logf("%s\n", vcUrl.String())
 
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(&vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, true, logrus.New())
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(&vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, true, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,6 +100,17 @@ func GetVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 	}
 
 	return vcUrl, insecure, nil
+}
+
+func GetParamsFromConfig(config *rest.Config) (map[string]interface{}, error) {
+	params := make(map[string]interface{})
+
+	err := RetrievePlatformInfoFromConfig(config, params)
+	if err != nil {
+		return nil, errors.Errorf("Failed to retrieve VC config secret: %+v", err)
+	}
+
+	return params, nil
 }
 
 func verifyMdIsRestoredAsExpected(md metadata, version string, logger logrus.FieldLogger) bool {
@@ -166,7 +177,7 @@ func TestCreateCnsVolume(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
@@ -302,7 +313,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
+	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
@@ -424,4 +435,165 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	} else {
 		t.Errorf("Volume metadata is NOT restored as expected")
 	}
+}
+
+func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
+	path := os.Getenv("KUBECONFIG")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		// path/to/whatever does not exist
+		t.Skipf("The KubeConfig file, %v, is not exist", path)
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", path)
+	if err != nil {
+		t.Fatalf("Failed to build k8s config from kubeconfig file: %+v ", err)
+	}
+
+	ctx := context.Background()
+
+	// Step 1: To create the IVD PETM, get all PEs and select one as the reference.
+	params, err := GetParamsFromConfig(config)
+	if err != nil {
+		t.Fatalf("Failed to get VC config from params: %+v", err)
+	}
+
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+
+	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromConfig(params, astrolabe.S3Config{URLBase: "/ivd"}, logger)
+	if err != nil {
+		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
+	}
+	peIDs, err := ivdPETM.GetProtectedEntities(ctx)
+	if err != nil {
+		t.Fatalf("Failed to get all PEs: %+v", err)
+	}
+	t.Logf("# of PEs returned = %d\n", len(peIDs))
+
+	var md metadata
+	var queryFilter cnstypes.CnsQueryFilter
+	var volumeIDList []cnstypes.CnsVolumeId
+
+	peID := peIDs[0]
+	t.Logf("Selected PE ID: %v", peID.String())
+
+	// Get general govmomi client and cns client
+	// Step 2: Query the volume result for the selected protected entity/volume
+	volumeIDList = append(volumeIDList, cnstypes.CnsVolumeId{Id: peID.GetID()})
+
+	queryFilter.VolumeIds = volumeIDList
+	queryResult, err := ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	if err != nil {
+		t.Errorf("Failed to query volume. Error: %+v \n", err)
+		t.Fatal(err)
+	}
+	logger.Debugf("Sucessfully Queried Volumes. queryResult: %+v", queryResult)
+
+	// Step 3: Create a new volume with the same metadata as the selected one
+	pe, err := newIVDProtectedEntity(ivdPETM, peID)
+	if err != nil {
+		t.Fatalf("Failed to get a new PE from the peID, %v: %v", peID.String(), err)
+	}
+
+	md, err = pe.getMetadata(ctx)
+	if err != nil {
+		t.Fatalf("Failed to get the metadata of the PE, %v: %v", pe.id.String(), err)
+	}
+	logger.Debugf("IVD md: %v", md.ExtendedMetadata)
+
+	snapshotID, err := pe.Snapshot(ctx, nil)
+	if err != nil {
+		t.Fatalf("Failed to snapshot PE, %v: %v", pe.id.String(), err)
+	}
+	snapshotPEID := pe.GetID().IDWithSnapshot(snapshotID)
+
+	ivdParams := make(map[string]interface{})
+	err = RetrievePlatformInfoFromConfig(config, ivdParams)
+	if err != nil {
+		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
+	}
+
+	t.Logf("PE name, %v", md.VirtualStorageObject.Config.Name)
+	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+	if err != nil {
+		t.Fatal("Fail to provision a new volume")
+	}
+
+	t.Logf("CNS volume, %v, created", volumeId)
+	var volumeIDListToDelete []cnstypes.CnsVolumeId
+	volumeIDList = append(volumeIDListToDelete, cnstypes.CnsVolumeId{Id: volumeId})
+
+	defer func() {
+		// Always delete the newly created volume at the end of test
+		t.Logf("Deleting volume: %+v", volumeIDList)
+		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
+		if err != nil {
+			t.Errorf("Failed to delete volume. Error: %+v \n", err)
+			t.Fatal(err)
+		}
+		deleteTaskInfo, err := cns.GetTaskInfo(ctx, deleteTask)
+		if err != nil {
+			t.Errorf("Failed to delete volume. Error: %+v \n", err)
+			t.Fatal(err)
+		}
+		deleteTaskResult, err := cns.GetTaskResult(ctx, deleteTaskInfo)
+		if err != nil {
+			t.Errorf("Failed to detach volume. Error: %+v \n", err)
+			t.Fatal(err)
+		}
+		if deleteTaskResult == nil {
+			t.Fatalf("Empty delete task results")
+		}
+		deleteVolumeOperationRes := deleteTaskResult.GetCnsVolumeOperationResult()
+		if deleteVolumeOperationRes.Fault != nil {
+			t.Fatalf("Failed to delete volume: fault=%+v", deleteVolumeOperationRes.Fault)
+		}
+		t.Logf("Volume deleted sucessfully")
+	}()
+
+	// Step 4: Query the volume result for the newly created protected entity/volume
+	queryFilter.VolumeIds = volumeIDList
+	queryResult, err = ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	if err != nil {
+		t.Errorf("Failed to query volume. Error: %+v \n", err)
+		t.Fatal(err)
+	}
+	logger.Debugf("Sucessfully Queried Volumes. queryResult: %+v", queryResult)
+
+	snapshotPE, err := ivdPETM.GetProtectedEntity(ctx, snapshotPEID)
+	if err != nil {
+		t.Fatalf("Failed to get a PE for the snapshot peID, %v: %v", snapshotID.String(), err)
+	}
+
+	newPE, err := newIVDProtectedEntity(ivdPETM, newProtectedEntityID(NewIDFromString(volumeId)))
+	if err != nil {
+		t.Fatalf("Failed to get a new PE from the peID, %v: %v", peID.String(), err)
+	}
+
+	err = newPE.Overwrite(ctx, snapshotPE, nil, false)
+	if err != nil {
+		t.Fatalf("Failed to overwrite PE with snapshotPE, %v, %v: %v", pe.id.String(), snapshotPE.GetID().String(), err)
+	}
+	/*
+		newMD, err := newPE.getMetadata(ctx)
+		if err != nil {
+			t.Fatalf("Failed to get the metadata of the PE, %v: %v", pe.id.String(), err)
+		}
+
+		logger.Debugf("IVD md: %v", newMD.ExtendedMetadata)
+
+		// Verify the test result between the actual and expected
+		if md.VirtualStorageObject.Config.Name != queryResult.Volumes[0].Name {
+			t.Errorf("Volume names mismatch, src: %v, dst: %v", md.VirtualStorageObject.Config.Name, queryResult.Volumes[0].Name)
+		} else {
+			t.Logf("Volume names match, name: %v", md.VirtualStorageObject.Config.Name)
+		}
+
+		if verifyMdIsRestoredAsExpected(newMD, version, logger) {
+			t.Logf("Volume metadata is restored as expected")
+		} else {
+			t.Errorf("Volume metadata is NOT restored as expected")
+		}
+	*/
 }

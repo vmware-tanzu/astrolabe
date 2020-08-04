@@ -75,7 +75,7 @@ func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser
 }
 
 func (this IVDProtectedEntity) copy(ctx context.Context, dataReader io.Reader,
-	metadata metadata) error {
+	metadata metadata) (int64, error) {
 	// TODO - restore metadata
 	dataWriter, err := this.getDataWriter(ctx)
 	if dataWriter != nil {
@@ -87,14 +87,16 @@ func (this IVDProtectedEntity) copy(ctx context.Context, dataReader io.Reader,
 	}
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	bufferedWriter := bufio.NewWriterSize(dataWriter, 1024*1024)
 	buf := make([]byte, 1024*1024)
-	_, err = io.CopyBuffer(bufferedWriter, dataReader, buf) // TODO - add a copy routine that we can interrupt via context
-
-	return err
+	bytesWritten, err := io.CopyBuffer(bufferedWriter, dataReader, buf) // TODO - add a copy routine that we can interrupt via context
+	if err != nil {
+		err = errors.Wrapf(err, "Failed in CopyBuffer, bytes written = %d", bytesWritten)
+	}
+	return bytesWritten, err
 }
 
 func (this IVDProtectedEntity) getDataWriter(ctx context.Context) (io.WriteCloser, error) {
@@ -395,6 +397,34 @@ func (this IVDProtectedEntity) GetComponents(ctx context.Context) ([]astrolabe.P
 
 func (this IVDProtectedEntity) GetID() astrolabe.ProtectedEntityID {
 	return this.id
+}
+
+func (this IVDProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+	// overwriteComponents is ignored because we have no components
+	if sourcePE.GetID().GetPeType() != "ivd" {
+		return errors.New("Overwrite source must be an ivd")
+	}
+	// TODO - verify that our size is >= sourcePE size
+	metadataReader, err := sourcePE.GetMetadataReader(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Could not retrieve metadata reader")
+	}
+
+	dataReader, err := sourcePE.GetDataReader(ctx)
+	if err != nil {
+		return errors.Wrap(err, "Could not retrieve data reader")
+	}
+
+	md, err := readMetadataFromReader(ctx, metadataReader)
+	// To enable cross-cluster restore, need to filter out the cns specific labels, i.e. prefix: cns, in md
+	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", this.logger)
+
+	_, err = this.copy(ctx, dataReader, md)
+	if err != nil {
+		return errors.Wrapf(err, "Data copy failed from PE %s, to PE %s", this.GetID().String(), sourcePE.GetID().String())
+	}
+	return nil
 }
 
 func NewIDFromString(idStr string) vim.ID {

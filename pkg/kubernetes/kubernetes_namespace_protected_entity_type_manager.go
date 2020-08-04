@@ -102,6 +102,6 @@ func (this *KubernetesNamespaceProtectedEntityTypeManager) Copy(ctx context.Cont
 }
 
 func (this *KubernetesNamespaceProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, pe astrolabe.ProtectedEntityInfo, params map[string]map[string]interface{},
-    options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	return nil, nil
 }

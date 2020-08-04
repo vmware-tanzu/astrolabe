@@ -60,7 +60,7 @@ func (this ClientProtectedEntityTypeManager) GetProtectedEntities(ctx context.Co
 }
 
 func (this ClientProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity, params map[string]map[string]interface{},
-    options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+	options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	panic("implement me")
 }
 

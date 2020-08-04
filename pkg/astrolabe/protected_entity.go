@@ -200,4 +200,10 @@ type ProtectedEntity interface {
 	// best data path to provide the Reader stream.  If the ProtectedEntity does not have any metadata, nil will be
 	// returned
 	GetMetadataReader(ctx context.Context) (io.ReadCloser, error)
+
+	// Overwrite replaces the data and metadata of the ProtectedEntity with the metadata from the sourcePE
+	// The ID of the protected entity does not change
+	// Any components will also be overwritten from the components of the sourcePE if the overwriteComponents flag is set
+	Overwrite(ctx context.Context, sourcePE ProtectedEntity, params map[string]map[string]interface{},
+		overwriteComponents bool) error
 }

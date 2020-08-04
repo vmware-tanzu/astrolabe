@@ -358,3 +358,9 @@ func (this PVCProtectedEntity) getComponentPEType() string {
 
 	return peType
 }
+
+func (this PVCProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
+	overwriteComponents bool) error {
+
+	return nil
+}

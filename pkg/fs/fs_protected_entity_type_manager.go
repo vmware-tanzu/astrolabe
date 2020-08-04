@@ -71,7 +71,7 @@ func (this *FSProtectedEntityTypeManager) GetProtectedEntities(ctx context.Conte
 }
 
 func (this *FSProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity,
-    params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+	params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 
 	sourcePEInfo, err := pe.GetInfo(ctx)
 	if err != nil {
