@@ -187,7 +187,8 @@ func (this *IVDProtectedEntityTypeManager) GetProtectedEntities(ctx context.Cont
 	return retIDs, nil
 }
 
-func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astrolabe.ProtectedEntity, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE astrolabe.ProtectedEntity,
+	params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	sourcePEInfo, err := sourcePE.GetInfo(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetInfo failed")
@@ -217,7 +218,8 @@ func (this *IVDProtectedEntityTypeManager) Copy(ctx context.Context, sourcePE as
 	return returnPE, nil
 }
 
-func (this *IVDProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, peInfo astrolabe.ProtectedEntityInfo, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this *IVDProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, peInfo astrolabe.ProtectedEntityInfo,
+	params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	return nil, nil
 }
 

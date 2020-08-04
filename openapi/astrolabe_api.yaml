@@ -183,12 +183,12 @@ paths:
           name: mode
           required: true
           type: string
-        - description: Info of ProtectedEntity to copy
+        - description: Copy Parameters including protected entity to copy
           in: body
           name: body
           required: true
           schema:
-            $ref: '#/definitions/ProtectedEntityInfo'
+            $ref: '#/definitions/CopyParameters'
       responses:
         '202':
           description: Create in progress
@@ -291,7 +291,7 @@ paths:
           name: params
           required: false
           schema:
-            $ref: '#/definitions/SnapshotParamList'
+            $ref: '#/definitions/OperationParamList'
       responses:
         '200':
           description: 'Snapshot created successfully, returns the new snapshot ID'
@@ -443,7 +443,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TaskInfo'
-  SnapshotPEParamItem:
+  OperationPEParamItem:
     type: object
     properties:
       key:
@@ -451,19 +451,26 @@ definitions:
       value:
         type: object
 
-  SnapshotPEParamList:
+  OperationPEParamList:
     type: array
     items:
-      $ref: '#/definitions/SnapshotPEParamItem'
-  SnapshotParamItem:
+      $ref: '#/definitions/OperationPEParamItem'
+  OperationParamItem:
     type: object
     properties:
       key:
         type: string
       value:
-        $ref: '#/definitions/SnapshotPEParamList'
-  SnapshotParamList:
+        $ref: '#/definitions/OperationPEParamList'
+  OperationParamList:
     type: array
     items:
-      $ref: '#/definitions/SnapshotParamItem'
+      $ref: '#/definitions/OperationParamItem'
+  CopyParameters:
+    type: object
+    properties:
+      protectedEntityInfo:
+          $ref: '#/definitions/ProtectedEntityInfo'
+      copyParams:
+          $ref: '#/definitions/OperationParamList'
 x-components: {}

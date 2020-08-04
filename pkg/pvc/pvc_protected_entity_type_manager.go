@@ -106,11 +106,13 @@ func (this *PVCProtectedEntityTypeManager) GetProtectedEntities(ctx context.Cont
 	return retPEIDs, nil
 }
 
-func (this *PVCProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this *PVCProtectedEntityTypeManager) Copy(ctx context.Context, pe astrolabe.ProtectedEntity,
+	params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	panic("implement me")
 }
 
-func (this *PVCProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, info astrolabe.ProtectedEntityInfo, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
+func (this *PVCProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, info astrolabe.ProtectedEntityInfo,
+	params map[string]map[string]interface{}, options astrolabe.CopyCreateOptions) (astrolabe.ProtectedEntity, error) {
 	panic("implement me")
 }
 

@@ -34,11 +34,11 @@ type CopyProtectedEntityParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*Info of ProtectedEntity to copy
+	/*Copy Parameters including protected entity to copy
 	  Required: true
 	  In: body
 	*/
-	Body *models.ProtectedEntityInfo
+	Body *models.CopyParameters
 	/*How to handle the copy.  create - a new protected entity with the
 	Protected Entity ID will be created.  If the Protected Entity ID
 	already exists, the copy will fail.  create_new - A Protected Entity
@@ -73,7 +73,7 @@ func (o *CopyProtectedEntityParams) BindRequest(r *http.Request, route *middlewa
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.ProtectedEntityInfo
+		var body models.CopyParameters
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("body", "body"))

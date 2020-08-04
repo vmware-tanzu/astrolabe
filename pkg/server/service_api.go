@@ -127,7 +127,8 @@ func (this *ServiceAPI) handleCopyObject(echoContext echo.Context) (err error) {
 	if err = echoContext.Bind(pei); err != nil {
 		return
 	}
-	newPE, err := this.petm.CopyFromInfo(context.Background(), pei, astrolabe.AllocateNewObject)
+
+	newPE, err := this.petm.CopyFromInfo(context.Background(), pei, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 	if err != nil {
 		return err
 	}

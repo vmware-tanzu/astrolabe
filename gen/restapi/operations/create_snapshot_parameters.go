@@ -35,7 +35,7 @@ type CreateSnapshotParams struct {
 	/*Parameters for the snapshot.
 	  In: body
 	*/
-	Params models.SnapshotParamList
+	Params models.OperationParamList
 	/*The protected entity ID to snapshot
 	  Required: true
 	  In: path
@@ -59,7 +59,7 @@ func (o *CreateSnapshotParams) BindRequest(r *http.Request, route *middleware.Ma
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body models.SnapshotParamList
+		var body models.OperationParamList
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			res = append(res, errors.NewParseError("params", "body", "", err))
 		} else {
