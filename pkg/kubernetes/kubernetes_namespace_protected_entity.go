@@ -67,8 +67,7 @@ func (this *KubernetesNamespaceProtectedEntity) ListSnapshots(ctx context.Contex
 	return nil, nil
 
 }
-func (this *KubernetesNamespaceProtectedEntity) DeleteSnapshot(ctx context.Context,
-	snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
+func (this *KubernetesNamespaceProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	return false, nil
 
 }

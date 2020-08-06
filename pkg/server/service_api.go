@@ -91,7 +91,7 @@ func (this *ServiceAPI) deleteSnapshot(echoContext echo.Context, pe astrolabe.Pr
 		echoContext.String(http.StatusBadRequest, "No snapshot ID specified in id "+pe.GetID().String()+" for delete")
 		return
 	}
-	deleted, err := pe.DeleteSnapshot(context.Background(), snapshotID)
+	deleted, err := pe.DeleteSnapshot(context.Background(), snapshotID, make(map[string]map[string]interface{}))
 	if err != nil {
 		echoContext.String(http.StatusNotFound, "Snapshot delete failed for id "+pe.GetID().String()+" error = "+err.Error())
 		return

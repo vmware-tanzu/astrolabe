@@ -181,7 +181,7 @@ func GetSnapConfigMapName(pvc *core_v1.PersistentVolumeClaim) string {
 	return "pvc-snap." + pvc.Name
 }
 
-func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
+func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	if this.id.HasSnapshot() {
 		return false, errors.New("Cannot delete snapshot of snapshot")
 	}
@@ -241,7 +241,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	}
 
 	if subsnapshotExists {
-		_, err := components[0].DeleteSnapshot(ctx, snapshotToDelete)
+		_, err := components[0].DeleteSnapshot(ctx, snapshotToDelete, params)
 		if err != nil {
 			return false, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
 		}
