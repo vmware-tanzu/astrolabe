@@ -185,7 +185,7 @@ type ProtectedEntity interface {
 	 */
 	Snapshot(ctx context.Context, params map[string]map[string]interface{}) (ProtectedEntitySnapshotID, error)
 	ListSnapshots(ctx context.Context) ([]ProtectedEntitySnapshotID, error)
-	DeleteSnapshot(ctx context.Context, snapshotToDelete ProtectedEntitySnapshotID) (bool, error)
+	DeleteSnapshot(ctx context.Context, snapshotToDelete ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error)
 	GetInfoForSnapshot(ctx context.Context, snapshotID ProtectedEntitySnapshotID) (*ProtectedEntityInfo, error)
 
 	GetComponents(ctx context.Context) ([]ProtectedEntity, error)

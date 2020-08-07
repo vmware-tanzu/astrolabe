@@ -345,7 +345,7 @@ func (this IVDProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.P
 	}
 	return peSnapshotIDs, nil
 }
-func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
+func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	this.logger.Infof("DeleteSnapshot called on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
 		this.logger.Debugf("Retrying DeleteSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())

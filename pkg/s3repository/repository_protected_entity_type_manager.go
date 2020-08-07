@@ -312,7 +312,7 @@ func (this *ProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInf
 		peinfo: rPEInfo,
 	}
 
-	_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID())
+	_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID(), make(map[string]map[string]interface{}))
 	if err != nil {
 		this.checkIfCanceledError(&err)
 		return nil, err

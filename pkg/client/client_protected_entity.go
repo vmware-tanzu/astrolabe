@@ -80,7 +80,7 @@ func (this ClientProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolab
 	return returnList, nil
 }
 
-func (this ClientProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) (bool, error) {
+func (this ClientProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	panic("implement me")
 }
 

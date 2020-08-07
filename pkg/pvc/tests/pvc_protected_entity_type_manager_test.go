@@ -161,7 +161,7 @@ func TestSnapshotOps(t *testing.T) {
 
 	defer func() {
 		logger.Infof("Deleting snapshot, %v, for the PVC PE, %v", peSnapshotID.String(), pvcPE.GetID().String())
-		success, err := pvcPE.DeleteSnapshot(ctx, peSnapshotID)
+		success, err := pvcPE.DeleteSnapshot(ctx, peSnapshotID, make(map[string]map[string]interface{}))
 		if !success || err != nil {
 			logger.Errorf("Failed to delete snapshot, %v, for PVC PE with PEID = %v", peSnapshotID.String(), pvcPE.GetID().String())
 		}

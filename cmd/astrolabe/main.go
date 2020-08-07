@@ -240,7 +240,7 @@ func rmsn(c *cli.Context) error {
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entity ID %s, err: %v", peIDStr, err)
 	}
-	success, err := pe.DeleteSnapshot(context.TODO(), peID.GetSnapshotID())
+	success, err := pe.DeleteSnapshot(context.TODO(), peID.GetSnapshotID(), make(map[string]map[string]interface{}))
 	if err != nil {
 		log.Fatalf("Could not remove snapshot ID %s, err: %v", peIDStr, err)
 	}
