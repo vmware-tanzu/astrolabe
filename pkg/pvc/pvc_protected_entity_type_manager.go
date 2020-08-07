@@ -25,7 +25,7 @@ type PVCProtectedEntityTypeManager struct {
 }
 
 func NewProtectedEntityIDFromPVCName(namespace string, pvcName string) astrolabe.ProtectedEntityID {
-	return astrolabe.NewProtectedEntityIDWithNamespace(astrolabe.PvcPEType, pvcName, namespace)
+	return astrolabe.NewProtectedEntityIDWithNamespaceAndSnapshot(astrolabe.PvcPEType, pvcName, namespace, "")
 }
 
 /*
