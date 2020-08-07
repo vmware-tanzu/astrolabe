@@ -146,7 +146,7 @@ func (this *PVCProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 
 // CreateFromMetadata creates a new PVC (dynamic provisioning path) with serialized PVC info
 func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Context, buf []byte,
-	sourceSnapshotID astrolabe.ProtectedEntityID, componentSourcePETM astrolabe.ProtectedEntityTypeManager) (astrolabe.ProtectedEntity, error) {
+	sourceSnapshotID astrolabe.ProtectedEntityID, componentSourcePETM astrolabe.ProtectedEntityTypeManager, cloneFromSnapshotNamespace string, cloneFromSnapshotName string) (astrolabe.ProtectedEntity, error) {
 	pvc := v1.PersistentVolumeClaim{}
 	err := pvc.Unmarshal(buf)
 	if err != nil {
@@ -199,6 +199,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 			this.logger.WithError(err).Error(errorMsg)
 			return nil, errors.Wrap(err, errorMsg)
 		}
+
 		if componentSourcePETM != nil {
 			// Get the PE for the PV and overwrite it
 			components, err := pvcPE.GetComponents(ctx)
@@ -221,7 +222,12 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 				this.logger.WithError(err).Error(errorMsg)
 				return nil, errors.Wrap(err, errorMsg)
 			}
-			err = components[0].Overwrite(ctx, sourcePE, make(map[string]map[string]interface{}), false)
+			overwriteParams := make(map[string]map[string]interface{})
+			cloneParams := make(map[string]interface{})
+			cloneParams["CloneFromSnapshotNamespace"] = cloneFromSnapshotNamespace
+			cloneParams["CloneFromSnapshotName"] = cloneFromSnapshotName
+			overwriteParams["CloneFromSnapshotReference"] = cloneParams
+			err = components[0].Overwrite(ctx, sourcePE, overwriteParams, false)
 			if err != nil {
 				errorMsg := fmt.Sprintf("Failed to get the source snapshot PE for peID %s", componentSnapshotPEID.String())
 				this.logger.WithError(err).Error(errorMsg)
@@ -244,5 +250,6 @@ func getPEIDForComponentSnapshot(sourceSnapshotID astrolabe.ProtectedEntityID, l
 		logger.WithError(err).Error(errorMsg)
 		return astrolabe.ProtectedEntityID{}, errors.Wrap(err, errorMsg)
 	}
+
 	return astrolabe.NewProtectedEntityIDFromString(string(componentIDBytes))
 }
