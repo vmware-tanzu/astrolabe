@@ -301,7 +301,7 @@ func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, vc
 	}
 
 	log.Debugf("Deleting the newly created snapshot, %v, on IVD protected entity, %v", peSnapID.GetID(), ivdPE.GetID().GetID())
-	_, err = ivdPE.DeleteSnapshot(ctx, peSnapID, nil)
+	_, err = ivdPE.DeleteSnapshot(ctx, peSnapID, make(map[string]map[string]interface{}))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to DeleteSnapshot, %v, on IVD protected entity, %v", peSnapID.GetID(), ivdPE.GetID().GetID())
 	}
@@ -711,7 +711,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	defer func() {
 		for snapPEID, _ := range snapPEIDtoIvdPEMap {
 			s3PE := snapPEIDtos3PEMap[snapPEID]
-			_, err := s3PE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), nil)
+			_, err := s3PE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), make(map[string]map[string]interface{}))
 			if err != nil {
 				logger.Errorf("Failed to delete snapshot, %v, on object store: %v", snapPEID.GetSnapshotID().String(), err)
 			}
@@ -720,7 +720,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 
 	// #5.3: Delete the local IVD snapshot
 	for snapPEID, ivdPE := range snapPEIDtoIvdPEMap {
-		_, err := ivdPE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), nil)
+		_, err := ivdPE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), make(map[string]map[string]interface{}))
 		if err != nil {
 			t.Fatalf("Failed to delete local IVD snapshot, %v: %v", snapPEID.GetSnapshotID(), err)
 		}

@@ -604,7 +604,7 @@ func (this *ProtectedEntity) cleanupOnAbortedUpload(ctx *context.Context) {
 		log.Infof("The context was canceled during copy of pe %v, proceeding with cleanup", peInfo.GetName())
 		log.Debugf("Attempting to delete any uploaded snapshots for %v", this.peinfo.GetID())
 		// New context or else downstream "withContext" calls will error out.
-		status, err := this.DeleteSnapshot(context.Background(), this.peinfo.GetID().GetSnapshotID(), nil)
+		status, err := this.DeleteSnapshot(context.Background(), this.peinfo.GetID().GetSnapshotID(), make(map[string]map[string]interface{}))
 		if err != nil {
 			log.Errorf("Received error %v when deleting local snapshots of %v during cleanup", err.Error(), this.peinfo.GetID())
 			return
