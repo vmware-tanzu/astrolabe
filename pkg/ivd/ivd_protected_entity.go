@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"strings"
 
-	//	"github.com/vmware/govmomi/vslm"
+	vslmtypes "github.com/vmware/govmomi/vslm/types"
 	"context"
 	"time"
 )
@@ -288,7 +288,8 @@ const waitTime = 3600 * time.Second
 func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]map[string]interface{}) (astrolabe.ProtectedEntitySnapshotID, error) {
 	this.logger.Infof("CreateSnapshot called on IVD Protected Entity, %v", this.id.String())
 	var retVal astrolabe.ProtectedEntitySnapshotID
-	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
+	retryInterval := time.Second
+	err := wait.PollImmediate(retryInterval, time.Hour, func() (bool, error) {
 		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
 		vslmTask, err := this.ipetm.vsom.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
 		if err != nil {
@@ -299,7 +300,17 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 			if soap.IsVimFault(err) {
 				_, ok := soap.ToVimFault(err).(*vim.InvalidState)
 				if ok {
-					this.logger.WithError(err).Error("There is some operation, other than this CreateSnapshot invocation, on the VM attached still being protected by its VM state. Will retry")
+					this.logger.WithError(err).Errorf("There is some operation, other than this CreateSnapshot invocation, on the VM attached still being protected by its VM state. Will retry in %v second(s)", retryInterval)
+					return false, nil
+				}
+				_, ok = soap.ToVimFault(err).(*vslmtypes.VslmSyncFault)
+				if ok {
+					this.logger.WithError(err).Errorf("CreateSnapshot failed with VslmSyncFault possibly due to race between concurrent DeleteSnapshot invocation. Will retry in %v second(s)", retryInterval)
+					return false, nil
+				}
+				_, ok = soap.ToVimFault(err).(*vim.NotFound)
+				if ok {
+					this.logger.WithError(err).Errorf("CreateSnapshot failed with NotFound. Will retry in %v second(s)", retryInterval)
 					return false, nil
 				}
 			}
