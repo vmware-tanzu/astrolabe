@@ -312,11 +312,11 @@ func (this *ProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInf
 		peinfo: rPEInfo,
 	}
 
-	/*_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID(), make(map[string]map[string]interface{}))
+	_, err = rpe.DeleteSnapshot(ctx, id.GetSnapshotID(), make(map[string]map[string]interface{}))
 	if err != nil {
 		this.checkIfCanceledError(&err)
 		return nil, err
-	}*/
+	}
 	err = rpe.copy(ctx, this.maxSegmentSize, dataReader, metadataReader)
 	if err != nil {
 		this.checkIfCanceledError(&err)
