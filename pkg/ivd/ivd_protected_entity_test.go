@@ -49,12 +49,25 @@ func TestProtectedEntityIDFromString(t *testing.T) {
 
 }
 
+const (
+	MaxNumOfIVDs = 15
+)
+
 func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	// #0: Setup the environment
 	// Prerequisite: export ASTROLABE_VC_URL='https://<VC USER>:<VC USER PASSWORD>@<VC IP>/sdk'
 	u, exist := os.LookupEnv("ASTROLABE_VC_URL")
 	if !exist {
 		t.Skipf("ASTROLABE_VC_URL is not set")
+	}
+
+	nIVDs := 5
+	nIVDsStr, ok := os.LookupEnv("NUM_OF_IVD")
+	if ok {
+		nIVDsInt, err := strconv.Atoi(nIVDsStr)
+		if err == nil && nIVDsInt > 0 && nIVDsInt <= MaxNumOfIVDs {
+			nIVDs = nIVDsInt
+		}
 	}
 
 	vcUrl, err := soap.ParseURL(u)
@@ -75,7 +88,6 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	}
 
 	// #1: Create a few of IVDs
-	nIVDs := 5
 	datastoreType := types.HostFileSystemVolumeFileSystemTypeVsan
 	datastores, err := findAllAccessibleDatastoreByType(ctx, ivdPETM.client.Client, datastoreType)
 	if err != nil || len(datastores) <= 0 {
