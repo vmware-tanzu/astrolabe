@@ -185,6 +185,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	/*if this.id.HasSnapshot() {
 		return false, errors.New("Cannot delete snapshot of snapshot")
 	}*/
+	this.logger.Infof("PVCProtectedEntity: DeleteSnapshot request received on snapshot: %s with parameters: %v", snapshotToDelete.String(), params)
 	pvc, err := this.GetPVC()
 	if err != nil {
 		return false, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
@@ -197,6 +198,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 			return false, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
 				this.id.String())
 		}
+		this.logger.Infof("PVCProtectedEntity: No snapshot config map avaiable with name: %s", snapConfigMapName)
 		// No configmap so no snapshots
 		return false, nil
 	}
@@ -220,6 +222,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 					this.id.String())
 			}
 		}
+		this.logger.Infof("PVCProtectedEntity: Successfully deleted snapshot entries in the config map: %s for snapshot: %s", snapConfigMapName, snapshotToDelete.String())
 	}
 	components, err := this.GetComponents(ctx)
 	if err != nil {
@@ -228,6 +231,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	if len(components) != 1 {
 		return false, errors.New(fmt.Sprintf("Expected 1 component, %s has %d", this.id.String(), len(components)))
 	}
+	this.logger.Infof("PVCProtectedEntity: Retrieved components for the pvc protected entity id: %s", components[0].GetID().String())
 
 	/*subSnapshots, err := components[0].ListSnapshots(ctx)
 	if err != nil {
@@ -242,10 +246,12 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	}*/
 
 	if subsnapshotExists {
+		this.logger.Infof("PVCProtectedEntity: Triggering DeleteSnapshot with snapshotID: %s for the component pe-id: %s", snapshotToDelete.String(), components[0].GetID().String())
 		_, err := components[0].DeleteSnapshot(ctx, snapshotToDelete, params)
 		if err != nil {
 			return false, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
 		}
+		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %v", snapshotToDelete.String(), components[0])
 	}
 
 	// If either the configmap info existed or the subsnapshot existed, then we successfully removed, otherwise
