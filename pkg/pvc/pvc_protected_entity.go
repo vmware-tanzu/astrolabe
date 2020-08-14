@@ -146,6 +146,7 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	} else {
 		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(snapConfigMap)
 	}
+
 	if err != nil {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "PVC Snapshot write peid %s failed", components[0].GetID())
 	}
