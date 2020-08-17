@@ -183,9 +183,9 @@ func GetSnapConfigMapName(pvc *core_v1.PersistentVolumeClaim) string {
 }
 
 func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
-	/*if this.id.HasSnapshot() {
+	if this.id.HasSnapshot() {
 		return false, errors.New("Cannot delete snapshot of snapshot")
-	}*/
+	}
 	this.logger.Infof("PVCProtectedEntity: DeleteSnapshot request received on snapshot: %s with parameters: %v", snapshotToDelete.String(), params)
 	pvc, err := this.GetPVC()
 	if err != nil {
@@ -234,17 +234,17 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	}
 	this.logger.Infof("PVCProtectedEntity: Retrieved components for the pvc protected entity id: %s", components[0].GetID().String())
 
-	/*subSnapshots, err := components[0].ListSnapshots(ctx)
+	subSnapshots, err := components[0].ListSnapshots(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "Subcomponent peid %s list snapshot", components[0].GetID())
-	}*/
-	subsnapshotExists := true
-	/*for _, checkSnapshot := range subSnapshots {
+	}
+	subsnapshotExists := false
+	for _, checkSnapshot := range subSnapshots {
 		if checkSnapshot == snapshotToDelete {
 			subsnapshotExists = true
 			break
 		}
-	}*/
+	}
 
 	if subsnapshotExists {
 		this.logger.Infof("PVCProtectedEntity: Triggering DeleteSnapshot with snapshotID: %s for the component pe-id: %s", snapshotToDelete.String(), components[0].GetID().String())
@@ -252,7 +252,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 		if err != nil {
 			return false, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
 		}
-		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %v", snapshotToDelete.String(), components[0])
+		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %s", snapshotToDelete.String(), components[0].GetID().String())
 	}
 
 	// If either the configmap info existed or the subsnapshot existed, then we successfully removed, otherwise
