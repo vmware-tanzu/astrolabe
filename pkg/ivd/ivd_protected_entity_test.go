@@ -701,7 +701,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get snapshot protected entity for the IVD snapshot, %v", snapPEID.String())
 		}
-		s3PE, err := s3PETM.Copy(ctx, snapPE, astrolabe.AllocateNewObject)
+		s3PE, err := s3PETM.Copy(ctx, snapPE, make(map[string]map[string]interface {}), astrolabe.AllocateNewObject)
 		if err != nil {
 			t.Fatalf("Failed to copy snapshot PE, %v, to S3 object store: %v", snapPEID.String(), err)
 		}
