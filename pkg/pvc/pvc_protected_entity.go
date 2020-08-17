@@ -3,6 +3,7 @@ package pvc
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -149,7 +150,10 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	if err != nil {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "PVC Snapshot write peid %s failed", components[0].GetID())
 	}
-	return subSnapshotID, nil
+	subSnapshotPEID := components[0].GetID().IDWithSnapshot(subSnapshotID)
+	subSnapshotStr := base64.StdEncoding.EncodeToString([]byte(subSnapshotPEID.String()))
+	returnSnapshotID := astrolabe.NewProtectedEntitySnapshotID(subSnapshotStr)
+	return returnSnapshotID, nil
 }
 
 func (this PVCProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.ProtectedEntitySnapshotID, error) {
@@ -294,7 +298,16 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 					pvIDstr = pv.Spec.CSI.VolumeHandle
 				}
 				pvPEType := this.getComponentPEType()
-				pvPEID := astrolabe.NewProtectedEntityIDWithSnapshotID(pvPEType, pvIDstr, this.id.GetSnapshotID())
+				var pvPEID astrolabe.ProtectedEntityID
+				var err error
+				if this.GetID().HasSnapshot() {
+					pvPEID, err = getPEIDForComponentSnapshot(this.GetID(), this.logger)
+					if err != nil {
+						return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
+					}
+				} else {
+					pvPEID = astrolabe.NewProtectedEntityID(pvPEType, pvIDstr)
+				}
 				pvPE, err := this.ppetm.pem.GetProtectedEntity(ctx, pvPEID)
 				if err != nil {
 					return nil, errors.Wrapf(err, "Could not get Protected Entity for PV %s", pvPEID.String())
