@@ -18,7 +18,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/go-openapi/loads"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi/operations"
@@ -42,7 +41,7 @@ func main() {
 	}
 	apiPort, err := strconv.Atoi(*apiPortStr)
 	if err != nil {
-		fmt.Errorf("apiPort %s is not an integer", *apiPortStr)
+		log.Printf("apiPort %s is not an integer\n", *apiPortStr)
 		os.Exit(1)
 	}
 	pem := server.NewProtectedEntityManager(*confDirStr)

@@ -26,10 +26,10 @@ import (
 
 type OpenAPIAstrolabeHandler struct {
 	pem astrolabe.ProtectedEntityManager
-	tm  TaskManager
+	tm  *TaskManager
 }
 
-func NewOpenAPIAstrolabeHandler(pem astrolabe.ProtectedEntityManager, tm TaskManager) OpenAPIAstrolabeHandler {
+func NewOpenAPIAstrolabeHandler(pem astrolabe.ProtectedEntityManager, tm *TaskManager) OpenAPIAstrolabeHandler {
 	return OpenAPIAstrolabeHandler{
 		pem: pem,
 		tm:  tm,
