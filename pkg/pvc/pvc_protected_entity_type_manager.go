@@ -146,7 +146,7 @@ func (this *PVCProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 
 // CreateFromMetadata creates a new PVC (dynamic provisioning path) with serialized PVC info
 func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Context, buf []byte,
-	sourceSnapshotID astrolabe.ProtectedEntityID, componentSourcePETM astrolabe.ProtectedEntityTypeManager, cloneFromSnapshotNamespace string, cloneFromSnapshotName string) (astrolabe.ProtectedEntity, error) {
+	sourceSnapshotID astrolabe.ProtectedEntityID, componentSourcePETM astrolabe.ProtectedEntityTypeManager, cloneFromSnapshotNamespace string, cloneFromSnapshotName string, backupRepositoryName string) (astrolabe.ProtectedEntity, error) {
 	pvc := v1.PersistentVolumeClaim{}
 	err := pvc.Unmarshal(buf)
 	if err != nil {
