@@ -22,19 +22,26 @@ import (
 	"strings"
 )
 
-func findDataCenterFromAncestors(ctx context.Context, client *vim25.Client, objectRef vim25types.ManagedObjectReference, logger logrus.FieldLogger) (string, error) {
+func findDatacenterPath(ctx context.Context, client *vim25.Client, objectRef vim25types.ManagedObjectReference, logger logrus.FieldLogger) (string, error) {
 	pc := property.DefaultCollector(client)
-	path, err := mo.Ancestors(ctx, client, pc.Reference(), objectRef)
+	pathElements, err := mo.Ancestors(ctx, client, pc.Reference(), objectRef)
 	if err != nil {
 		return "", err
 	}
-	for i := range path {
-		if path[i].Reference().Type == "Datacenter" {
-			logger.Debugf("Object reference=%v, DC=%v", objectRef, path[i].Name)
-			return path[i].Name, nil
+
+	var dcPath string
+	for i, pathElement := range pathElements {
+		if pathElement.Parent == nil {
+			continue
+		}
+		dcPath = dcPath + "/" + pathElement.Name
+		if pathElements[i].Self.Type == "Datacenter" {
+			break
 		}
 	}
-	return "", errors.New("Failed to find the datacenter from ancestors")
+
+	logger.Debugf("objectRef = %v, dcPath = %v", objectRef, dcPath)
+	return dcPath, nil
 }
 
 func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.Config, logger logrus.FieldLogger) ([]vim25types.ManagedObjectReference, error) {
@@ -71,7 +78,12 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 		path := fmt.Sprintf("%v/vm/...", dc.InventoryPath)
 		vms, err := finder.VirtualMachineList(ctx, path)
 		if err != nil {
-			logger.WithError(err).Error("Failed to find the list of VMs in a data center")
+			_, ok := err.(*find.NotFoundError)
+			if ok {
+				logger.Warnf("No VMs can be found in data center, %v. Skip it.", dc.InventoryPath)
+				continue
+			}
+			logger.WithError(err).Errorf("Failed to find the list of VMs in a data center, %v", dc.InventoryPath)
 			return nil, err
 		}
 
@@ -123,25 +135,27 @@ func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Clien
 		return nil, errors.New("No hosts can be found for node VMs")
 	}
 
-	dcNameMap := make(map[string]bool)
+	dcPathMap := make(map[string]bool)
 	for _, host := range hosts {
-		dcName, err := findDataCenterFromAncestors(ctx, client, host.Reference(), logger)
+		dcPath, err := findDatacenterPath(ctx, client, host.Reference(), logger)
 		if err != nil {
 			logger.Debugf("Failed to find a datacenter from ancestors of VM, %v", host.Reference())
 			continue
 		}
-		_, ok := dcNameMap[dcName]
-		if !ok {
-			dcNameMap[dcName] = true
-		}
+		dcPathMap[dcPath] = true
 	}
 
 	var dss []*object.Datastore
-	for dcName, _ := range dcNameMap {
-		path := fmt.Sprintf("/%v/datastore/*", dcName)
+	for dcPath, _ := range dcPathMap {
+		path := fmt.Sprintf("%v/datastore/...", dcPath)
 		dssPerDC, err := finder.DatastoreList(ctx, path)
 		if err != nil {
-			logger.WithError(err).Error("Failed to find the list of all datastores in VC")
+			_, ok := err.(*find.NotFoundError)
+			if ok {
+				logger.Warnf("No datastores can be found in data center, %v. Skip it.", dcPath)
+				continue
+			}
+			logger.WithError(err).Errorf("Failed to find the list of datastores in data center, %v", dcPath)
 			return nil, err
 		}
 		dss = append(dss, dssPerDC...)
