@@ -246,7 +246,8 @@ func TestCreateVolumeFromMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newPE, err := pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, astrolabe.ProtectedEntityID{}, nil)
+	newPE, err := pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, astrolabe.ProtectedEntityID{}, nil,
+		"", "")
 	if err != nil {
 		logger.Errorf("Failed to create volume from metadata: %s/%s", pvc.Name, pvc.Namespace)
 		t.Fatal(err)
@@ -351,7 +352,7 @@ func TestCreateVolumeFromMetadataAndS3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, snapshotPEID, s3petm)
+	pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, snapshotPEID, s3petm, "", "")
 }
 func setupS3PETM(t *testing.T, typeName string, logger *logrus.Logger) (*s3repository.ProtectedEntityTypeManager, error) {
 	sess, err := session.NewSession(&aws.Config{

@@ -29,12 +29,12 @@ type TaskManager struct {
 	keepRunning bool
 }
 
-func NewTaskManager() TaskManager {
+func NewTaskManager() *TaskManager {
 	newTM := TaskManager{
 		keepRunning: true,
 	}
 	go newTM.cleanUpLoop()
-	return newTM
+	return &newTM
 }
 
 func (this *TaskManager) ListTasks() []astrolabe.TaskID {

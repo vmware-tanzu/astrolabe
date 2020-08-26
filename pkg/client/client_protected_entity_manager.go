@@ -15,19 +15,19 @@ type ClientProtectedEntityManager struct {
 	typeManagerMutex sync.Mutex
 }
 
-func NewClientProtectedEntityManager(restClient *client.Astrolabe) (ClientProtectedEntityManager, error) {
+func NewClientProtectedEntityManager(restClient *client.Astrolabe) (*ClientProtectedEntityManager, error) {
 	returnClient := ClientProtectedEntityManager{
 		restClient:       restClient,
 		typeManagerMutex: sync.Mutex{},
 	}
 	err := returnClient.syncTypeManagers()
 	if err != nil {
-		return ClientProtectedEntityManager{}, err
+		return nil, err
 	}
-	return returnClient, nil
+	return &returnClient, nil
 }
 
-func (this ClientProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
+func (this *ClientProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
 	petm, ok := this.typeManagers[id.GetPeType()]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("could not find manager for type %s", id.GetPeType()))
@@ -35,7 +35,7 @@ func (this ClientProtectedEntityManager) GetProtectedEntity(ctx context.Context,
 	return petm.GetProtectedEntity(ctx, id)
 }
 
-func (this ClientProtectedEntityManager) GetProtectedEntityTypeManager(peType string) astrolabe.ProtectedEntityTypeManager {
+func (this *ClientProtectedEntityManager) GetProtectedEntityTypeManager(peType string) astrolabe.ProtectedEntityTypeManager {
 	petm, ok := this.typeManagers[peType]
 	if !ok {
 		return nil
@@ -43,7 +43,7 @@ func (this ClientProtectedEntityManager) GetProtectedEntityTypeManager(peType st
 	return petm
 }
 
-func (this ClientProtectedEntityManager) ListEntityTypeManagers() []astrolabe.ProtectedEntityTypeManager {
+func (this *ClientProtectedEntityManager) ListEntityTypeManagers() []astrolabe.ProtectedEntityTypeManager {
 	this.typeManagerMutex.Lock()
 	defer this.typeManagerMutex.Unlock()
 	returnPETMs := []astrolabe.ProtectedEntityTypeManager{}

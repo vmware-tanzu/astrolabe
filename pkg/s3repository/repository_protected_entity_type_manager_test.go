@@ -86,7 +86,7 @@ func TestCopyFSProtectedEntity(t *testing.T) {
 	fsParams := make(map[string]interface{})
 	fsParams["root"] = "/Users/dsmithuchida/astrolabe_fs_root"
 
-	fsPETM, err := fs.NewFSProtectedEntityTypeManagerFromConfig(fsParams, "notUsed", logrus.New())
+	fsPETM, err := fs.NewFSProtectedEntityTypeManagerFromConfig(fsParams, astrolabe.S3Config{}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +104,12 @@ func TestCopyFSProtectedEntity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		s3PE, err := s3petm.Copy(ctx, fsPE, astrolabe.AllocateNewObject)
+		s3PE, err := s3petm.Copy(ctx, fsPE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		newFSPE, err := fsPETM.Copy(ctx, s3PE, astrolabe.AllocateNewObject)
+		newFSPE, err := fsPETM.Copy(ctx, s3PE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -130,7 +130,7 @@ func TestRetrieveEntity(t *testing.T) {
 	ivdParams[ivd.UserVcParamKey] = "administrator@vsphere.local"
 	ivdParams[ivd.PasswordVcParamKey] = "Admin!23"
 
-	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, "notUsed", logrus.New())
+	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, astrolabe.S3Config{}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestRetrieveEntity(t *testing.T) {
 
 		fmt.Printf("%d bytes copied\n", bytesCopied)
 	*/
-	newIVDPE, err := ivdPETM.Copy(ctx, s3PE, astrolabe.AllocateNewObject)
+	newIVDPE, err := ivdPETM.Copy(ctx, s3PE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 	ivdParams[ivd.UserVcParamKey] = "administrator@vsphere.local"
 	ivdParams[ivd.PasswordVcParamKey] = "Admin!23"
 
-	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, "notUsed", logrus.New())
+	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, astrolabe.S3Config{}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 	if false {
 		ivdPE, err := ivdPETM.GetProtectedEntity(ctx, ivdPEID)
 
-		snapID, err = ivdPE.Snapshot(ctx)
+		snapID, err = ivdPE.Snapshot(ctx, make(map[string]map[string]interface{}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -239,14 +239,14 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		s3PE, err = s3petm.Copy(ctx, snapPE, astrolabe.AllocateNewObject)
+		s3PE, err = s3petm.Copy(ctx, snapPE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 		if err != nil {
 			t.Fatal(err)
 		}
 	} else {
 		s3PE, err = s3petm.GetProtectedEntity(ctx, snapPEID)
 	}
-	newIVDPE, err := ivdPETM.Copy(ctx, s3PE, astrolabe.AllocateNewObject)
+	newIVDPE, err := ivdPETM.Copy(ctx, s3PE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 	if err != nil {
 		t.Fatal(err)
 	}
