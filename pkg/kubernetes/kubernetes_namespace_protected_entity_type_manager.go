@@ -78,7 +78,7 @@ func (this *KubernetesNamespaceProtectedEntityTypeManager) GetProtectedEntities(
 }
 
 func (this *KubernetesNamespaceProtectedEntityTypeManager) loadNamespaceEntities() error {
-	namespaceList, err := this.clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+	namespaceList, err := this.clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

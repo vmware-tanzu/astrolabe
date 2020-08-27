@@ -89,13 +89,13 @@ func (this *PVCProtectedEntityTypeManager) GetProtectedEntity(ctx context.Contex
 }
 
 func (this *PVCProtectedEntityTypeManager) GetProtectedEntities(ctx context.Context) ([]astrolabe.ProtectedEntityID, error) {
-	nsList, err := this.clientSet.CoreV1().Namespaces().List(metav1.ListOptions{})
+	nsList, err := this.clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not list namespaces")
 	}
 	retPEIDs := make([]astrolabe.ProtectedEntityID, 0)
 	for _, ns := range nsList.Items {
-		pvcList, err := this.clientSet.CoreV1().PersistentVolumeClaims(ns.Name).List(metav1.ListOptions{})
+		pvcList, err := this.clientSet.CoreV1().PersistentVolumeClaims(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			return nil, errors.Wrap(err, "Could not list PVCs")
 		}
@@ -173,7 +173,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 	if dynamic {
 
 		// Creates a new PVC (dynamic provisioning path)
-		if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(&pvc); err == nil || apierrs.IsAlreadyExists(err) {
+		if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(context.TODO(), &pvc, metav1.CreateOptions{}); err == nil || apierrs.IsAlreadyExists(err) {
 			// Save succeeded.
 			if err != nil {
 				this.logger.Infof("PVC %s/%s already exists, reusing", pvc.Namespace, pvc.Name)

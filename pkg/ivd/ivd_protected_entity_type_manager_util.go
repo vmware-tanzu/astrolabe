@@ -44,7 +44,7 @@ func findHostsOfNodeVMs(ctx context.Context, client *vim25.Client, config *rest.
 		return nil, err
 	}
 
-	nodeList, err := clientSet.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodeList, err := clientSet.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func RetrievePlatformInfoFromConfig(config *rest.Config, params map[string]inter
 	vsphere_secrets := []string{"vsphere-config-secret", "csi-vsphere-config"}
 	var secret *corev1.Secret
 	for _, vsphere_secret := range vsphere_secrets {
-		secret, err = secretApis.Get(vsphere_secret, metav1.GetOptions{})
+		secret, err = secretApis.Get(context.TODO(), vsphere_secret, metav1.GetOptions{})
 		if err == nil {
 			break
 		}
