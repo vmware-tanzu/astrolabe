@@ -1,6 +1,7 @@
 package pvc
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -33,7 +34,7 @@ func WaitForPersistentVolumeClaimsPhase(phase v1.PersistentVolumeClaimPhase, c c
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(Poll) {
 		phaseFoundInAllClaims := true
 		for _, pvcName := range pvcNames {
-			pvc, err := c.CoreV1().PersistentVolumeClaims(ns).Get(pvcName, metav1.GetOptions{})
+			pvc, err := c.CoreV1().PersistentVolumeClaims(ns).Get(context.TODO(), pvcName, metav1.GetOptions{})
 			if err != nil {
 				logger.Errorf("Failed to get claim %q, retrying in %v. Error: %v", pvcName, Poll, err)
 				continue

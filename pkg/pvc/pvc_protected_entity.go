@@ -102,7 +102,7 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	}
 
 	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(snapConfigMapName, metav1.GetOptions{})
+	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
 	var binaryData map[string][]byte
 	var create bool
 	if err != nil {
@@ -143,9 +143,9 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	binaryData[PEInfoPrefix+"-"+subSnapshotID.String()] = peInfoData
 	snapConfigMap.BinaryData = binaryData
 	if create {
-		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Create(snapConfigMap)
+		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Create(ctx, snapConfigMap, metav1.CreateOptions{})
 	} else {
-		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(snapConfigMap)
+		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
 	}
 	if err != nil {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "PVC Snapshot write peid %s failed", components[0].GetID())
@@ -162,7 +162,7 @@ func (this PVCProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.P
 		return nil, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
 	}
 	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(snapConfigMapName, metav1.GetOptions{})
+	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
@@ -195,7 +195,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	}
 
 	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(snapConfigMapName, metav1.GetOptions{})
+	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return false, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
@@ -209,7 +209,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	if snapPVCInfoExists {
 		delete(snapConfigMap.BinaryData, snapshotToDelete.String())
 		delete(snapConfigMap.BinaryData, "peinfo-"+snapshotToDelete.String())
-		updatedSnapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(snapConfigMap)
+		updatedSnapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
 		if err != nil {
 			return false, errors.Wrapf(err, "Could not update snapshot configmap %s for %s", snapConfigMapName,
 				this.id.String())
@@ -218,7 +218,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 			// no snapshot after the update. So, clean up the config map
 			var zeroSecondsGracePeriod int64
 			zeroSecondsGracePeriod = 0
-			err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Delete(updatedSnapConfigMap.Name, &metav1.DeleteOptions{GracePeriodSeconds: &zeroSecondsGracePeriod})
+			err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Delete(ctx, updatedSnapConfigMap.Name, metav1.DeleteOptions{GracePeriodSeconds: &zeroSecondsGracePeriod})
 			if err != nil {
 				return false, errors.Wrapf(err, "Could not delete snapshot configmap %s for %s", snapConfigMapName,
 					this.id.String())
@@ -271,7 +271,7 @@ func (this PVCProtectedEntity) GetComponents(ctx context.Context) ([]astrolabe.P
 		return []astrolabe.ProtectedEntity{}, nil
 	}
 
-	pv, err := this.ppetm.clientSet.CoreV1().PersistentVolumes().Get(pvc.Spec.VolumeName, metav1.GetOptions{})
+	pv, err := this.ppetm.clientSet.CoreV1().PersistentVolumes().Get(ctx, pvc.Spec.VolumeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not retrieve Persistent Volume")
 	}
@@ -350,7 +350,7 @@ func (this PVCProtectedEntity) GetPVC() (*core_v1.PersistentVolumeClaim, error) 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not get namespace and id from PEID %s", this.id.String())
 	}
-	pvc, err := this.ppetm.clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(name, metav1.GetOptions{})
+	pvc, err := this.ppetm.clientSet.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not get retrieve pvc with namespace %s, id %s", namespace, name)
 	}
