@@ -100,56 +100,58 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
 	}
 	this.logger.Infof("PVCProtectedEntity: Received snapshotID : %s after component snapshot of pe-id %s", subSnapshotID.String(), components[0].GetID().String())
-	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
-	var binaryData map[string][]byte
-	var create bool
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
+	// TODO: add configurable flag here.
+	if false {
+		snapConfigMapName := GetSnapConfigMapName(pvc)
+		snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
+		var binaryData map[string][]byte
+		var create bool
+		if err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
+					this.id.String())
+			}
+
+			snapConfigMap = &core_v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      snapConfigMapName,
+					Namespace: pvc.Namespace,
+				},
+			}
+			create = true
+		} else {
+			binaryData = snapConfigMap.BinaryData
+		}
+		pvcData, err := pvc.Marshal()
+		if err != nil {
+			return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not marshal PVC data for %v",
 				this.id.String())
 		}
 
-		snapConfigMap = &core_v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      snapConfigMapName,
-				Namespace: pvc.Namespace,
-			},
+		if binaryData == nil {
+			binaryData = make(map[string][]byte)
 		}
-		create = true
-	} else {
-		binaryData = snapConfigMap.BinaryData
-	}
-	pvcData, err := pvc.Marshal()
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not marshal PVC data for %v",
-			this.id.String())
-	}
-
-	if binaryData == nil {
-		binaryData = make(map[string][]byte)
-	}
-	binaryData[subSnapshotID.String()] = pvcData
-	peInfo, err := this.GetInfo(ctx)
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not retrieve PE info for %v",
-			this.id.String())
-	}
-	peInfoData, err := json.Marshal(peInfo)
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Marshal peid info %s failed", components[0].GetID())
-	}
-	binaryData[PEInfoPrefix+"-"+subSnapshotID.String()] = peInfoData
-	snapConfigMap.BinaryData = binaryData
-	if create {
-		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Create(ctx, snapConfigMap, metav1.CreateOptions{})
-	} else {
-		_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
-	}
-	this.logger.Infof("PVCProtectedEntity: Updated the config map : %s with snap-id : %s", snapConfigMapName, subSnapshotID.String())
-
-	if err != nil {
-		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "PVC Snapshot write peid %s failed", components[0].GetID())
+		binaryData[subSnapshotID.String()] = pvcData
+		peInfo, err := this.GetInfo(ctx)
+		if err != nil {
+			return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Could not retrieve PE info for %v",
+				this.id.String())
+		}
+		peInfoData, err := json.Marshal(peInfo)
+		if err != nil {
+			return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "Marshal peid info %s failed", components[0].GetID())
+		}
+		binaryData[PEInfoPrefix+"-"+subSnapshotID.String()] = peInfoData
+		snapConfigMap.BinaryData = binaryData
+		if create {
+			_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Create(ctx, snapConfigMap, metav1.CreateOptions{})
+		} else {
+			_, err = this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
+		}
+		if err != nil {
+			return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrapf(err, "PVC Snapshot ConfigMap write peid %s failed", components[0].GetID())
+		}
+		this.logger.Infof("PVCProtectedEntity: Updated the config map : %s with snap-id : %s", snapConfigMapName, subSnapshotID.String())
 	}
 	subSnapshotPEID := components[0].GetID().IDWithSnapshot(subSnapshotID)
 	subSnapshotStr := base64.RawStdEncoding.EncodeToString([]byte(subSnapshotPEID.String()))
@@ -158,26 +160,29 @@ func (this PVCProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 }
 
 func (this PVCProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.ProtectedEntitySnapshotID, error) {
-	pvc, err := this.GetPVC()
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
-	}
-	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
-				this.id.String())
-		}
-		// No configmap so no snapshots
-		return []astrolabe.ProtectedEntitySnapshotID{}, nil
-	}
+	this.logger.Warnf("PVC PE ListSnapshots invoked, returning empty results as snapshot persistence in config map is not available.")
 	returnIDs := make([]astrolabe.ProtectedEntitySnapshotID, 0)
-	for snapshotIDStr, _ := range snapConfigMap.BinaryData {
-		if strings.Contains(snapshotIDStr, PEInfoPrefix) {
-			continue
+	if false {
+		pvc, err := this.GetPVC()
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
 		}
-		returnIDs = append(returnIDs, astrolabe.NewProtectedEntitySnapshotID(snapshotIDStr))
+		snapConfigMapName := GetSnapConfigMapName(pvc)
+		snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
+		if err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return nil, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
+					this.id.String())
+			}
+			// No configmap so no snapshots
+			return []astrolabe.ProtectedEntitySnapshotID{}, nil
+		}
+		for snapshotIDStr, _ := range snapConfigMap.BinaryData {
+			if strings.Contains(snapshotIDStr, PEInfoPrefix) {
+				continue
+			}
+			returnIDs = append(returnIDs, astrolabe.NewProtectedEntitySnapshotID(snapshotIDStr))
+		}
 	}
 	return returnIDs, nil
 }
@@ -191,18 +196,6 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	pvc, err := this.GetPVC()
 	if err != nil {
 		return false, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
-	}
-
-	snapConfigMapName := GetSnapConfigMapName(pvc)
-	snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return false, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
-				this.id.String())
-		}
-		this.logger.Infof("PVCProtectedEntity: No snapshot config map avaiable with name: %s", snapConfigMapName)
-		// No configmap so no snapshots
-		return false, nil
 	}
 
 	components, err := this.GetComponents(ctx)
@@ -224,33 +217,45 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 		deleteSnapStatus = true
 		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %s", snapshotToDelete.String(), components[0].GetID().String())
 	}
-	_, snapPVCInfoExists := snapConfigMap.BinaryData[componentSnapshotID.String()]
-	if snapPVCInfoExists {
-		delete(snapConfigMap.BinaryData, componentSnapshotID.String())
-		delete(snapConfigMap.BinaryData, "peinfo-"+componentSnapshotID.String())
-		updatedSnapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
+
+	if false {
+		snapConfigMapName := GetSnapConfigMapName(pvc)
+		snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
 		if err != nil {
-			return false, errors.Wrapf(err, "Could not update snapshot configmap %s for %s", snapConfigMapName,
-				this.id.String())
-		}
-		if updatedSnapConfigMap.BinaryData == nil {
-			// no snapshot after the update. So, clean up the config map
-			var zeroSecondsGracePeriod int64
-			zeroSecondsGracePeriod = 0
-			err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Delete(ctx, updatedSnapConfigMap.Name, metav1.DeleteOptions{GracePeriodSeconds: &zeroSecondsGracePeriod})
-			if err != nil {
-				return false, errors.Wrapf(err, "Could not delete snapshot configmap %s for %s", snapConfigMapName,
+			if !k8serrors.IsNotFound(err) {
+				return false, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
 					this.id.String())
 			}
+			this.logger.Infof("PVCProtectedEntity: No snapshot config map avaiable with name: %s", snapConfigMapName)
+		} else {
+			_, snapPVCInfoExists := snapConfigMap.BinaryData[componentSnapshotID.String()]
+			if snapPVCInfoExists {
+				delete(snapConfigMap.BinaryData, componentSnapshotID.String())
+				delete(snapConfigMap.BinaryData, "peinfo-"+componentSnapshotID.String())
+				updatedSnapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
+				if err != nil {
+					return false, errors.Wrapf(err, "Could not update snapshot configmap %s for %s", snapConfigMapName,
+						this.id.String())
+				}
+				if updatedSnapConfigMap.BinaryData == nil {
+					// no snapshot after the update. So, clean up the config map
+					var zeroSecondsGracePeriod int64
+					zeroSecondsGracePeriod = 0
+					err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Delete(ctx, updatedSnapConfigMap.Name, metav1.DeleteOptions{GracePeriodSeconds: &zeroSecondsGracePeriod})
+					if err != nil {
+						return false, errors.Wrapf(err, "Could not delete snapshot configmap %s for %s", snapConfigMapName,
+							this.id.String())
+					}
+				}
+				this.logger.Infof("PVCProtectedEntity: Successfully deleted snapshot entries in the config map: %s for snapshot: %s", snapConfigMapName, snapshotToDelete.String())
+			} else {
+				this.logger.Infof("PVCProtectedEntity: No entries found in config map : %s for the snapshot-id: %s", snapConfigMapName, snapshotToDelete.String())
+			}
 		}
-		this.logger.Infof("PVCProtectedEntity: Successfully deleted snapshot entries in the config map: %s for snapshot: %s", snapConfigMapName, snapshotToDelete.String())
-	} else {
-		this.logger.Infof("PVCProtectedEntity: No entries found in config map : %s for the snapshot-id: %s", snapConfigMapName, snapshotToDelete.String())
 	}
-
-	// If either the configmap info existed or the subsnapshot existed, then we successfully removed, otherwise
+	// If the subsnapshot existed, then we successfully removed, otherwise
 	// there was no work (errors would have exited us already) so we return false
-	return deleteSnapStatus || snapPVCInfoExists, nil
+	return deleteSnapStatus, nil
 }
 
 func (this PVCProtectedEntity) GetInfoForSnapshot(ctx context.Context, snapshotID astrolabe.ProtectedEntitySnapshotID) (*astrolabe.ProtectedEntityInfo, error) {
@@ -304,13 +309,6 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 						return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
 					}
 					this.logger.Infof("The pvPEID: %s with snapshot was decoded", pvPEID.String())
-					if pvPEID.HasSnapshot() && pvPEID.GetPeType() != pvPEType {
-						pvPEID, err = getPEIDForComponentSnapshot(pvPEID, this.logger)
-						if err != nil {
-							return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
-						}
-						this.logger.Infof("The updated pvPEID: %s after retrieving sub-components.", pvPEID.String())
-					}
 				} else {
 					pvPEID = astrolabe.NewProtectedEntityID(pvPEType, pvIDstr)
 				}
