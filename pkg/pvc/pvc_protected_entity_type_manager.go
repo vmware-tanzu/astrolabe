@@ -244,12 +244,11 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 
 func getPEIDForComponentSnapshot(sourceSnapshotID astrolabe.ProtectedEntityID, logger logrus.FieldLogger) (astrolabe.ProtectedEntityID, error) {
 	componentID64Str := sourceSnapshotID.GetSnapshotID().String()
-	componentIDBytes, err := base64.StdEncoding.DecodeString(componentID64Str)
+	componentIDBytes, err := base64.RawStdEncoding.DecodeString(componentID64Str)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Could not decode snapshot ID encoded string %s", componentID64Str)
 		logger.WithError(err).Error(errorMsg)
 		return astrolabe.ProtectedEntityID{}, errors.Wrap(err, errorMsg)
 	}
-
 	return astrolabe.NewProtectedEntityIDFromString(string(componentIDBytes))
 }

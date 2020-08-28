@@ -354,6 +354,7 @@ func (this IVDProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.P
 	for _, curSnapshotInfo := range snapshotInfo {
 		peSnapshotIDs = append(peSnapshotIDs, astrolabe.NewProtectedEntitySnapshotID(curSnapshotInfo.Id.Id))
 	}
+	this.logger.Infof("Retrieved %d snapshots for pe-id: %s, snapshots= %v", len(peSnapshotIDs), this.GetID().String(), peSnapshotIDs)
 	return peSnapshotIDs, nil
 }
 func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {

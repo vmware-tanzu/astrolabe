@@ -61,15 +61,19 @@ func NewProtectedEntityIDFromModel(mpei models.ProtectedEntityID) (ProtectedEnti
 }
 
 func NewProtectedEntityIDWithNamespace(peType string, name string, namespace string) ProtectedEntityID {
+	return NewProtectedEntityIDWithNamespaceAndSnapshot(peType, name, namespace, "")
+}
+
+func NewProtectedEntityIDWithNamespaceAndSnapshot(peType string, name string, namespace string, snapshotID string) ProtectedEntityID {
 	var peID ProtectedEntityID
 	switch peType {
 	case "PersistentVolumeClaim", PvcPEType:
 		idStr := namespace + peIDSep + name
-		peID = NewProtectedEntityID(PvcPEType, idStr)
+		peID = NewProtectedEntityIDWithSnapshotID(PvcPEType, idStr, ProtectedEntitySnapshotID{snapshotID})
 	case "ivd":
 		fallthrough
 	default:
-		peID = NewProtectedEntityID(peType, name)
+		peID = NewProtectedEntityIDWithSnapshotID(peType, name, ProtectedEntitySnapshotID{snapshotID})
 	}
 	return peID
 }
