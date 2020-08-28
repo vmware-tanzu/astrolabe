@@ -60,6 +60,10 @@ func NewProtectedEntityIDFromModel(mpei models.ProtectedEntityID) (ProtectedEnti
 	return NewProtectedEntityIDFromString(string(mpei))
 }
 
+func NewProtectedEntityIDWithNamespace(peType string, name string, namespace string) ProtectedEntityID {
+	return NewProtectedEntityIDWithNamespaceAndSnapshot(peType, name, namespace, "")
+}
+
 func NewProtectedEntityIDWithNamespaceAndSnapshot(peType string, name string, namespace string, snapshotID string) ProtectedEntityID {
 	var peID ProtectedEntityID
 	switch peType {

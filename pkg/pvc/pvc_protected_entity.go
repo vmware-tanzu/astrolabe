@@ -213,35 +213,15 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 		return false, errors.New(fmt.Sprintf("Expected 1 component, %s has %d", this.id.String(), len(components)))
 	}
 	this.logger.Infof("PVCProtectedEntity: Retrieved components for the pvc protected entity id: %s", components[0].GetID().String())
-
-	subSnapshots := make([]astrolabe.ProtectedEntitySnapshotID, 0)
-	paraVirtComponentType := false
-	if components[0].GetID().GetPeType() == "paravirt-pv" {
-		this.logger.Infof("Detected para virtualized component type, not listing snapshots.")
-		paraVirtComponentType = true
-	} else {
-		this.logger.Infof("Detected non-para virtualized component type, listing snapshots explicitly.")
-		subSnapshots, err = components[0].ListSnapshots(ctx)
-		if err != nil {
-			return false, errors.Wrapf(err, "Subcomponent peid %s list snapshot", components[0].GetID())
-		}
-	}
 	componentSnapshotID := components[0].GetID().GetSnapshotID()
 	this.logger.Infof("snapshotToDelete: %s  componentSnapshotID: %s", snapshotToDelete.String(), componentSnapshotID.String())
-	subsnapshotExists := false
-	for _, checkSnapshot := range subSnapshots {
-		if checkSnapshot == componentSnapshotID {
-			subsnapshotExists = true
-			break
-		}
-	}
-
-	if subsnapshotExists || paraVirtComponentType {
-		this.logger.Infof("PVCProtectedEntity: Triggering DeleteSnapshot with component snapshotID: %s for the component pe-id: %s", componentSnapshotID.String(), components[0].GetID().String())
-		_, err := components[0].DeleteSnapshot(ctx, componentSnapshotID, params)
-		if err != nil {
-			return false, errors.Wrapf(err, "Subcomponent peid %s snapshot failed", components[0].GetID())
-		}
+	deleteSnapStatus := false
+	this.logger.Infof("PVCProtectedEntity: Triggering DeleteSnapshot with component snapshotID: %s for the component pe-id: %s", componentSnapshotID.String(), components[0].GetID().String())
+	_, err = components[0].DeleteSnapshot(ctx, componentSnapshotID, params)
+	if err != nil {
+		this.logger.Warnf("Subcomponent peid %s delete snapshot failed error: %v", components[0].GetID(), err)
+	} else {
+		deleteSnapStatus = true
 		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %s", snapshotToDelete.String(), components[0].GetID().String())
 	}
 	_, snapPVCInfoExists := snapConfigMap.BinaryData[componentSnapshotID.String()]
@@ -270,7 +250,7 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 
 	// If either the configmap info existed or the subsnapshot existed, then we successfully removed, otherwise
 	// there was no work (errors would have exited us already) so we return false
-	return subsnapshotExists || snapPVCInfoExists, nil
+	return deleteSnapStatus || snapPVCInfoExists, nil
 }
 
 func (this PVCProtectedEntity) GetInfoForSnapshot(ctx context.Context, snapshotID astrolabe.ProtectedEntitySnapshotID) (*astrolabe.ProtectedEntityInfo, error) {
@@ -324,7 +304,7 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 						return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
 					}
 					this.logger.Infof("The pvPEID: %s with snapshot was decoded", pvPEID.String())
-					if pvPEID.HasSnapshot() && pvPEID.GetPeType()!=pvPEType {
+					if pvPEID.HasSnapshot() && pvPEID.GetPeType() != pvPEType {
 						pvPEID, err = getPEIDForComponentSnapshot(pvPEID, this.logger)
 						if err != nil {
 							return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
