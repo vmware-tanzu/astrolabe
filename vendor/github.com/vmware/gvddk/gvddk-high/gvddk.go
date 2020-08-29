@@ -319,3 +319,8 @@ func (this DiskConnectHandle) Close() error {
 
 	return nil
 }
+
+// QueryAllocatedBlocks invokes the VDDK function of the same name.
+func (this DiskReaderWriter) QueryAllocatedBlocks(startSector gDiskLib.VixDiskLibSectorType, numSectors gDiskLib.VixDiskLibSectorType, chunkSize gDiskLib.VixDiskLibSectorType) ([]gDiskLib.VixDiskLibBlock, gDiskLib.VddkError) {
+	return gDiskLib.QueryAllocatedBlocks(this.diskHandle.dli, startSector, numSectors, chunkSize)
+}

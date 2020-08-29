@@ -46,6 +46,11 @@ const (
 // Sector size
 const VIXDISKLIB_SECTOR_SIZE = C.VIXDISKLIB_SECTOR_SIZE
 
+// Chunk constants
+const VIXDISKLIB_MIN_CHUNK_SIZE = C.VIXDISKLIB_MIN_CHUNK_SIZE
+const VIXDISKLIB_MAX_CHUNK_SIZE = C.VIXDISKLIB_MAX_CHUNK_SIZE
+const VIXDISKLIB_MAX_CHUNK_NUMBER = C.VIXDISKLIB_MAX_CHUNK_NUMBER
+
 // Error code
 const VIX_E_DISK_OUTOFRANGE = C.VIX_E_DISK_OUTOFRANGE
 
@@ -114,6 +119,30 @@ type VixDiskLibCreateParams struct {
 	adapterType VixDiskLibAdapterType
 	hwVersion uint16
 	capacity VixDiskLibSectorType
+}
+
+// VixDiskLibBlock is the Go type for the underlying C type.
+// Accessors are provided to dereference fields of the externally opaque C structure type.
+type VixDiskLibBlock C.VixDiskLibBlock
+
+// Offset returns the offset in sectors.
+func (b VixDiskLibBlock) Offset() VixDiskLibSectorType {
+	return VixDiskLibSectorType(b.offset)
+}
+
+// SetOffset sets the offset field.
+func (b *VixDiskLibBlock) SetOffset(offset VixDiskLibSectorType) {
+	b.offset = C.VixDiskLibSectorType(offset)
+}
+
+// Length returns the length of the block in sectors.
+func (b VixDiskLibBlock) Length() VixDiskLibSectorType {
+	return VixDiskLibSectorType(b.length)
+}
+
+// SetLength sets the length field.
+func (b *VixDiskLibBlock) SetLength(length VixDiskLibSectorType) {
+	b.length = C.VixDiskLibSectorType(length)
 }
 
 type VixDiskLibGeometry struct {

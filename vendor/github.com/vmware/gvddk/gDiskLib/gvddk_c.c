@@ -155,3 +155,43 @@ VixError Clone(VixDiskLibConnection dstConn, char *dstPath, VixDiskLibConnection
     error = VixDiskLib_Clone(dstConn, dstPath, srcConn, srcPath, createParams, (VixDiskLibProgressFunc)&ProgressFunc, progressCallbackData, overWrite);
     return error;
 }
+
+/*
+ * QueryAllocatedBlocks wraps the underlying VixDiskLib method of the same name.
+ * It accepts an output descriptor data structure allocated in Go in which to return
+ * details on the VixDiskLibBlockList on success.  The caller should use
+ * BlockListCopyAndFree to copy the data to a Go slice and free the C memory
+ * associated with the VixDiskLibBlockList.
+ */
+VixError QueryAllocatedBlocks(VixDiskLibHandle diskHandle, VixDiskLibSectorType startSector, VixDiskLibSectorType numSectors,
+                              VixDiskLibSectorType chunkSize, BlockListDescriptor *bld)
+{
+    VixError vErr;
+    VixDiskLibBlockList *bl;
+
+    vErr = VixDiskLib_QueryAllocatedBlocks(diskHandle, startSector, numSectors, chunkSize, &bl);
+    if VIX_FAILED(vErr) {
+        return vErr;
+    }
+
+    bld->blockList = bl;
+    bld->numBlocks = bl->numBlocks;
+
+    return VIX_OK;
+}
+
+/*
+ * BlockListCopyAndFree copies the block list to the specified array of blocks.
+ * It frees the block list on completion and returns the error on free.
+ */
+VixError BlockListCopyAndFree(BlockListDescriptor *bld,  VixDiskLibBlock *ba)
+{
+    VixDiskLibBlockList *bl = bld->blockList;
+
+    for (int i = 0; i < bl->numBlocks; i++) {
+        *ba = *(&bl->blocks[i]);
+        ba++;
+    }
+
+    return VixDiskLib_FreeBlockList(bl);
+}

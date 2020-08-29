@@ -12,8 +12,8 @@ import (
 // II vs II
 func TestAligned(t *testing.T) {
 	fmt.Println("Test Multithread write for aligned case which skip lock: II vs II")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -22,7 +22,7 @@ func TestAligned(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
@@ -76,8 +76,8 @@ func TestAligned(t *testing.T) {
 // I II III vs II III
 func TestMiss1(t *testing.T) {
 	fmt.Println("Test Multithread write for miss aligned case which lock: I II III vs II III")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -86,7 +86,7 @@ func TestMiss1(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
@@ -140,8 +140,8 @@ func TestMiss1(t *testing.T) {
 // I II vs I II III
 func TestMiss2(t *testing.T) {
 	fmt.Println("Test Multithread write for miss aligned case which lock: I II vs I II III")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -150,7 +150,7 @@ func TestMiss2(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
@@ -204,8 +204,8 @@ func TestMiss2(t *testing.T) {
 // I II vs II III
 func TestMiss3(t *testing.T) {
 	fmt.Println("Test Multithread write for miss aligned case which lock: I II vs II III")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -214,7 +214,7 @@ func TestMiss3(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
@@ -268,8 +268,8 @@ func TestMiss3(t *testing.T) {
 // I II III vs II
 func TestMissAlign(t *testing.T) {
 	fmt.Println("Test Multithread write for case which lock: I II III vs II")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -278,7 +278,7 @@ func TestMissAlign(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
