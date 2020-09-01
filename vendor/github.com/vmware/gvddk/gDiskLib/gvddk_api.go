@@ -236,19 +236,19 @@ func createDiskInfo(diskInfo *VixDiskLibInfo) (*C.VixDiskLibInfo, []*C.char) {
 	var dliInfo *C.VixDiskLibInfo
 	var bios C.VixDiskLibGeometry
 	var phys C.VixDiskLibGeometry
-	bios.cylinders = C.uint32(diskInfo.biosGeo.cylinders)
-	bios.heads = C.uint32(diskInfo.biosGeo.heads)
-	bios.sectors = C.uint32(diskInfo.biosGeo.sectors)
-	phys.cylinders = C.uint32(diskInfo.physGeo.cylinders)
-	phys.heads = C.uint32(diskInfo.physGeo.heads)
-	phys.sectors = C.uint32(diskInfo.physGeo.sectors)
+	bios.cylinders = C.uint32(diskInfo.BiosGeo.Cylinders)
+	bios.heads = C.uint32(diskInfo.BiosGeo.Heads)
+	bios.sectors = C.uint32(diskInfo.BiosGeo.Sectors)
+	phys.cylinders = C.uint32(diskInfo.PhysGeo.Cylinders)
+	phys.heads = C.uint32(diskInfo.PhysGeo.Heads)
+	phys.sectors = C.uint32(diskInfo.PhysGeo.Sectors)
 	dliInfo.biosGeo = bios
 	dliInfo.physGeo = phys
-	dliInfo.capacity = C.VixDiskLibSectorType(diskInfo.capacity)
-	dliInfo.adapterType = C.VixDiskLibAdapterType(diskInfo.adapterType)
-	dliInfo.numLinks = C.int(diskInfo.numLinks)
-	dliInfo.parentFileNameHint = C.CString(diskInfo.parentFileNameHint)
-	dliInfo.uuid = C.CString(diskInfo.uuid)
+	dliInfo.capacity = C.VixDiskLibSectorType(diskInfo.Capacity)
+	dliInfo.adapterType = C.VixDiskLibAdapterType(diskInfo.AdapterType)
+	dliInfo.numLinks = C.int(diskInfo.NumLinks)
+	dliInfo.parentFileNameHint = C.CString(diskInfo.ParentFileNameHint)
+	dliInfo.uuid = C.CString(diskInfo.Uuid)
 	var cParams = []*C.char{dliInfo.parentFileNameHint, dliInfo.uuid}
 	return dliInfo, cParams
 }
@@ -385,6 +385,34 @@ func Write(diskHandle VixDiskLibHandle, startSector uint64, numSectors uint64, b
 		return NewVddkError(uint64(res), fmt.Sprintf("Write to virtual disk file failed. The error code is %d.", res))
 	}
 	return nil
+}
+
+func GetInfo(diskHandle VixDiskLibHandle) (VixDiskLibInfo, VddkError) {
+	var dliInfoPtr *C.VixDiskLibInfo
+	res := C.VixDiskLib_GetInfo(diskHandle.dli, &dliInfoPtr)
+	if res != 0 {
+		return VixDiskLibInfo{}, NewVddkError(uint64(res), fmt.Sprintf("GetInfo failed. The error code is %d.", res))
+	}
+	dliInfo := *dliInfoPtr
+	retInfo := VixDiskLibInfo{
+		BiosGeo: VixDiskLibGeometry{
+			Cylinders: uint32(dliInfo.biosGeo.cylinders),
+			Heads: uint32(dliInfo.biosGeo.heads),
+			Sectors: uint32(dliInfo.biosGeo.sectors),
+		},
+		PhysGeo: VixDiskLibGeometry{
+			Cylinders: uint32(dliInfo.physGeo.cylinders),
+			Heads: uint32(dliInfo.physGeo.heads),
+			Sectors: uint32(dliInfo.physGeo.sectors),
+		},
+		Capacity: VixDiskLibSectorType(dliInfo.capacity),
+		AdapterType: VixDiskLibAdapterType(dliInfo.adapterType),
+		NumLinks: int(dliInfo.numLinks),
+		ParentFileNameHint: C.GoString(dliInfo.parentFileNameHint),
+		Uuid: C.GoString(dliInfo.uuid),
+	}
+	C.VixDiskLib_FreeInfo(dliInfoPtr)
+	return retInfo, nil
 }
 
 // QueryAllocatedBlocks invokes the related VDDK function.

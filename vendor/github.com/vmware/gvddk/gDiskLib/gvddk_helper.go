@@ -146,19 +146,19 @@ func (b *VixDiskLibBlock) SetLength(length VixDiskLibSectorType) {
 }
 
 type VixDiskLibGeometry struct {
-	cylinders uint32
-	heads uint32
-	sectors uint32
+	Cylinders uint32
+	Heads uint32
+	Sectors uint32
 }
 
 type VixDiskLibInfo struct {
-	biosGeo VixDiskLibGeometry
-	physGeo VixDiskLibGeometry
-	capacity VixDiskLibSectorType
-	adapterType VixDiskLibAdapterType
-	numLinks int
-	parentFileNameHint string
-	uuid string
+	BiosGeo            VixDiskLibGeometry
+	PhysGeo            VixDiskLibGeometry
+	Capacity           VixDiskLibSectorType
+	AdapterType        VixDiskLibAdapterType
+	NumLinks           int
+	ParentFileNameHint string
+	Uuid               string
 }
 
 func (this vddkErrorImpl) Error() string {
