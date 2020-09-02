@@ -452,6 +452,7 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 						Size:       &bytesRead64,
 					}
 					completedParts[partNumber] = &completedPart
+					partNumber++
 				}
 				bytesUploaded += int64(bytesRead)
 			}
@@ -470,9 +471,8 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 				return bytesUploaded, errors.Errorf("Did not skip correct number of bytes bytesSkipped: %d expected:%d", bytesSkipped, bytesToSkip)
 			}
 			bytesUploaded += *completedParts[partNumber].Size
-
+			partNumber++
 		}
-		partNumber++
 		if bytesUploaded >= maxSegmentSize {
 			moreBits = false
 		}
@@ -482,9 +482,13 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 	if uploadID != "" {
 		parts := make([]*s3.CompletedPart, partNumber)
 		for curPartNum, curPart := range completedParts[0:partNumber] {
-			parts[curPartNum] = &s3.CompletedPart{
-				ETag:       curPart.ETag,
-				PartNumber: curPart.PartNumber, // This part number was already offset from 1
+			if curPart != nil {
+				parts[curPartNum] = &s3.CompletedPart{
+					ETag:       curPart.ETag,
+					PartNumber: curPart.PartNumber, // This part number was already offset from 1
+				}
+			} else {
+				log.Infof("Skipping nil part %d\n", curPartNum)
 			}
 		}
 		completedInput := s3.CompleteMultipartUploadInput{
@@ -500,7 +504,7 @@ func (this *ProtectedEntity) uploadSegment(ctx context.Context, baseName string,
 		if err != nil {
 			return bytesUploaded, err
 		}
-		log.Print(completedOutput)
+		log.Infof("Segment upload completed: %v", completedOutput)
 	}
 	return bytesUploaded, err
 }
