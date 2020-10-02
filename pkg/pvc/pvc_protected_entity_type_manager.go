@@ -226,6 +226,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 			cloneParams := make(map[string]interface{})
 			cloneParams["CloneFromSnapshotNamespace"] = cloneFromSnapshotNamespace
 			cloneParams["CloneFromSnapshotName"] = cloneFromSnapshotName
+			cloneParams["BackupRepositoryName"] = backupRepositoryName
 			overwriteParams["CloneFromSnapshotReference"] = cloneParams
 			err = components[0].Overwrite(ctx, sourcePE, overwriteParams, false)
 			if err != nil {
