@@ -28,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/vim25/xml"
 	"github.com/vmware/gvddk/gDiskLib"
 	gvddk_high "github.com/vmware/gvddk/gvddk-high"
+	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	"io"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -314,6 +315,10 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 					return false, nil
 				}
 			}
+			if util.IsConnectionResetError(err) {
+				this.logger.WithError(err).Errorf("Network issue: connection reset by peer. Will retry in %v second(s)", retryInterval)
+				return false, nil
+			}
 			return false, errors.Wrapf(err, "Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
 		ivdSnapshotID := ivdSnapshotIDAny.(vim.ID)
@@ -386,6 +391,10 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 					this.logger.WithError(err).Error("An error occurred while consolidating disks: Failed to lock the file. Will retry")
 					return false, nil
 				}
+			}
+			if util.IsConnectionResetError(err) {
+				this.logger.WithError(err).Error("Network issue: connection reset by peer. Will retry")
+				return false, nil
 			}
 			return false, errors.Wrapf(err, "Failed at waiting for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 		}
