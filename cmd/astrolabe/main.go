@@ -132,7 +132,7 @@ func ls(c *cli.Context) error {
 	if petm == nil {
 		log.Fatalf("Could not find type named %s", peType)
 	}
-	peIDs, err := petm.GetProtectedEntities(context.TODO())
+	peIDs, err := petm.GetProtectedEntities(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entities for type %s err:%b", peType, err)
 	}
@@ -155,12 +155,12 @@ func lssn(c *cli.Context) error {
 		log.Fatalf("Could not setup protected entity manager, err =%v", err)
 	}
 
-	pe, err := pem.GetProtectedEntity(context.TODO(), peID)
+	pe, err := pem.GetProtectedEntity(context.Background(), peID)
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entity ID %s, err: %v", peIDStr, err)
 	}
 
-	snaps, err := pe.ListSnapshots(context.TODO())
+	snaps, err := pe.ListSnapshots(context.Background())
 	if err != nil {
 		log.Fatalf("Could not get snapshots for protected entity ID %s, err: %v", peIDStr, err)
 	}
@@ -184,12 +184,12 @@ func show(c *cli.Context) error {
 		log.Fatalf("Could not setup protected entity manager, err =%v", err)
 	}
 
-	pe, err := pem.GetProtectedEntity(context.TODO(), peID)
+	pe, err := pem.GetProtectedEntity(context.Background(), peID)
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entity ID %s, err: %v", peIDStr, err)
 	}
 
-	info, err := pe.GetInfo(context.TODO())
+	info, err := pe.GetInfo(context.Background())
 	if err != nil {
 		log.Fatalf("Could not retrieve info for %s, err: %v", peIDStr, err)
 	}
@@ -209,11 +209,11 @@ func snap(c *cli.Context) error {
 		log.Fatalf("Could not setup protected entity manager, err =%v", err)
 	}
 
-	pe, err := pem.GetProtectedEntity(context.TODO(), peID)
+	pe, err := pem.GetProtectedEntity(context.Background(), peID)
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entity ID %s, err: %v", peIDStr, err)
 	}
-	snap, err := pe.Snapshot(context.TODO(), make(map[string]map[string]interface{}))
+	snap, err := pe.Snapshot(context.Background(), make(map[string]map[string]interface{}))
 	if err != nil {
 		log.Fatalf("Could not snapshot protected entity ID %s, err: %v", peIDStr, err)
 	}
@@ -236,11 +236,11 @@ func rmsn(c *cli.Context) error {
 		log.Fatalf("Could not setup protected entity manager, err =%v", err)
 	}
 
-	pe, err := pem.GetProtectedEntity(context.TODO(), peID)
+	pe, err := pem.GetProtectedEntity(context.Background(), peID)
 	if err != nil {
 		log.Fatalf("Could not retrieve protected entity ID %s, err: %v", peIDStr, err)
 	}
-	success, err := pe.DeleteSnapshot(context.TODO(), peID.GetSnapshotID(), make(map[string]map[string]interface{}))
+	success, err := pe.DeleteSnapshot(context.Background(), peID.GetSnapshotID(), make(map[string]map[string]interface{}))
 	if err != nil {
 		log.Fatalf("Could not remove snapshot ID %s, err: %v", peIDStr, err)
 	}
@@ -279,13 +279,13 @@ func cp(c *cli.Context) error {
 		fmt.Printf("file %s", srcFile)
 	} else {
 		fmt.Printf("pe %s", srcPEID.String())
-		srcPE, err := pem.GetProtectedEntity(context.TODO(), srcPEID)
+		srcPE, err := pem.GetProtectedEntity(context.Background(), srcPEID)
 		if err != nil {
 			log.Fatalf("Could not retrieve protected entity ID %s, err: %v", srcPEID.String(), err)
 		}
 		var dw io.WriteCloser
 		reader, dw = io.Pipe()
-		go zipPE(context.TODO(), srcPE, dw)
+		go zipPE(context.Background(), srcPE, dw)
 	}
 	fmt.Printf(" to ")
 	if destFile != "" {
