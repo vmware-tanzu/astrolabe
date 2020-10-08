@@ -51,7 +51,7 @@ func NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params map[strin
 		s3Config:  s3Config,
 	}
 	returnTypeManager.namespaces = make(map[string]*KubernetesNamespaceProtectedEntity)
-	err = returnTypeManager.loadNamespaceEntities()
+	err = returnTypeManager.loadNamespaceEntities(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +77,8 @@ func (this *KubernetesNamespaceProtectedEntityTypeManager) GetProtectedEntities(
 	return protectedEntities, nil
 }
 
-func (this *KubernetesNamespaceProtectedEntityTypeManager) loadNamespaceEntities() error {
-	namespaceList, err := this.clientset.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+func (this *KubernetesNamespaceProtectedEntityTypeManager) loadNamespaceEntities(ctx context.Context) error {
+	namespaceList, err := this.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

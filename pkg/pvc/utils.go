@@ -20,13 +20,13 @@ const (
 )
 
 // WaitForPersistentVolumeClaimPhase waits for a PersistentVolumeClaim to be in a specific phase or until timeout occurs, whichever comes first.
-func WaitForPersistentVolumeClaimPhase(phase v1.PersistentVolumeClaimPhase, c clientset.Interface, ns string, pvcName string, Poll, timeout time.Duration, logger logrus.FieldLogger) error {
-	return WaitForPersistentVolumeClaimsPhase(phase, c, ns, []string{pvcName}, Poll, timeout, true, logger)
+func WaitForPersistentVolumeClaimPhase(ctx context.Context, phase v1.PersistentVolumeClaimPhase, c clientset.Interface, ns string, pvcName string, Poll, timeout time.Duration, logger logrus.FieldLogger) error {
+	return WaitForPersistentVolumeClaimsPhase(ctx, phase, c, ns, []string{pvcName}, Poll, timeout, true, logger)
 }
 
 // WaitForPersistentVolumeClaimsPhase waits for any (if matchAny is true) or all (if matchAny is false) PersistentVolumeClaims
 // to be in a specific phase or until timeout occurs, whichever comes first.
-func WaitForPersistentVolumeClaimsPhase(phase v1.PersistentVolumeClaimPhase, c clientset.Interface, ns string, pvcNames []string, Poll, timeout time.Duration, matchAny bool, logger logrus.FieldLogger) error {
+func WaitForPersistentVolumeClaimsPhase(ctx context.Context, phase v1.PersistentVolumeClaimPhase, c clientset.Interface, ns string, pvcNames []string, Poll, timeout time.Duration, matchAny bool, logger logrus.FieldLogger) error {
 	if len(pvcNames) == 0 {
 		return fmt.Errorf("incorrect parameter: Need at least one PVC to track. Found 0")
 	}
@@ -34,7 +34,7 @@ func WaitForPersistentVolumeClaimsPhase(phase v1.PersistentVolumeClaimPhase, c c
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(Poll) {
 		phaseFoundInAllClaims := true
 		for _, pvcName := range pvcNames {
-			pvc, err := c.CoreV1().PersistentVolumeClaims(ns).Get(context.TODO(), pvcName, metav1.GetOptions{})
+			pvc, err := c.CoreV1().PersistentVolumeClaims(ns).Get(ctx, pvcName, metav1.GetOptions{})
 			if err != nil {
 				logger.Errorf("Failed to get claim %q, retrying in %v. Error: %v", pvcName, Poll, err)
 				continue

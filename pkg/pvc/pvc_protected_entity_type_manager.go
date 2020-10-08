@@ -81,7 +81,7 @@ func (this *PVCProtectedEntityTypeManager) GetProtectedEntity(ctx context.Contex
 		return nil, errors.Wrapf(err, "Could not create PVCProtectedEntity for namespace = %s, name = %s", namespace, name)
 	}
 
-	_, err = returnPE.GetPVC()
+	_, err = returnPE.GetPVC(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not retrieve PVC for namespace = %s, name = %s", namespace, name)
 	}
@@ -173,7 +173,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 	if dynamic {
 
 		// Creates a new PVC (dynamic provisioning path)
-		if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(context.TODO(), &pvc, metav1.CreateOptions{}); err == nil || apierrs.IsAlreadyExists(err) {
+		if _, err = this.clientSet.CoreV1().PersistentVolumeClaims(pvc.Namespace).Create(ctx, &pvc, metav1.CreateOptions{}); err == nil || apierrs.IsAlreadyExists(err) {
 			// Save succeeded.
 			if err != nil {
 				this.logger.Infof("PVC %s/%s already exists, reusing", pvc.Namespace, pvc.Name)
@@ -187,7 +187,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 		}
 		this.logger.Infof("CreateFromMetadata: created PVC: %s/%s", pvc.Namespace, pvc.Name)
 
-		err = WaitForPersistentVolumeClaimPhase(v1.ClaimBound, this.clientSet, pvc.Namespace, pvc.Name, Poll, ClaimBindingTimeout, this.logger)
+		err = WaitForPersistentVolumeClaimPhase(ctx, v1.ClaimBound, this.clientSet, pvc.Namespace, pvc.Name, Poll, ClaimBindingTimeout, this.logger)
 		if err != nil {
 			return nil, fmt.Errorf("PVC %q did not become Bound: %v", pvc.Name, err)
 		}
