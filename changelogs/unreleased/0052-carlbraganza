@@ -1,0 +1,11 @@
+Added support for GVDDK QueryAllocatedBlocks and updated the package unit tests to 7.0.
+
+The VDDK Programming Guide describes the use of this method and how to use it with QueryDiskChangedAreas
+in the general case.
+(https://code.vmware.com/docs/11750/virtual-disk-development-kit-programming-guide/GUID-152B7BA2-5A08-4044-A0FB-8DAACB39C4E1.html)
+
+When applied to FCDs, the QueryAllocatedBlocks method is likely to be most useful in full
+backups as device blocks are likely to be relatively sparsely allocated initially.  It is 
+less useful on incremental backups when change block tracking is enabled on an FCD because 
+the QueryDiskChangedAreas function returns allocation layout information that is either 
+logically identical to or a subset of that returned by the QueryAllocatedBlocks function.

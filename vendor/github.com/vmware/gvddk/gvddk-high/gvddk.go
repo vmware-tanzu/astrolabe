@@ -18,12 +18,13 @@ package gvddk_high
 
 import "C"
 import (
-	"github.com/vmware/gvddk/gDiskLib"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"io"
 	"sync"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/vmware/gvddk/gDiskLib"
 )
 
 func OpenFCD(serverName string, thumbPrint string, userName string, password string, fcdId string, fcdssid string, datastore string,
@@ -127,6 +128,10 @@ func (this DiskReaderWriter) WriteAt(p []byte, off int64) (n int, err error) {
 
 func (this DiskReaderWriter) Close() error {
 	return this.diskHandle.Close()
+}
+
+func (this DiskReaderWriter) QueryAllocatedBlocks(startSector gDiskLib.VixDiskLibSectorType, numSectors gDiskLib.VixDiskLibSectorType, chunkSize gDiskLib.VixDiskLibSectorType) ([]gDiskLib.VixDiskLibBlock, gDiskLib.VddkError) {
+	return this.diskHandle.QueryAllocatedBlocks(startSector, numSectors, chunkSize)
 }
 
 func NewDiskReaderWriter(diskHandle DiskConnectHandle, logger logrus.FieldLogger) DiskReaderWriter {
@@ -333,6 +338,6 @@ func (this DiskConnectHandle) Capacity() int64 {
 }
 
 // QueryAllocatedBlocks invokes the VDDK function of the same name.
-func (this DiskReaderWriter) QueryAllocatedBlocks(startSector gDiskLib.VixDiskLibSectorType, numSectors gDiskLib.VixDiskLibSectorType, chunkSize gDiskLib.VixDiskLibSectorType) ([]gDiskLib.VixDiskLibBlock, gDiskLib.VddkError) {
-	return gDiskLib.QueryAllocatedBlocks(this.diskHandle.dli, startSector, numSectors, chunkSize)
+func (this DiskConnectHandle) QueryAllocatedBlocks(startSector gDiskLib.VixDiskLibSectorType, numSectors gDiskLib.VixDiskLibSectorType, chunkSize gDiskLib.VixDiskLibSectorType) ([]gDiskLib.VixDiskLibBlock, gDiskLib.VddkError) {
+	return gDiskLib.QueryAllocatedBlocks(this.dli, startSector, numSectors, chunkSize)
 }
