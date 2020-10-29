@@ -18,142 +18,47 @@ package ivd
 
 import (
 	"context"
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"github.com/vmware/govmomi"
-	"github.com/vmware/govmomi/cns"
-	"github.com/vmware/govmomi/session"
-	"github.com/vmware/govmomi/vim25"
+	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vslm"
 	vslmtypes "github.com/vmware/govmomi/vslm/types"
 	"github.com/vmware/gvddk/gDiskLib"
 	"io"
-	"net/url"
+	"sync"
 	"time"
 )
-
-type IVDProtectedEntityTypeManager struct {
-	client    *govmomi.Client
-	vsom      *vslm.GlobalObjectManager
-	cnsClient *cns.Client
-	s3Config  astrolabe.S3Config
-	vcParams  map[string]interface{} // Save the VC configuration params
-	logger    logrus.FieldLogger
-}
-
-func NewIVDProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
-	logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
-	logger.Infof("Creating NewIVDProtectedEntityTypeManagerFromConfig.")
-	var vcURL url.URL
-	vcHostStr, err := GetVirtualCenterFromParamsMap(params)
-	if err != nil {
-		return nil, err
-	}
-	vcHostPortStr, err := GetPortFromParamsMap(params)
-	if err != nil {
-		return nil, err
-	}
-
-	vcURL.Scheme = "https"
-	vcURL.Host = fmt.Sprintf("%s:%s", vcHostStr, vcHostPortStr)
-	insecure, err := GetInsecureFlagFromParamsMap(params)
-	if err != nil {
-		return nil, err
-	}
-	vcUser, err := GetUserFromParamsMap(params)
-	if err != nil {
-		return nil, err
-	}
-
-	vcPassword, err := GetPasswordFromParamsMap(params)
-	if err != nil {
-		return nil, err
-	}
-	vcURL.User = url.UserPassword(vcUser, vcPassword)
-	vcURL.Path = "/sdk"
-	retVal, err := newIVDProtectedEntityTypeManagerFromURL(&vcURL, s3Config, insecure, logger)
-	if err != nil {
-		logger.Errorf("Failed to create IVDProtectedEntityTypeManager with error, %v", err)
-		return retVal, err
-	}
-	retVal.vcParams = params
-	return retVal, err
-}
-
-func newKeepAliveClient(ctx context.Context, u *url.URL, insecure bool) (*govmomi.Client, error) {
-	soapClient := soap.NewClient(u, insecure)
-	vimClient, err := vim25.NewClient(ctx, soapClient)
-	if err != nil {
-		return nil, err
-	}
-
-	vimClient.RoundTripper = session.KeepAlive(vimClient.RoundTripper, 10*time.Minute)
-
-	c := &govmomi.Client{
-		Client:         vimClient,
-		SessionManager: session.NewManager(vimClient),
-	}
-
-	// Only login if the URL contains user information.
-	if u.User != nil {
-		err = c.Login(ctx, u.User)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return c, nil
-}
-
-//TODO - merge this into NewIVDProtectedEntityTypeManagerFromConfig and switch usage
-func newIVDProtectedEntityTypeManagerFromURL(url *url.URL, s3Config astrolabe.S3Config, insecure bool, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
-	ctx := context.Background()
-	client, err := newKeepAliveClient(ctx, url, insecure)
-
-	if err != nil {
-		return nil, err
-	}
-
-	vslmClient, err := vslm.NewClient(ctx, client.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.UseServiceVersion("vsan")
-	if err != nil {
-		return nil, err
-	}
-	cnsClient, err := cns.NewClient(ctx, client.Client)
-	if err != nil {
-		return nil, err
-	}
-
-	return newIVDProtectedEntityTypeManagerWithClient(client, s3Config, vslmClient, cnsClient, logger)
-}
 
 const vsphereMajor = 6
 const vSphereMinor = 7
 const disklibLib64 = "/usr/lib/vmware-vix-disklib/lib64"
 
-func newIVDProtectedEntityTypeManagerWithClient(client *govmomi.Client, s3Config astrolabe.S3Config, vslmClient *vslm.Client,
-	cnsClient *cns.Client, logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+var configLoadLock sync.Mutex
 
-	vsom := vslm.NewGlobalObjectManager(vslmClient)
+type IVDProtectedEntityTypeManager struct {
+	vcenterConfig *vsphere.VirtualCenterConfig
+	vcenter       *vsphere.VirtualCenter
+	vslmManager   *vsphere.VslmManager
+	cnsManager    *vsphere.CnsManager
+	s3Config      astrolabe.S3Config
+	logger        logrus.FieldLogger
+}
 
-	err := gDiskLib.Init(vsphereMajor, vSphereMinor, disklibLib64)
-	if err != nil {
-		return nil, errors.Wrap(err, "Could not initialize VDDK")
-	}
+func NewIVDProtectedEntityTypeManager(params map[string]interface{},
+	s3Config astrolabe.S3Config,
+	logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+	logger.Infof("Initializing IVD Protected Entity Manager")
 	retVal := IVDProtectedEntityTypeManager{
-		client:    client,
-		vsom:      vsom,
-		cnsClient: cnsClient,
-		s3Config:  s3Config,
-		logger:    logger,
+		s3Config:      s3Config,
+		logger:        logger,
+	}
+	logger.Infof("Loading new IVD Protected Entity Manager")
+	err := retVal.ReloadConfig(context.Background(), params)
+	if err != nil {
+		return nil, err
 	}
 	return &retVal, nil
 }
@@ -177,7 +82,7 @@ func (this *IVDProtectedEntityTypeManager) GetProtectedEntities(ctx context.Cont
 		QueryOperator: "greaterThan",
 		QueryValue:    []string{"0"},
 	}
-	res, err := this.vsom.ListObjectsForSpec(ctx, []vslmtypes.VslmVsoVStorageObjectQuerySpec{spec}, 1000)
+	res, err := this.vslmManager.ListObjectsForSpec(ctx, []vslmtypes.VslmVsoVStorageObjectQuerySpec{spec}, 1000)
 	if err != nil {
 		return nil, err
 	}
@@ -224,26 +129,19 @@ func (this *IVDProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, peI
 	return nil, nil
 }
 
-type backingSpec struct {
-	createSpec *types.VslmCreateSpecBackingSpec
-}
-
-func (this backingSpec) GetVslmCreateSpecBackingSpec() *types.VslmCreateSpecBackingSpec {
-	return this.createSpec
-}
-
 func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInfo astrolabe.ProtectedEntityInfo,
 	options astrolabe.CopyCreateOptions, dataReader io.Reader, metadataReader io.Reader) (astrolabe.ProtectedEntity, error) {
-	this.logger.Debug("ivd PETM copyInt called")
+	this.logger.Infof("ivd PETM copyInt called")
 	if sourcePEInfo.GetID().GetPeType() != "ivd" {
 		return nil, errors.New("Copy source must be an ivd")
 	}
+	var err error
 	ourVC := false
 	existsInOurVC := false
 	for _, checkData := range sourcePEInfo.GetDataTransports() {
 		vcenterURL, ok := checkData.GetParam("vcenter")
 
-		if checkData.GetTransportType() == "vadp" && ok && vcenterURL == this.client.URL().Host {
+		if checkData.GetTransportType() == "vadp" && ok && vcenterURL == this.vcenter.Client.URL().Host {
 			ourVC = true
 			existsInOurVC = true
 			break
@@ -251,7 +149,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 	}
 
 	if ourVC {
-		_, err := this.vsom.Retrieve(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()))
+		_, err := this.vslmManager.Retrieve(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()))
 		if err != nil {
 			if soap.IsSoapFault(err) {
 				fault := soap.ToSoapFault(err).Detail.Fault
@@ -269,7 +167,6 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 
 	var retPE IVDProtectedEntity
 	var createTask *vslm.Task
-	var err error
 
 	md, err := readMetadataFromReader(ctx, metadataReader)
 	if err != nil {
@@ -277,13 +174,13 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 	}
 
 	if ourVC && existsInOurVC {
-		md, err := FilterLabelsFromMetadataForVslmAPIs(md, this.vcParams, this.logger)
+		md, err := FilterLabelsFromMetadataForVslmAPIs(md, this.vcenterConfig, this.logger)
 		if err != nil {
 			return nil, err
 		}
 		hasSnapshot := sourcePEInfo.GetID().HasSnapshot()
 		if hasSnapshot {
-			createTask, err = this.vsom.CreateDiskFromSnapshot(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), NewVimSnapshotIDFromPEID(sourcePEInfo.GetID()),
+			createTask, err = this.vslmManager.CreateDiskFromSnapshot(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), NewVimSnapshotIDFromPEID(sourcePEInfo.GetID()),
 				sourcePEInfo.GetName(), nil, nil, "")
 			if err != nil {
 				return nil, errors.Wrap(err, "CreateDiskFromSnapshot failed")
@@ -295,7 +192,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 				KeepAfterDeleteVm: &keepAfterDeleteVm,
 				Metadata:          md.ExtendedMetadata,
 			}
-			createTask, err = this.vsom.Clone(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), cloneSpec)
+			createTask, err = this.vslmManager.Clone(ctx, NewVimIDFromPEID(sourcePEInfo.GetID()), cloneSpec)
 		}
 
 		if err != nil {
@@ -314,7 +211,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		// if there is any local snasphot, we need to call updateMetadata explicitly
 		// since CreateDiskFromSnapshot doesn't accept metadata as a param. The API need to be changed accordingly.
 		if hasSnapshot {
-			updateTask, err := this.vsom.UpdateMetadata(ctx, newVSO.Config.Id, md.ExtendedMetadata, []string{})
+			updateTask, err := this.vslmManager.UpdateMetadata(ctx, newVSO.Config.Id, md.ExtendedMetadata, []string{})
 			if err != nil {
 				this.logger.WithError(err).Error("Failed at calling UpdateMetadata")
 				return nil, err
@@ -325,13 +222,12 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 				return nil, err
 			}
 		}
-
 	} else {
 		// To enable cross-cluster restore, need to filter out the cns specific labels, i.e. prefix: cns, in md
 		md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", this.logger)
 
 		this.logger.Debugf("Ready to provision a new volume with the source metadata: %v", md)
-		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.vcParams, this.client, this.cnsClient, md, this.logger)
+		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.vcenterConfig, this.vcenter.Client, this.cnsManager, md, this.logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "CreateDisk failed")
 		}
@@ -346,10 +242,6 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		}
 		this.logger.WithField("volumeId", volumeVimID.Id).WithField("volumeName", md.VirtualStorageObject.Config.Name).Debug("Copied snapshot data to newly-provisioned IVD protected entity")
 	}
-
-	if err != nil {
-		return nil, err
-	}
 	return retPE, nil
 }
 
@@ -361,7 +253,7 @@ func (this *IVDProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 	if id.GetSnapshotID().String() != "" {
 		vadpParams["snapshotID"] = id.GetSnapshotID().String()
 	}
-	vadpParams["vcenter"] = this.client.URL().Host
+	vadpParams["vcenter"] = this.vcenterConfig.Host
 
 	dataS3Transport, err := astrolabe.NewS3DataTransportForPEID(id, this.s3Config)
 	if err != nil {
@@ -392,4 +284,66 @@ func (this *IVDProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 	}
 
 	return data, md, combined, nil
+}
+
+func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, params map[string]interface{}) error {
+	configLoadLock.Lock()
+	defer configLoadLock.Unlock()
+	this.logger.Infof("Started Load Config of IVD Protected Entity Manager")
+	newVcConfig, err := vsphere.GetVirtualCenterConfigFromParams(params, this.logger)
+	if err != nil {
+		this.logger.Errorf("Failed to populate VirtualCenterConfig during reload %v", err)
+		return err
+	}
+	configChanged := vsphere.CheckIfVirtualCenterConfigChanged(this.vcenterConfig, newVcConfig)
+	if !configChanged {
+		this.logger.Infof("No VirtualCenterConfig change detected during reload.")
+		return nil
+	}
+	this.logger.Infof("Detected VirtualCenterConfig change.")
+	if this.vcenter != nil {
+		// Disconnecting older vc instance.
+		err = this.vcenter.Disconnect(ctx)
+		if err != nil {
+			this.logger.Errorf("Failed to disconnect older vcenter instance.")
+			return err
+		}
+	}
+	// Detected config change.
+	this.vcenterConfig = newVcConfig
+	reloadedVc, vslmClient, cnsClient, err := vsphere.GetVirtualCenter(ctx, newVcConfig, this.logger)
+	if err != nil {
+		return err
+	}
+	this.vcenter = reloadedVc
+	if this.vslmManager == nil {
+		this.logger.Infof("Initializing VSLM Manager")
+		this.vslmManager, err = vsphere.GetVslmManager(ctx, this.vcenter, vslmClient, this.logger)
+		if err != nil {
+			this.logger.Errorf("failed to initialize vslm manager. err=%v", err)
+			return errors.Wrapf(err, "Failed to initialize vslm manager")
+		}
+	} else {
+		this.logger.Infof("Resetting VSLM Manager")
+		this.vslmManager.ResetManager(reloadedVc, vslmClient)
+	}
+	if this.cnsManager == nil {
+		this.logger.Infof("Initializing CNS Manager")
+		this.cnsManager, err = vsphere.GetCnsManager(ctx, this.vcenter, cnsClient, this.logger)
+		if err != nil {
+			this.logger.Errorf("failed to initialize cns manager. err=%v", err)
+			return errors.Wrapf(err, "Failed to initialize cns manager")
+		}
+	} else {
+		this.logger.Infof("Resetting CNS Manager")
+		this.cnsManager.ResetManager(reloadedVc, cnsClient)
+	}
+
+	err = gDiskLib.Init(vsphereMajor, vSphereMinor, disklibLib64)
+	if err != nil {
+		return errors.Wrap(err, "Could not initialize VDDK during config reload.")
+	}
+	this.logger.Infof("Initialized VDDK")
+	this.logger.Infof("Load Config of IVD Protected Entity Manager completed successfully.")
+	return nil
 }

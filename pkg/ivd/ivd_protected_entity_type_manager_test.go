@@ -22,6 +22,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
+	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
+	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
 	vim25types "github.com/vmware/govmomi/vim25/types"
@@ -42,8 +44,16 @@ func TestProtectedEntityTypeManager(t *testing.T) {
 	vcUrl.Path = "/sdk"
 
 	t.Logf("%s\n", vcUrl.String())
+	params := make(map[string]interface{})
+	params[vsphere.HostVcParamKey] = vcUrl.Host
+	params[vsphere.PortVcParamKey] = vcUrl.Port()
+	params[vsphere.UserVcParamKey] = vcUrl.User.Username()
+	password, _ := vcUrl.User.Password()
+	params[vsphere.PasswordVcParamKey] = password
+	params[vsphere.InsecureFlagVcParamKey] = true
+	params[vsphere.ClusterVcParamKey] = ""
 
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(&vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, true, logrus.New())
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, astrolabe.S3Config{URLBase: "/ivd"}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,29 +69,29 @@ func TestProtectedEntityTypeManager(t *testing.T) {
 func getVcConfigFromParams(params map[string]interface{}) (*url.URL, bool, error) {
 	var vcUrl url.URL
 	vcUrl.Scheme = "https"
-	vcHostStr, err := GetVirtualCenterFromParamsMap(params)
+	vcHostStr, err := vsphere.GetVirtualCenterFromParamsMap(params)
 	if err != nil {
 		return nil, false, err
 	}
-	vcHostPortStr, err := GetPortFromParamsMap(params)
+	vcHostPortStr, err := vsphere.GetPortFromParamsMap(params)
 	if err != nil {
 		return nil, false, err
 	}
 
 	vcUrl.Host = fmt.Sprintf("%s:%s", vcHostStr, vcHostPortStr)
 
-	vcUser, err := GetUserFromParamsMap(params)
+	vcUser, err := vsphere.GetUserFromParamsMap(params)
 	if err != nil {
 		return nil, false, err
 	}
-	vcPassword, err := GetPasswordFromParamsMap(params)
+	vcPassword, err := vsphere.GetPasswordFromParamsMap(params)
 	if err != nil {
 		return nil, false, err
 	}
 	vcUrl.User = url.UserPassword(vcUser, vcPassword)
 	vcUrl.Path = "/sdk"
 
-	insecure, err := GetInsecureFlagFromParamsMap(params)
+	insecure, err := vsphere.GetInsecureFlagFromParamsMap(params)
 
 	return &vcUrl, insecure, nil
 }
@@ -89,7 +99,7 @@ func getVcConfigFromParams(params map[string]interface{}) (*url.URL, bool, error
 func GetVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 	params := make(map[string]interface{})
 
-	err := RetrievePlatformInfoFromConfig(config, params)
+	err := util.RetrievePlatformInfoFromConfig(config, params)
 	if err != nil {
 		return nil, false, errors.Errorf("Failed to retrieve VC config secret: %+v", err)
 	}
@@ -105,7 +115,7 @@ func GetVcUrlFromConfig(config *rest.Config) (*url.URL, bool, error) {
 func GetParamsFromConfig(config *rest.Config) (map[string]interface{}, error) {
 	params := make(map[string]interface{})
 
-	err := RetrievePlatformInfoFromConfig(config, params)
+	err := util.RetrievePlatformInfoFromConfig(config, params)
 	if err != nil {
 		return nil, errors.Errorf("Failed to retrieve VC config secret: %+v", err)
 	}
@@ -169,20 +179,23 @@ func TestCreateCnsVolume(t *testing.T) {
 	ctx := context.Background()
 
 	// Step 1: To create the IVD PETM, get all PEs and select one as the reference.
-	vcUrl, insecure, err := GetVcUrlFromConfig(config)
+	params := make(map[string]interface{})
+
+	err = util.RetrievePlatformInfoFromConfig(config, params)
 	if err != nil {
-		t.Fatalf("Failed to get VC config from params: %+v", err)
+		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, astrolabe.S3Config{URLBase: "/ivd"}, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
-	version := ivdPETM.client.Version
-	logger.Debugf("vcUrl = %v, version = %v", vcUrl, version)
+	virtualCenter := ivdPETM.vcenter
+	version := virtualCenter.Client.Version
+	logger.Debugf("vcUrl = %v, version = %v", ivdPETM.vcenterConfig.Host, version)
 
 	var queryFilter cnstypes.CnsQueryFilter
 	var volumeIDList []cnstypes.CnsVolumeId
@@ -219,12 +232,12 @@ func TestCreateCnsVolume(t *testing.T) {
 	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
 
 	ivdParams := make(map[string]interface{})
-	err = RetrievePlatformInfoFromConfig(config, ivdParams)
+	err = util.RetrievePlatformInfoFromConfig(config, ivdParams)
 	if err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdPETM.vcenterConfig, config, virtualCenter.Client, ivdPETM.cnsManager, md, logger)
 	if err != nil {
 		t.Fatal("Fail to provision a new volume")
 	}
@@ -236,7 +249,7 @@ func TestCreateCnsVolume(t *testing.T) {
 	defer func() {
 		// Always delete the newly created volume at the end of test
 		t.Logf("Deleting volume: %+v", volumeIDList)
-		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
+		deleteTask, err := ivdPETM.cnsManager.DeleteVolume(ctx, volumeIDList, true)
 		if err != nil {
 			t.Errorf("Failed to delete volume. Error: %+v \n", err)
 			t.Fatal(err)
@@ -263,7 +276,7 @@ func TestCreateCnsVolume(t *testing.T) {
 
 	// Step 4: Query the volume result for the newly created protected entity/volume
 	queryFilter.VolumeIds = volumeIDList
-	queryResult, err := ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	queryResult, err := ivdPETM.cnsManager.QueryVolume(ctx, queryFilter)
 	if err != nil {
 		t.Errorf("Failed to query volume. Error: %+v \n", err)
 		t.Fatal(err)
@@ -312,12 +325,21 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
+	params := make(map[string]interface{})
+	params[vsphere.HostVcParamKey] = vcUrl.Host
+	params[vsphere.PortVcParamKey] = vcUrl.Port()
+	params[vsphere.UserVcParamKey] = vcUrl.User.Username()
+	password, _ := vcUrl.User.Password()
+	params[vsphere.PasswordVcParamKey] = password
+	params[vsphere.InsecureFlagVcParamKey] = insecure
+	params[vsphere.ClusterVcParamKey] = ""
 
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, astrolabe.S3Config{URLBase: "/ivd"}, insecure, logger)
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, astrolabe.S3Config{URLBase: "/ivd"}, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
-	version := ivdPETM.client.Version
+	virtualCenter := ivdPETM.vcenter
+	version := virtualCenter.Client.Version
 	logger.Debugf("vcUrl = %v, version = %v", vcUrl, version)
 
 	peIDs, err := ivdPETM.GetProtectedEntities(ctx)
@@ -338,7 +360,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	volumeIDList = append(volumeIDList, cnstypes.CnsVolumeId{Id: peID.GetID()})
 
 	queryFilter.VolumeIds = volumeIDList
-	queryResult, err := ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	queryResult, err := ivdPETM.cnsManager.QueryVolume(ctx, queryFilter)
 	if err != nil {
 		t.Errorf("Failed to query volume. Error: %+v \n", err)
 		t.Fatal(err)
@@ -358,14 +380,14 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	logger.Debugf("IVD md: %v", md.ExtendedMetadata)
 
 	ivdParams := make(map[string]interface{})
-	err = RetrievePlatformInfoFromConfig(config, ivdParams)
+	err = util.RetrievePlatformInfoFromConfig(config, ivdParams)
 	if err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
 	t.Logf("PE name, %v", md.VirtualStorageObject.Config.Name)
 	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdPETM.vcenterConfig, config, virtualCenter.Client, ivdPETM.cnsManager, md, logger)
 	if err != nil {
 		t.Fatal("Fail to provision a new volume")
 	}
@@ -377,7 +399,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 	defer func() {
 		// Always delete the newly created volume at the end of test
 		t.Logf("Deleting volume: %+v", volumeIDList)
-		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
+		deleteTask, err := ivdPETM.cnsManager.DeleteVolume(ctx, volumeIDList, true)
 		if err != nil {
 			t.Errorf("Failed to delete volume. Error: %+v \n", err)
 			t.Fatal(err)
@@ -404,7 +426,7 @@ func TestRestoreCnsVolumeFromSnapshot(t *testing.T) {
 
 	// Step 4: Query the volume result for the newly created protected entity/volume
 	queryFilter.VolumeIds = volumeIDList
-	queryResult, err = ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	queryResult, err = ivdPETM.cnsManager.QueryVolume(ctx, queryFilter)
 	if err != nil {
 		t.Errorf("Failed to query volume. Error: %+v \n", err)
 		t.Fatal(err)
@@ -460,10 +482,12 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 
-	ivdPETM, err := NewIVDProtectedEntityTypeManagerFromConfig(params, astrolabe.S3Config{URLBase: "/ivd"}, logger)
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, astrolabe.S3Config{URLBase: "/ivd"}, logger)
 	if err != nil {
 		t.Fatalf("Failed to get a new ivd PETM: %+v", err)
 	}
+	virtualCenter := ivdPETM.vcenter
+
 	peIDs, err := ivdPETM.GetProtectedEntities(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get all PEs: %+v", err)
@@ -482,7 +506,7 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 	volumeIDList = append(volumeIDList, cnstypes.CnsVolumeId{Id: peID.GetID()})
 
 	queryFilter.VolumeIds = volumeIDList
-	queryResult, err := ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	queryResult, err := ivdPETM.cnsManager.QueryVolume(ctx, queryFilter)
 	if err != nil {
 		t.Errorf("Failed to query volume. Error: %+v \n", err)
 		t.Fatal(err)
@@ -508,14 +532,14 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 	snapshotPEID := pe.GetID().IDWithSnapshot(snapshotID)
 
 	ivdParams := make(map[string]interface{})
-	err = RetrievePlatformInfoFromConfig(config, ivdParams)
+	err = util.RetrievePlatformInfoFromConfig(config, ivdParams)
 	if err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
 	t.Logf("PE name, %v", md.VirtualStorageObject.Config.Name)
 	md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", logger)
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdParams, config, ivdPETM.client, ivdPETM.cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, ivdPETM.vcenterConfig, config, virtualCenter.Client, ivdPETM.cnsManager, md, logger)
 	if err != nil {
 		t.Fatal("Fail to provision a new volume")
 	}
@@ -527,7 +551,7 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 	defer func() {
 		// Always delete the newly created volume at the end of test
 		t.Logf("Deleting volume: %+v", volumeIDList)
-		deleteTask, err := ivdPETM.cnsClient.DeleteVolume(ctx, volumeIDList, true)
+		deleteTask, err := ivdPETM.cnsManager.DeleteVolume(ctx, volumeIDList, true)
 		if err != nil {
 			t.Errorf("Failed to delete volume. Error: %+v \n", err)
 			t.Fatal(err)
@@ -554,7 +578,7 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 
 	// Step 4: Query the volume result for the newly created protected entity/volume
 	queryFilter.VolumeIds = volumeIDList
-	queryResult, err = ivdPETM.cnsClient.QueryVolume(ctx, queryFilter)
+	queryResult, err = ivdPETM.cnsManager.QueryVolume(ctx, queryFilter)
 	if err != nil {
 		t.Errorf("Failed to query volume. Error: %+v \n", err)
 		t.Fatal(err)
@@ -575,25 +599,199 @@ func TestOverwriteCnsVolumeFromSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to overwrite PE with snapshotPE, %v, %v: %v", pe.id.String(), snapshotPE.GetID().String(), err)
 	}
-	/*
-		newMD, err := newPE.getMetadata(ctx)
+}
+
+/*
+	Steps
+
+	0. Set KUBECONFIG to the kubeconfig of vanilla or supervisor cluster.
+	1. Invoke GetParamsFromConfig to retrieve the IVD params from secret.
+	2. Invoke NewIVDProtectedEntityTypeManager to create a new IVDProtectedEntityTypeManager
+	3. Use the vcenterManager instance to verify clients are initialized.
+	4. Invoke GetProtectedEntities to verify vslm api invocations.
+
+	Expected Output:
+	1. No errors.
+
+*/
+func TestIVDProtectedEntityTypeManager_NewIVDProtectedEntityTypeManager(t *testing.T) {
+	path := os.Getenv("KUBECONFIG")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Skipf("The KubeConfig file, %v, is not exist", path)
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", path)
+	if err != nil {
+		t.Fatalf("Failed to build k8s config from kubeconfig file: %+v ", err)
+	}
+	log := GetLogger()
+	ctx := context.Background()
+	params := make(map[string]interface{})
+	err = util.RetrievePlatformInfoFromConfig(config, params)
+	if err != nil {
+		t.Fatalf("Failed to get VC params from k8s: %+v", err)
+	}
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPetm, err := NewIVDProtectedEntityTypeManager(params, s3Config, log)
+	if err != nil {
+		t.Fatalf("Failed to initialize IVD PE Type manager, err: %+v", err)
+	}
+	if ivdPetm.vcenterConfig == nil || ivdPetm.vslmManager == nil || ivdPetm.vcenter == nil ||
+		ivdPetm.cnsManager == nil {
+		t.Fatalf("Failed to correctly initialize IVD PE type manager.")
+	}
+	defer func() {
+		err = ivdPetm.vcenter.Disconnect(ctx)
 		if err != nil {
-			t.Fatalf("Failed to get the metadata of the PE, %v: %v", pe.id.String(), err)
+			log.Warnf("Was unable to disconnect vc as part of cleanup.")
 		}
+	}()
 
-		logger.Debugf("IVD md: %v", newMD.ExtendedMetadata)
+	// Validate by invoking ivd petm APIs.
+	entities, err := ivdPetm.GetProtectedEntities(ctx)
+	if err != nil {
+		t.Fatalf("Received error when retrieving IVD PEs, err: %+v", err)
+	}
+	log.Infof("PASS: Successfully retrieved %d IVD PEs", len(entities))
+}
 
-		// Verify the test result between the actual and expected
-		if md.VirtualStorageObject.Config.Name != queryResult.Volumes[0].Name {
-			t.Errorf("Volume names mismatch, src: %v, dst: %v", md.VirtualStorageObject.Config.Name, queryResult.Volumes[0].Name)
-		} else {
-			t.Logf("Volume names match, name: %v", md.VirtualStorageObject.Config.Name)
+/*
+	Steps
+
+	0. Set KUBECONFIG to the kubeconfig of vanilla or supervisor cluster.
+	1. Invoke GetParamsFromConfig to retrieve the IVD params from secret.
+	2. Invoke NewIVDProtectedEntityTypeManager to create a new IVDProtectedEntityTypeManager
+	3. Invoke GetProtectedEntities to verify vslm api invocations.
+	4. Create the params copy and update the credentials.
+	5. Invoke ReloadConfig with the new params.
+	6. Invoke GetProtectedEntities to verify that the new credentials are used for vsl api invocation.
+
+	Expected Output:
+	1. No errors.
+
+*/
+func TestIVDProtectedEntityTypeManager_ReloadConfig(t *testing.T) {
+	path := os.Getenv("KUBECONFIG")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Skipf("The KubeConfig file, %v, is not exist", path)
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", path)
+	if err != nil {
+		t.Fatalf("Failed to build k8s config from kubeconfig file: %+v ", err)
+	}
+	log := GetLogger()
+	ctx := context.Background()
+	params := make(map[string]interface{})
+	err = util.RetrievePlatformInfoFromConfig(config, params)
+	if err != nil {
+		t.Fatalf("Failed to get VC params from k8s: %+v", err)
+	}
+
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPetm, err := NewIVDProtectedEntityTypeManager(params, s3Config, log)
+	if err != nil {
+		t.Fatalf("Failed to initialize IVD PE Type manager, err: %+v", err)
+	}
+	defer func() {
+		err = ivdPetm.vcenter.Disconnect(ctx)
+		if err != nil {
+			log.Warnf("Was unable to disconnect vc as part of cleanup.")
 		}
+	}()
+	// Using admin as alternate vcenter config
+	adminUser := "administrator@vsphere.local"
+	adminPass := "Admin!23"
+	params[vsphere.UserVcParamKey] = adminUser
+	params[vsphere.PasswordVcParamKey] = adminPass
+	err = ivdPetm.ReloadConfig(ctx, params)
+	if err != nil {
+		t.Fatalf("Failed to Reload Config for IVD PE Type Manager")
+	}
+	if ivdPetm.vcenterConfig.Username != adminUser || ivdPetm.vcenterConfig.Password != adminPass {
+		t.Fatalf("The IVD PE Type Manager parameters weren't reloaded succcessfully.")
+	}
+	virtualCenter := ivdPetm.vcenter
+	if virtualCenter.Config.Username != adminUser || virtualCenter.Config.Password != adminPass {
+		t.Fatalf("The vcenter instance credentials were not updated.")
+	}
+	// Validate by invoking ivd petm APIs.
+	entities, err := ivdPetm.GetProtectedEntities(ctx)
+	if err != nil {
+		t.Fatalf("Received error when retrieving IVD PEs, err: %+v", err)
+	}
+	log.Infof("PASS: Successfully retrieved %d IVD PEs after credential rotation", len(entities))
+}
 
-		if verifyMdIsRestoredAsExpected(newMD, version, logger) {
-			t.Logf("Volume metadata is restored as expected")
-		} else {
-			t.Errorf("Volume metadata is NOT restored as expected")
+/*
+	Steps
+
+	0. Set KUBECONFIG to the kubeconfig of vanilla or supervisor cluster.
+	1. Invoke GetParamsFromConfig to retrieve the IVD params from secret.
+	2. Invoke NewIVDProtectedEntityTypeManager to create a new IVDProtectedEntityTypeManager
+	3. Invoke GetProtectedEntities to verify vslm api invocations.
+	4. Invoke ReloadConfig with the same params again.
+	6. Verify vcenterManager instance to see no config change since there is no change in params.
+
+	Expected Output:
+	1. No errors.
+
+*/
+func TestIVDProtectedEntityTypeManager_ReloadConfigNoConfigChanges(t *testing.T) {
+	path := os.Getenv("KUBECONFIG")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Skipf("The KubeConfig file, %v, is not exist", path)
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", path)
+	if err != nil {
+		t.Fatalf("Failed to build k8s config from kubeconfig file: %+v ", err)
+	}
+	log := GetLogger()
+	ctx := context.Background()
+	params := make(map[string]interface{})
+	err = util.RetrievePlatformInfoFromConfig(config, params)
+	if err != nil {
+		t.Fatalf("Failed to get VC params from k8s: %+v", err)
+	}
+
+	s3Config := astrolabe.S3Config{
+		URLBase: "VOID_URL",
+	}
+	ivdPetm, err := NewIVDProtectedEntityTypeManager(params, s3Config, log)
+	if err != nil {
+		t.Fatalf("Failed to initialize IVD PE Type manager, err: %+v", err)
+	}
+	defer func() {
+		err = ivdPetm.vcenter.Disconnect(ctx)
+		if err != nil {
+			log.Warnf("Was unable to disconnect vc as part of cleanup.")
 		}
-	*/
+	}()
+	err = ivdPetm.ReloadConfig(ctx, params)
+	if err != nil {
+		t.Fatalf("Failure duing ReloadConfig with same params.")
+	}
+	virtualCenter := ivdPetm.vcenter
+	if virtualCenter.Config.Username != params[vsphere.UserVcParamKey] ||
+		virtualCenter.Config.Password != params[vsphere.PasswordVcParamKey] {
+		t.Fatalf("The vcenter instance credentials were unexpectedly updated.")
+	}
+	// Validate by invoking ivd petm APIs.
+	entities, err := ivdPetm.GetProtectedEntities(ctx)
+	if err != nil {
+		t.Fatalf("Received error when retrieving IVD PEs, err: %+v", err)
+	}
+	log.Infof("PASS: Reload with no param change did not update vc, IVD PE: %d", len(entities))
+}
+
+func GetLogger() logrus.FieldLogger {
+	logger := logrus.New()
+	formatter := new(logrus.TextFormatter)
+	formatter.TimestampFormat = time.RFC3339Nano
+	formatter.FullTimestamp = true
+	logger.SetFormatter(formatter)
+	logger.SetLevel(logrus.DebugLevel)
+	return logger
 }

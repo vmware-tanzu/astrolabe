@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
@@ -14,11 +15,9 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	vim25types "github.com/vmware/govmomi/vim25/types"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"strconv"
 	"strings"
 )
 
@@ -230,10 +229,10 @@ func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Clien
 	return dsList, nil
 }
 
-func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]interface{}, config *rest.Config, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (string, error) {
+func createCnsVolumeWithClusterConfig(ctx context.Context, vcConfig *vsphere.VirtualCenterConfig, config *rest.Config, client *govmomi.Client, cnsManager *vsphere.CnsManager, md metadata, logger logrus.FieldLogger) (string, error) {
 	logger.Debugf("createCnsVolumeWithClusterConfig called with args, config params and metadata: %v", md)
 
-	reservedLabelsMap, err := fillInClusterSpecificParams(params, logger)
+	reservedLabelsMap, err := fillInClusterSpecificParams(vcConfig, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed at calling fillInClusterSpecificParams")
 		return "", err
@@ -281,7 +280,7 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]int
 	logger.Debugf("Provisioning volume using the spec: %v", cnsVolumeCreateSpec)
 
 	// provision volume using CNS API
-	createTask, err := cnsClient.CreateVolume(ctx, cnsVolumeCreateSpecList)
+	createTask, err := cnsManager.CreateVolume(ctx, cnsVolumeCreateSpecList)
 	if err != nil {
 		logger.WithError(err).Errorf("Failed to create volume. Error: %+v", err)
 		return "", err
@@ -312,19 +311,8 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, params map[string]int
 	return volumeId, nil
 }
 
-func fillInClusterSpecificParams(params map[string]interface{}, logger logrus.FieldLogger) (map[string]string, error) {
-	clusterId, err := GetClusterFromParamsMap(params)
-	if err != nil {
-		logger.WithError(err).Errorf("Failed to get Cluster params")
-		return map[string]string{}, err
-	}
-
-	user, err := GetUserFromParamsMap(params)
-	if err != nil {
-		logger.WithError(err).Errorf("Failed to get Cluster params")
-		return map[string]string{}, err
-	}
-	logger.Debugf("Retrieved cluster id, %v, and vSphere user, %v", clusterId, user)
+func fillInClusterSpecificParams(vcConfig *vsphere.VirtualCenterConfig, logger logrus.FieldLogger) (map[string]string, error) {
+	logger.Infof("Retrieved cluster id, %v, and vSphere user, %v", vcConfig.ClusterId, vcConfig.ClusterId)
 
 	// currently, we only pick up two cluster specific labels, cluster-id and vsphere-user.
 	// For the following labels,
@@ -337,19 +325,19 @@ func fillInClusterSpecificParams(params map[string]interface{}, logger logrus.Fi
 		//"cns.k8s.pv.name",
 		//"cns.tag",
 		//"cns.version",
-		"cns.containerCluster.clusterId":   clusterId,
-		"cns.containerCluster.vSphereUser": user,
+		"cns.containerCluster.clusterId":   vcConfig.ClusterId,
+		"cns.containerCluster.vSphereUser": vcConfig.Username,
 	}
 
 	return reservedLabelsMap, nil
 }
 
-func FilterLabelsFromMetadataForVslmAPIs(md metadata, params map[string]interface{}, logger logrus.FieldLogger) (metadata, error) {
+func FilterLabelsFromMetadataForVslmAPIs(md metadata, vcConfig *vsphere.VirtualCenterConfig, logger logrus.FieldLogger) (metadata, error) {
 	var kvsList []vim25types.KeyValue
 
 	logger.Debugf("labels of CNS volume before filtering: %v", md.ExtendedMetadata)
 
-	reservedLabelsMap, err := fillInClusterSpecificParams(params, logger)
+	reservedLabelsMap, err := fillInClusterSpecificParams(vcConfig, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed at calling fillInClusterSpecificParams")
 		return metadata{}, err
@@ -400,7 +388,7 @@ func FilterLabelsFromMetadataForCnsAPIs(md metadata, prefix string, logger logru
 	return md
 }
 
-func CreateCnsVolumeInCluster(ctx context.Context, params map[string]interface{}, client *govmomi.Client, cnsClient *cns.Client, md metadata, logger logrus.FieldLogger) (vim25types.ID, error) {
+func CreateCnsVolumeInCluster(ctx context.Context, vcConfig *vsphere.VirtualCenterConfig, client *govmomi.Client, cnsManager *vsphere.CnsManager, md metadata, logger logrus.FieldLogger) (vim25types.ID, error) {
 	logger.Infof("CreateCnsVolumeInCluster called with args, metadata: %v", md)
 
 	// Get the cluster configuration for node, datastore information.
@@ -411,106 +399,11 @@ func CreateCnsVolumeInCluster(ctx context.Context, params map[string]interface{}
 		return vim25types.ID{}, err
 	}
 
-	volumeId, err := createCnsVolumeWithClusterConfig(ctx, params, config, client, cnsClient, md, logger)
+	volumeId, err := createCnsVolumeWithClusterConfig(ctx, vcConfig, config, client, cnsManager, md, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed to call createCnsVolumeWithClusterConfig")
 		return vim25types.ID{}, err
 	}
 
 	return NewIDFromString(volumeId), nil
-}
-
-func GetStringFromParamsMap(params map[string]interface{}, key string) (string, error) {
-	valueIF, ok := params[key]
-	if ok {
-		value, ok := valueIF.(string)
-		if !ok {
-			return "", errors.New("Value for params key " + key + " is not a string")
-		}
-		return value, nil
-	} else {
-		return "", errors.New("No such key " + key + " in params map")
-	}
-}
-
-func GetVirtualCenterFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, HostVcParamKey)
-}
-
-func GetUserFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, UserVcParamKey)
-}
-
-func GetPasswordFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, PasswordVcParamKey)
-}
-
-func GetPortFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, PortVcParamKey)
-}
-
-func GetDatacenterFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, DatacenterVcParamKey)
-}
-
-func GetClusterFromParamsMap(params map[string]interface{}) (string, error) {
-	return GetStringFromParamsMap(params, ClusterVcParamKey)
-}
-
-func GetInsecureFlagFromParamsMap(params map[string]interface{}) (bool, error) {
-	insecureStr, err := GetStringFromParamsMap(params, InsecureFlagVcParamKey)
-	if err == nil {
-		return strconv.ParseBool(insecureStr)
-	}
-	return false, err
-}
-
-func RetrievePlatformInfoFromConfig(config *rest.Config, params map[string]interface{}) error {
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return errors.Errorf("Failed to get k8s clientset from the given config: %v", config)
-	}
-
-	ns := "kube-system"
-	secretApis := clientset.CoreV1().Secrets(ns)
-	vsphere_secrets := []string{"vsphere-config-secret", "csi-vsphere-config"}
-	var secret *corev1.Secret
-	for _, vsphere_secret := range vsphere_secrets {
-		secret, err = secretApis.Get(context.TODO(), vsphere_secret, metav1.GetOptions{})
-		if err == nil {
-			break
-		}
-	}
-
-	// No valid secret found.
-	if err != nil {
-		return errors.Errorf("Failed to get k8s secret, %s", vsphere_secrets)
-	}
-
-	sEnc := string(secret.Data["csi-vsphere.conf"])
-	lines := strings.Split(sEnc, "\n")
-
-	for _, line := range lines {
-		if strings.Contains(line, "VirtualCenter") {
-			parts := strings.Split(line, "\"")
-			params["VirtualCenter"] = parts[1]
-		} else if strings.Contains(line, "=") {
-			parts := strings.Split(line, "=")
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			// Skip the quotes in the value if present
-			if len(value) >= 2 && value[0] == '"' && value[len(value)-1] == '"' {
-				params[key] = value[1 : len(value)-1]
-			} else {
-				params[key] = value
-			}
-		}
-	}
-
-	// If port is missing, add an entry in the params to use the standard https port
-	if _, ok := params["port"]; !ok {
-		params["port"] = "443"
-	}
-
-	return nil
 }

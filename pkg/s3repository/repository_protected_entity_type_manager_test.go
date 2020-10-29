@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
+	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
 	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
 	"log"
@@ -124,13 +125,13 @@ func TestRetrieveEntity(t *testing.T) {
 	}
 
 	ivdParams := make(map[string]interface{})
-	ivdParams[ivd.HostVcParamKey] = "10.208.22.211"
-	ivdParams[ivd.PortVcParamKey] = "443"
-	ivdParams[ivd.InsecureFlagVcParamKey] = "Y"
-	ivdParams[ivd.UserVcParamKey] = "administrator@vsphere.local"
-	ivdParams[ivd.PasswordVcParamKey] = "Admin!23"
+	ivdParams[vsphere.HostVcParamKey] = "10.208.22.211"
+	ivdParams[vsphere.PortVcParamKey] = "443"
+	ivdParams[vsphere.InsecureFlagVcParamKey] = "Y"
+	ivdParams[vsphere.UserVcParamKey] = "administrator@vsphere.local"
+	ivdParams[vsphere.PasswordVcParamKey] = "Admin!23"
 
-	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, astrolabe.S3Config{}, logrus.New())
+	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManager(ivdParams, astrolabe.S3Config{}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,13 +197,13 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 	}
 
 	ivdParams := make(map[string]interface{})
-	ivdParams[ivd.HostVcParamKey] = "10.208.22.211"
-	ivdParams[ivd.PortVcParamKey] = "443"
-	ivdParams[ivd.InsecureFlagVcParamKey] = "Y"
-	ivdParams[ivd.UserVcParamKey] = "administrator@vsphere.local"
-	ivdParams[ivd.PasswordVcParamKey] = "Admin!23"
+	ivdParams[vsphere.HostVcParamKey] = "10.208.22.211"
+	ivdParams[vsphere.PortVcParamKey] = "443"
+	ivdParams[vsphere.InsecureFlagVcParamKey] = "Y"
+	ivdParams[vsphere.UserVcParamKey] = "administrator@vsphere.local"
+	ivdParams[vsphere.PasswordVcParamKey] = "Admin!23"
 
-	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManagerFromConfig(ivdParams, astrolabe.S3Config{}, logrus.New())
+	ivdPETM, err := ivd.NewIVDProtectedEntityTypeManager(ivdParams, astrolabe.S3Config{}, logrus.New())
 	if err != nil {
 		t.Fatal(err)
 	}

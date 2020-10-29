@@ -7,10 +7,10 @@ import (
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
 	astrolabe_pvc "github.com/vmware-tanzu/astrolabe/pkg/pvc"
 	"github.com/vmware-tanzu/astrolabe/pkg/s3repository"
 	"github.com/vmware-tanzu/astrolabe/pkg/server"
+	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	"io/ioutil"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
@@ -39,7 +39,7 @@ func TestGetPVCComponents(t *testing.T) {
 
 	// get ivd params about VC credential
 	ivdParams := make(map[string]interface{})
-	if err = ivd.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
+	if err = util.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestSnapshotOps(t *testing.T) {
 
 	// get ivd params about VC credential
 	ivdParams := make(map[string]interface{})
-	if err = ivd.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
+	if err = util.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 
@@ -233,7 +233,7 @@ func TestCreateVolumeFromMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pvc, err := pvcPE.(astrolabe_pvc.PVCProtectedEntity).GetPVC()
+	pvc, err := pvcPE.(astrolabe_pvc.PVCProtectedEntity).GetPVC(ctx)
 	if err != nil {
 		logger.Errorf("Failed to get PVC with PEID = %v", selectedPEID.String())
 		t.Fatal(err)
@@ -246,8 +246,9 @@ func TestCreateVolumeFromMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	newPE, err := pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, astrolabe.ProtectedEntityID{}, nil,
-		"", "")
+	newPE, err := pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(
+		ctx, pvcbytes, astrolabe.ProtectedEntityID{}, nil,
+		"", "", "")
 	if err != nil {
 		logger.Errorf("Failed to create volume from metadata: %s/%s", pvc.Name, pvc.Namespace)
 		t.Fatal(err)
@@ -282,7 +283,7 @@ func TestCreateVolumeFromMetadataAndS3(t *testing.T) {
 
 	// Step 1: To create the IVD PETM, get all PEs and select one as the reference.
 	ivdParams := make(map[string]interface{})
-	if err = ivd.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
+	if err = util.RetrievePlatformInfoFromConfig(config, ivdParams); err != nil {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 	configParams["ivd"] = ivdParams
@@ -352,7 +353,8 @@ func TestCreateVolumeFromMetadataAndS3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, snapshotPEID, s3petm, "", "")
+	pvc_petm.(*astrolabe_pvc.PVCProtectedEntityTypeManager).CreateFromMetadata(ctx, pvcbytes, snapshotPEID, s3petm,
+		"", "", "")
 }
 func setupS3PETM(t *testing.T, typeName string, logger *logrus.Logger) (*s3repository.ProtectedEntityTypeManager, error) {
 	sess, err := session.NewSession(&aws.Config{
