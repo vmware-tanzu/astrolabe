@@ -358,6 +358,11 @@ func (this PVCProtectedEntity) GetPVC(ctx context.Context) (*core_v1.PersistentV
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not get retrieve pvc with namespace %s, id %s", namespace, name)
 	}
+	storageClassName := ""
+	if pvc.Spec.StorageClassName != nil {
+		storageClassName = *pvc.Spec.StorageClassName
+	}
+	this.logger.Infof("Retrieved PVC %s/%s from K8S API server. Storage Class Name: %s", namespace, name, storageClassName)
 	return pvc, nil
 }
 
