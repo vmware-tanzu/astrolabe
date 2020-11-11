@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware/govmomi/cns"
 	cnstypes "github.com/vmware/govmomi/cns/types"
@@ -99,7 +98,7 @@ func (this *CnsManager) processError(invokeCount int, apiError error) (*cns.Clie
 		log.Infof("Successfully re-initiated vcenter connection")
 	} else {
 		// Return the error on actual api error conditions.
-		return nil, errors.Wrapf(apiError, "Error received on api invocation")
+		return nil, apiError
 	}
 	return refreshedCnsClient, nil
 }

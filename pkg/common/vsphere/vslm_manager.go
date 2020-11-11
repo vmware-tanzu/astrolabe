@@ -2,7 +2,6 @@ package vsphere
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	vim "github.com/vmware/govmomi/vim25/types"
 	vslm_vsom "github.com/vmware/govmomi/vslm"
@@ -265,7 +264,7 @@ func (this *VslmManager) processError(invokeCount int, apiError error) (*vslm_vs
 		log.Infof("Successfully re-initiated vcenter connection")
 	} else {
 		// Return the error on actual api error conditions.
-		return nil, errors.Wrapf(apiError, "Error received on api invocation")
+		return nil, apiError
 	}
 	return refreshedVsom, nil
 }
