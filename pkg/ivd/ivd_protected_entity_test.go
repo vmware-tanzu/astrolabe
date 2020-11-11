@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
+	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware-tanzu/astrolabe/pkg/s3repository"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -35,7 +36,6 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	"math"
 	"math/rand"
-	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -85,14 +85,26 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	s3Config := astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	}
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, logger)
+
+	params := make(map[string]interface{})
+	params[vsphere.HostVcParamKey] = vcUrl.Host
+	params[vsphere.PortVcParamKey] = vcUrl.Port()
+	params[vsphere.UserVcParamKey] = vcUrl.User.Username()
+	password, _ := vcUrl.User.Password()
+	params[vsphere.PasswordVcParamKey] = password
+	params[vsphere.InsecureFlagVcParamKey] = true
+	params[vsphere.ClusterVcParamKey] = ""
+
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, s3Config, logger)
 	if err != nil {
 		t.Skipf("Failed to get a new ivd PETM: %v", err)
 	}
 
+	virtualCenter := ivdPETM.vcenter
+
 	// #1: Create a few of IVDs
 	datastoreType := types.HostFileSystemVolumeFileSystemTypeVsan
-	datastores, err := findAllAccessibleDatastoreByType(ctx, ivdPETM.client.Client, datastoreType)
+	datastores, err := findAllAccessibleDatastoreByType(ctx, virtualCenter.Client.Client, datastoreType)
 	if err != nil || len(datastores) <= 0 {
 		t.Skipf("Failed to find any all accessible datastore with type, %v", datastoreType)
 	}
@@ -102,7 +114,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	var ivdIds []types.ID
 	for i := 0; i < nIVDs; i++ {
 		createSpec := getCreateSpec(getRandomName("ivd", 5), 10, ivdDs, nil)
-		vslmTask, err := ivdPETM.vsom.CreateDisk(ctx, createSpec)
+		vslmTask, err := ivdPETM.vslmManager.CreateDisk(ctx, createSpec)
 		if err != nil {
 			t.Skipf("Failed to create task for CreateDisk invocation")
 		}
@@ -122,7 +134,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 
 	defer func() {
 		for i := 0; i < nIVDs; i++ {
-			vslmTask, err := ivdPETM.vsom.Delete(ctx, ivdIds[i])
+			vslmTask, err := ivdPETM.vslmManager.Delete(ctx, ivdIds[i])
 			if err != nil {
 				t.Skipf("Failed to create task for DeleteDisk invocation with err: %v", err)
 			}
@@ -137,13 +149,13 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 
 	// #2: Create a VM
 	logger.Info("Step 2: Creating a VM")
-	hosts, err := findAllHosts(ctx, ivdPETM.client.Client)
+	hosts, err := findAllHosts(ctx, virtualCenter.Client.Client)
 	if err != nil || len(hosts) <= 0 {
 		t.Skipf("Failed to find all available hosts")
 	}
 	vmHost := hosts[0]
 
-	pc := property.DefaultCollector(ivdPETM.client.Client)
+	pc := property.DefaultCollector(virtualCenter.Client.Client)
 	var ivdDsMo mo.Datastore
 	err = pc.RetrieveOne(ctx, ivdDs.Reference(), []string{"name"}, &ivdDsMo)
 	if err != nil {
@@ -152,7 +164,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 
 	logger.Debugf("Creating VM on host: %v, and datastore: %v", vmHost.Reference(), ivdDsMo.Name)
 	vmName := getRandomName("vm", 5)
-	vmMo, err := vmCreate(ctx, ivdPETM.client.Client, vmHost.Reference(), vmName, ivdDsMo.Name, nil, logger)
+	vmMo, err := vmCreate(ctx, virtualCenter.Client.Client, vmHost.Reference(), vmName, ivdDsMo.Name, nil, logger)
 	if err != nil {
 		t.Skipf("Failed to create a VM with err: %v", err)
 	}
@@ -173,7 +185,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	// #3: Attach those IVDs to the VM
 	logger.Infof("Step 3: Attaching IVDs to VM %v", vmName)
 	for i := 0; i < nIVDs; i++ {
-		err = vmAttachDiskWithWait(ctx, ivdPETM.client.Client, vmRef.Reference(), ivdIds[i], ivdDs.Reference())
+		err = vmAttachDiskWithWait(ctx, virtualCenter.Client.Client, vmRef.Reference(), ivdIds[i], ivdDs.Reference())
 		if err != nil {
 			t.Skipf("Failed to attach ivd, %v, to, VM, %v with err: %v", ivdIds[i].Id, vmName, err)
 		}
@@ -183,7 +195,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 
 	defer func() {
 		for i := 0; i < nIVDs; i++ {
-			err = vmDetachDiskWithWait(ctx, ivdPETM.client.Client, vmRef.Reference(), ivdIds[i])
+			err = vmDetachDiskWithWait(ctx, virtualCenter.Client.Client, vmRef.Reference(), ivdIds[i])
 			if err != nil {
 				t.Skipf("Failed to detach ivd, %v, to, VM, %v with err: %v", ivdIds[i].Id, vmName, err)
 			}
@@ -199,7 +211,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 	var mutex sync.Mutex
 	for i := 0; i < nIVDs; i++ {
 		wg.Add(1)
-		go worker(&wg, &mutex, logger, vcUrl, i, ivdIds[i], ivdDs, errChannels)
+		go worker(&wg, &mutex, logger, params, i, ivdIds[i], ivdDs, errChannels)
 	}
 	wg.Wait()
 
@@ -207,7 +219,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 		logger.Debugf("Always clean up snapshots created in the test")
 		for i := 0; i < nIVDs; i++ {
 			logger.Debugf("Cleaning up snapshots for IVD %v", ivdIds[i].Id)
-			snapshotInfos, err := ivdPETM.vsom.RetrieveSnapshotInfo(ctx, ivdIds[i])
+			snapshotInfos, err := ivdPETM.vslmManager.RetrieveSnapshotInfo(ctx, ivdIds[i])
 			if err != nil {
 				t.Fatalf("Failed at retrieving snapshot info from IVD %v with err: %v", ivdIds[i].Id, err)
 			}
@@ -249,7 +261,7 @@ func TestSnapshotOpsUnderRaceCondition(t *testing.T) {
 
 }
 
-func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, vcUrl *url.URL, id int, diskId types.ID, datastore types.ManagedObjectReference, errChans []chan error) {
+func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, params map[string]interface{}, id int, diskId types.ID, datastore types.ManagedObjectReference, errChans []chan error) {
 	log := logger.WithFields(logrus.Fields{
 		"WorkerID": id,
 		"IvdID":    diskId.Id,
@@ -273,7 +285,7 @@ func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, vc
 	s3Config := astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	}
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, log)
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, s3Config, logger)
 	if err != nil {
 		log.Error("Failed to get a new ivd PETM")
 		return
@@ -293,7 +305,7 @@ func worker(wg *sync.WaitGroup, mutex *sync.Mutex, logger logrus.FieldLogger, vc
 	}
 
 	log.Debugf("Retrieving the newly created snapshot, %v, on IVD protected entity, %v", peSnapID.GetID(), ivdPE.GetID().GetID())
-	_, err = ivdPETM.vsom.RetrieveSnapshotDetails(ctx, diskId, NewIDFromString(peSnapID.String()))
+	_, err = ivdPETM.vslmManager.RetrieveSnapshotDetails(ctx, diskId, NewIDFromString(peSnapID.String()))
 	if err != nil {
 		if soap.IsSoapFault(err) {
 			soapFault := soap.ToSoapFault(err)
@@ -542,32 +554,41 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	s3Config := astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	}
-	ivdPETM, err := newIVDProtectedEntityTypeManagerFromURL(vcUrl, s3Config, true, logger)
+	params := make(map[string]interface{})
+	params[vsphere.HostVcParamKey] = vcUrl.Host
+	params[vsphere.PortVcParamKey] = vcUrl.Port()
+	params[vsphere.UserVcParamKey] = vcUrl.User.Username()
+	password, _ := vcUrl.User.Password()
+	params[vsphere.PasswordVcParamKey] = password
+	params[vsphere.InsecureFlagVcParamKey] = true
+	params[vsphere.ClusterVcParamKey] = ""
+
+	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, s3Config, logger)
 	if err != nil {
 		t.Skipf("Failed to get a new ivd PETM: %v", err)
 	}
-
+	virtualCenter := ivdPETM.vcenter
 	datastoreType := types.HostFileSystemVolumeFileSystemTypeVsan
-	datastores, err := findAllAccessibleDatastoreByType(ctx, ivdPETM.client.Client, datastoreType)
+	datastores, err := findAllAccessibleDatastoreByType(ctx, virtualCenter.Client.Client, datastoreType)
 	if err != nil || len(datastores) <= 0 {
 		t.Skipf("Failed to find any all accessible datastore with type, %v", datastoreType)
 	}
 	vmDs := datastores[0]
 	ivdDs := datastores[len(datastores)-1]
-	encryptionProfileId, err := getEncryptionProfileId(ctx, ivdPETM.client.Client)
+	encryptionProfileId, err := getEncryptionProfileId(ctx, virtualCenter.Client.Client)
 	if err != nil {
 		t.Skipf("Failed to get encryption profile ID: %v", err)
 	}
 
 	// #1: Create an encrypted VM
 	logger.Info("Step 1: Creating a VM")
-	hosts, err := findAllHosts(ctx, ivdPETM.client.Client)
+	hosts, err := findAllHosts(ctx, virtualCenter.Client.Client)
 	if err != nil || len(hosts) <= 0 {
 		t.Skipf("Failed to find all available hosts")
 	}
 	vmHost := hosts[0]
 
-	pc := property.DefaultCollector(ivdPETM.client.Client)
+	pc := property.DefaultCollector(virtualCenter.Client.Client)
 	var vmDsMo mo.Datastore
 	err = pc.RetrieveOne(ctx, vmDs.Reference(), []string{"name"}, &vmDsMo)
 	if err != nil {
@@ -577,7 +598,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	logger.Debugf("Creating VM on host: %v, and datastore: %v", vmHost.Reference(), vmDsMo.Name)
 	vmName := getRandomName("vm", 5)
 	vmProfile := getProfileSpecs(encryptionProfileId)
-	vmMo, err := vmCreate(ctx, ivdPETM.client.Client, vmHost.Reference(), vmName, vmDsMo.Name, vmProfile, logger)
+	vmMo, err := vmCreate(ctx, virtualCenter.Client.Client, vmHost.Reference(), vmName, vmDsMo.Name, vmProfile, logger)
 	if err != nil {
 		t.Skipf("Failed to create a VM with err: %v", err)
 	}
@@ -626,7 +647,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	var ivdIds []types.ID
 	for i := 0; i < nIVDs; i++ {
 		createSpec := getCreateSpec(getRandomName("ivd", 5), 50, ivdDs, ivdProfile)
-		vslmTask, err := ivdPETM.vsom.CreateDisk(ctx, createSpec)
+		vslmTask, err := ivdPETM.vslmManager.CreateDisk(ctx, createSpec)
 		if err != nil {
 			t.Skipf("Failed to create task for CreateDisk invocation")
 		}
@@ -646,7 +667,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 
 	defer func() {
 		for i := 0; i < nIVDs; i++ {
-			vslmTask, err := ivdPETM.vsom.Delete(ctx, ivdIds[i])
+			vslmTask, err := ivdPETM.vslmManager.Delete(ctx, ivdIds[i])
 			if err != nil {
 				t.Skipf("Failed to create task for DeleteDisk invocation with err: %v", err)
 			}
@@ -662,7 +683,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	// #4: Attach it to VM
 	logger.Infof("Step 4: Attaching IVDs to VM %v", vmName)
 	for i := 0; i < nIVDs; i++ {
-		err = vmAttachDiskWithWait(ctx, ivdPETM.client.Client, vmRef.Reference(), ivdIds[i], ivdDs.Reference())
+		err = vmAttachDiskWithWait(ctx, virtualCenter.Client.Client, vmRef.Reference(), ivdIds[i], ivdDs.Reference())
 		if err != nil {
 			t.Skipf("Failed to attach ivd, %v, to, VM, %v with err: %v", ivdIds[i].Id, vmName, err)
 		}
@@ -672,7 +693,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 
 	defer func() {
 		for i := 0; i < nIVDs; i++ {
-			err = vmDetachDiskWithWait(ctx, ivdPETM.client.Client, vmRef.Reference(), ivdIds[i])
+			err = vmDetachDiskWithWait(ctx, virtualCenter.Client.Client, vmRef.Reference(), ivdIds[i])
 			if err != nil {
 				t.Skipf("Failed to detach ivd, %v, to, VM, %v with err: %v", ivdIds[i].Id, vmName, err)
 			}
@@ -713,7 +734,7 @@ func TestBackupEncryptedIVD(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get snapshot protected entity for the IVD snapshot, %v", snapPEID.String())
 		}
-		s3PE, err := s3PETM.Copy(ctx, snapPE, make(map[string]map[string]interface {}), astrolabe.AllocateNewObject)
+		s3PE, err := s3PETM.Copy(ctx, snapPE, make(map[string]map[string]interface{}), astrolabe.AllocateNewObject)
 		if err != nil {
 			t.Fatalf("Failed to copy snapshot PE, %v, to S3 object store: %v", snapPEID.String(), err)
 		}

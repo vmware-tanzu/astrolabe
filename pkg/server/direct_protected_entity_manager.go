@@ -74,7 +74,7 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 		var curService astrolabe.ProtectedEntityTypeManager
 		switch serviceName {
 		case "ivd":
-			curService, err = ivd.NewIVDProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
+			curService, err = ivd.NewIVDProtectedEntityTypeManager(params, configInfo.S3Config, logger)
 		case "k8sns":
 			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config,
 				logger)
@@ -219,3 +219,4 @@ func (this *DirectProtectedEntityManager) RegisterExternalProtectedEntityTypeMan
 		this.typeManager[curPETM.GetTypeName()] = curPETM
 	}
 }
+

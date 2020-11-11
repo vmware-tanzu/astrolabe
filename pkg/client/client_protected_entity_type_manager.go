@@ -72,3 +72,4 @@ func (this ClientProtectedEntityTypeManager) CopyFromInfo(ctx context.Context, i
 func (this ClientProtectedEntityTypeManager) Delete(ctx context.Context, id astrolabe.ProtectedEntityID) error {
 	panic("implement me")
 }
+
