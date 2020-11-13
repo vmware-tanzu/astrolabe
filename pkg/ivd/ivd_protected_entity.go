@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"context"
+	"github.com/vmware/govmomi/vslm"
 	vslmtypes "github.com/vmware/govmomi/vslm/types"
 	"time"
 )
@@ -290,13 +291,20 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	this.logger.Infof("CreateSnapshot called on IVD Protected Entity, %v", this.id.String())
 	var retVal astrolabe.ProtectedEntitySnapshotID
 	retryInterval := time.Second
+	retryCount := 0
+	retrieveSnapDetailsErr := 0
 	err := wait.PollImmediate(retryInterval, time.Hour, func() (bool, error) {
-		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
+		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum, Current retry count: %d", this.GetID().String(), retryCount)
+		var vslmTask *vslm.Task
 		vslmTask, err := this.ipetm.vslmManager.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
 		if err != nil {
 			return false, errors.Wrapf(err, "Failed to create a task for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
+		this.logger.Infof("Retrieved VSLM task %s to track CreateSnapshot on IVD %s", vslmTask.Value, this.id.String())
+		retryCount++
+		start := time.Now()
 		ivdSnapshotIDAny, err := vslmTask.Wait(ctx, waitTime)
+		this.logger.Infof("Waited for %s to retrieve Task %s status.", time.Now().Sub(start), vslmTask.Value)
 		if err != nil {
 			if soap.IsVimFault(err) {
 				_, ok := soap.ToVimFault(err).(*vim.InvalidState)
@@ -314,31 +322,40 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 					this.logger.WithError(err).Errorf("CreateSnapshot failed with NotFound. Will retry in %v second(s)", retryInterval)
 					return false, nil
 				}
+				_, ok = soap.ToVimFault(err).(*vim.SystemError)
+				if ok {
+					this.logger.WithError(err).Errorf("CreateSnapshot failed with SystemError. Will retry in %v second(s)", retryInterval)
+					return false, nil
+				}
 			}
 			if util.IsConnectionResetError(err) {
 				this.logger.WithError(err).Errorf("Network issue: connection reset by peer. Will retry in %v second(s)", retryInterval)
 				return false, nil
 			}
-			return false, errors.Wrapf(err, "Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
+			this.logger.Errorf("Error on CreateSnapshot: %+s", err.Error())
+			return false, errors.Wrapf(err, "Failed at waiting for the CreateSnapshot invocation on IVD Protected Entity, %v, Retry-Count: %d", this.id.String(), retryCount)
 		}
 		ivdSnapshotID := ivdSnapshotIDAny.(vim.ID)
-		this.logger.Debugf("A new snapshot, %v, was created on IVD Protected Entity, %v", ivdSnapshotID.Id, this.GetID().String())
+		this.logger.Infof("A new snapshot, %v, was created on IVD Protected Entity, %v, Retry-Count: %d, RetrieveSnapshotErr: %d", ivdSnapshotID.Id, this.GetID().String(), retryCount, retrieveSnapDetailsErr)
 
 		// Will try RetrieveSnapshotDetail right after the completion of CreateSnapshot to make sure there is no impact from race condition
 		_, err = this.ipetm.vslmManager.RetrieveSnapshotDetails(ctx, NewVimIDFromPEID(this.GetID()), ivdSnapshotID)
 		if err != nil {
+			retrieveSnapDetailsErr++
 			if soap.IsSoapFault(err) {
 				faultMsg := soap.ToSoapFault(err).String
 				if strings.Contains(faultMsg, "A specified parameter was not correct: snapshotId") {
 					this.logger.WithError(err).Error("Unexpected InvalidArgument SOAP fault due to the known race condition. Will retry")
 					return false, nil
 				}
-				this.logger.WithError(err).Error("Unexpected SOAP fault")
 			}
-			return false, errors.Wrapf(err, "Failed at retrieving the snapshot detail post the completion of CreateSnapshot invocation on, %v", this.id.String())
+			this.logger.WithError(err).Warnf("Failed at retrieving the snapshot details post the" +
+				" completion of CreateSnapshot on %s, proceeding to use Snapshot %s anyways", this.id.String(), ivdSnapshotID.Id)
+		} else {
+			this.logger.Infof("The retrieval of the newly created snapshot, %s on IVD %s, " +
+				"is completed successfully, Retry-Count: %d, RetrieveSnapshotErr: %d",
+				ivdSnapshotID.Id, this.id.String(), retryCount, retrieveSnapDetailsErr)
 		}
-		this.logger.Debugf("The retrieval of the newly created snapshot, %v, is completed successfully", ivdSnapshotID.Id)
-
 		retVal = astrolabe.NewProtectedEntitySnapshotID(ivdSnapshotID.Id)
 		return true, nil
 	})
