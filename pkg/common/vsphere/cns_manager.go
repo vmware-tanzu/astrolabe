@@ -39,6 +39,8 @@ func (this *CnsManager) CreateVolume(ctx context.Context, createSpecList []cnsty
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return createVolumeTask, nil
@@ -57,6 +59,8 @@ func (this *CnsManager) DeleteVolume(ctx context.Context, volumeIDList []cnstype
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return deleteVolumeTask, nil
@@ -75,6 +79,8 @@ func (this *CnsManager) QueryVolume(ctx context.Context, queryFilter cnstypes.Cn
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return queryResult, nil
