@@ -43,6 +43,8 @@ func (this *VslmManager) CreateSnapshot(ctx context.Context, id vim.ID, descript
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return createSnapshotTask, nil
@@ -61,6 +63,8 @@ func (this *VslmManager) DeleteSnapshot(ctx context.Context, id vim.ID, snapshot
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return deleteSnapshotTask, nil
@@ -79,6 +83,8 @@ func (this *VslmManager) RetrieveSnapshotInfo(ctx context.Context, id vim.ID) ([
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return retreiveSnapInfoResults, nil
@@ -97,6 +103,8 @@ func (this *VslmManager) Retrieve(ctx context.Context, id vim.ID) (*vim.VStorage
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return vStorageObject, nil
@@ -115,6 +123,8 @@ func (this *VslmManager) RetrieveSnapshotDetails(ctx context.Context, id vim.ID,
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return snapshotDetails, nil
@@ -133,6 +143,8 @@ func (this *VslmManager) UpdateMetadata(ctx context.Context, id vim.ID, metadata
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return updateMetadatatTask, nil
@@ -151,6 +163,8 @@ func (this *VslmManager) RetrieveMetadata(ctx context.Context, id vim.ID, snapsh
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return retrieveMetadata, nil
@@ -169,6 +183,8 @@ func (this *VslmManager) CreateDiskFromSnapshot(ctx context.Context, id vim.ID, 
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return createDiskFromSnapshotTask, nil
@@ -187,6 +203,8 @@ func (this *VslmManager) ListObjectsForSpec(ctx context.Context, query []vslmtyp
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return queryResult, nil
@@ -205,6 +223,8 @@ func (this *VslmManager) CreateDisk(ctx context.Context, spec vim.VslmCreateSpec
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return createDiskTask, nil
@@ -223,6 +243,8 @@ func (this *VslmManager) Clone(ctx context.Context, id vim.ID, spec vim.VslmClon
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return cloneTask, nil
@@ -241,6 +263,8 @@ func (this *VslmManager) Delete(ctx context.Context, id vim.ID) (*vslm_vsom.Task
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			break
 		}
 	}
 	return deleteTask, nil

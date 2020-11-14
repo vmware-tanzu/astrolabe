@@ -322,11 +322,6 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 					this.logger.WithError(err).Errorf("CreateSnapshot failed with NotFound. Will retry in %v second(s)", retryInterval)
 					return false, nil
 				}
-				_, ok = soap.ToVimFault(err).(*vim.SystemError)
-				if ok {
-					this.logger.WithError(err).Errorf("CreateSnapshot failed with SystemError. Will retry in %v second(s)", retryInterval)
-					return false, nil
-				}
 			}
 			if util.IsConnectionResetError(err) {
 				this.logger.WithError(err).Errorf("Network issue: connection reset by peer. Will retry in %v second(s)", retryInterval)
