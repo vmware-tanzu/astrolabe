@@ -12,14 +12,14 @@ func TestCreate(t *testing.T) {
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
 	}
-	res := gDiskLib.Init(6, 7, path)
+	res := gDiskLib.Init(7, 0, path)
 	if res != nil {
 		t.Errorf("Init failed, got error code: %d, error message: %s.", res.VixErrorCode(), res.Error())
 	}
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")

@@ -168,6 +168,13 @@ func GetMetadataKeys(diskHandle VixDiskLibHandle, buf []byte, bufLen uint, requi
  */
 func WriteMetadata(diskHandle VixDiskLibHandle, key string, val string) VddkError {}
 ```
+### Block allocation
+```$xslt
+/**
+ * Determine allocated blocks.
+ */
+func QueryAllocatedBlocks(diskHandle VixDiskLibHandle, startSector VixDiskLibSectorType, numSectors VixDiskLibSectorType, chunkSize VixDiskLibSectorType) ([]VixDiskLibBlock, VddkError) {}
+```
 ## Shut down
 All virtual disk api applications should call these functions at the end of program.
 ### Disconnect
@@ -239,6 +246,13 @@ func (this DiskReaderWriter) Write(p []byte) (n int, err error) {}
  * Write from given offset.
  */
 func (this DiskConnectHandle) WriteAt(p []byte, off int64) (n int, err error) {}
+```
+### Block allocation
+```$xslt
+/**
+ * Determine allocated blocks.
+ */
+func (this DiskReaderWriter) QueryAllocatedBlocks(startSector gDiskLib.VixDiskLibSectorType, numSectors gDiskLib.VixDiskLibSectorType, chunkSize gDiskLib.VixDiskLibSectorType) ([]gDiskLib.VixDiskLibBlock, gDiskLib.VddkError) {}
 ```
 ### Close
 ```$xslt

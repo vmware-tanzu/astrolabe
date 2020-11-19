@@ -414,3 +414,21 @@ func GetInfo(diskHandle VixDiskLibHandle) (VixDiskLibInfo, VddkError) {
 	C.VixDiskLib_FreeInfo(dliInfoPtr)
 	return retInfo, nil
 }
+
+// QueryAllocatedBlocks invokes the related VDDK function.
+func QueryAllocatedBlocks(diskHandle VixDiskLibHandle, startSector VixDiskLibSectorType, numSectors VixDiskLibSectorType, chunkSize VixDiskLibSectorType) ([]VixDiskLibBlock, VddkError) {
+	ss := C.VixDiskLibSectorType(startSector)
+	ns := C.VixDiskLibSectorType(numSectors)
+	cs := C.VixDiskLibSectorType(chunkSize)
+	var bld C.BlockListDescriptor
+
+	res := C.QueryAllocatedBlocks(diskHandle.dli, ss, ns, cs, &bld)
+	if res != 0 {
+		return nil, NewVddkError(uint64(res), fmt.Sprintf("QueryAllocatedBlocks(%d, %d, %d) error: %d.", startSector, numSectors, chunkSize, res))
+	}
+
+	retList := make([]VixDiskLibBlock, bld.numBlocks)
+	C.BlockListCopyAndFree(&bld, (*C.VixDiskLibBlock)(unsafe.Pointer(&retList[0])))
+
+	return retList, nil
+}

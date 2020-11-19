@@ -23,6 +23,11 @@ typedef struct {
     VixError err;
 } DiskHandle;
 
+typedef struct {
+    uint32 numBlocks;
+    void*  blockList; /* opaque to Go */
+} BlockListDescriptor;
+
 void LogFunc(const char *fmt, va_list args);
 void GoLogWarn(char * msg);
 VixError Init(uint32 major, uint32 minor, char* libDir);
@@ -43,3 +48,6 @@ VixError Cleanup(VixDiskLibConnectParams *connectParams, uint32 numCleanedUp, ui
 VixError GetMetadataKeys(VixDiskLibHandle diskHandle, char *buf, size_t bufLen, size_t required);
 VixError Clone(VixDiskLibConnection dstConn, char *dstPath, VixDiskLibConnection srcConn, char *srcPath, VixDiskLibCreateParams *createParams,
                void *progressCallbackData, bool overWrite);
+VixError QueryAllocatedBlocks(VixDiskLibHandle diskHandle, VixDiskLibSectorType startSector,
+                              VixDiskLibSectorType numSectors, VixDiskLibSectorType chunkSize, BlockListDescriptor *bld);
+VixError BlockListCopyAndFree(BlockListDescriptor *bld, VixDiskLibBlock *ba);

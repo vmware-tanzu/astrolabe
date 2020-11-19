@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+func TestOpen(t *testing.T) {
 	fmt.Println("Test Open")
-	var majorVersion uint32 = 6
-	var minorVersion uint32 = 7
+	var majorVersion uint32 = 7
+	var minorVersion uint32 = 0
 	path := os.Getenv("LIBPATH")
 	if path == "" {
 		t.Skip("Skipping testing if environment variables are not set.")
@@ -21,7 +21,7 @@ func Test(t *testing.T) {
 	serverName := os.Getenv("IP")
 	thumPrint := os.Getenv("THUMBPRINT")
 	userName := os.Getenv("USERNAME")
-	password := os.Getenv("PWD")
+	password := os.Getenv("PASSWORD")
 	fcdId := os.Getenv("FCDID")
 	ds := os.Getenv("DATASTORE")
 	identity := os.Getenv("IDENTITY")
@@ -32,6 +32,17 @@ func Test(t *testing.T) {
 	if err != nil {
 		gDiskLib.EndAccess(params)
 		t.Errorf("Open failed, got error code: %d, error message: %s.", err.VixErrorCode(), err.Error())
+	}
+	// QAB (assume at least 1GiB volume and 1MiB block size)
+	abInitial, err := diskReaderWriter.QueryAllocatedBlocks(0, 2048*1024, 2048)
+	if err != nil {
+		t.Errorf("QueryAllocatedBlocks failed: %d, error message: %s", err.VixErrorCode(), err.Error())
+	} else {
+		fmt.Printf("Number of blocks: %d\n", len(abInitial))
+		fmt.Printf("Offset      Length\n")
+		for _, ab := range abInitial {
+			fmt.Printf("0x%012x  0x%012x\n", ab.Offset(), ab.Length())
+		}
 	}
 	// ReadAt
 	fmt.Printf("ReadAt test\n")
@@ -56,6 +67,18 @@ func Test(t *testing.T) {
 	fmt.Printf("Read byte n = %d\n", n2)
 	fmt.Println(buffer2)
 	fmt.Println(err5)
+
+	// QAB (assume at least 1GiB volume and 1MiB block size)
+	abFinal, err := diskReaderWriter.QueryAllocatedBlocks(0, 2048*1024, 2048)
+	if err != nil {
+		t.Errorf("QueryAllocatedBlocks failed: %d, error message: %s", err.VixErrorCode(), err.Error())
+	} else {
+		fmt.Printf("Number of blocks: %d\n", len(abInitial))
+		fmt.Printf("Offset      Length\n")
+		for _, ab := range abFinal {
+			fmt.Printf("0x%012x  0x%012x\n", ab.Offset(), ab.Length())
+		}
+	}
 
 	diskReaderWriter.Close()
 }
