@@ -1,5 +1,7 @@
 package astrolabe
 
 const (
-	PvcPEType = "pvc"
+	PvcPEType        = "pvc"
+	ParaVirtPvPEType = "paravirt-pv"
+	IvdPEType        = "ivd"
 )
