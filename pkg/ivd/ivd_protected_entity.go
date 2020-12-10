@@ -380,6 +380,16 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 		this.logger.Debugf("Retrying DeleteSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
 		vslmTask, err := this.ipetm.vslmManager.DeleteSnapshot(ctx, NewVimIDFromPEID(this.GetID()), NewVimSnapshotIDFromPESnapshotID(snapshotToDelete))
 		if err != nil {
+			// If the FCD is non-existent, Pandora immediately returns NotFound instead of creating a task.
+			if soap.IsSoapFault(err) {
+				soapFault := soap.ToSoapFault(err)
+				receivedFault := soapFault.Detail.Fault
+				_, ok := receivedFault.(vim.NotFound)
+				if ok {
+					this.logger.Warnf("The FCD id %s was not found in VC during deletion, assuming success, received error: %+v", this.GetID().GetID(), err)
+					return true, nil
+				}
+			}
 			return false, errors.Wrapf(err, "Failed to create a task for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 		}
 
