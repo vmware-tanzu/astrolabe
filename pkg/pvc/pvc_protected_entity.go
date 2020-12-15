@@ -193,12 +193,8 @@ func GetSnapConfigMapName(pvc *core_v1.PersistentVolumeClaim) string {
 
 func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	this.logger.Infof("PVCProtectedEntity: DeleteSnapshot request received on snapshot: %s with parameters: %v on the PVC PE: %s", snapshotToDelete.String(), params, this.GetID().String())
-	pvc, err := this.GetPVC(ctx)
-	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("Could not retrieve pvc peid=%s", this.id.String()))
-	}
 
-	components, err := this.GetComponents(ctx)
+	components, err := this.getComponentsFromSnapshot(ctx, snapshotToDelete)
 	if err != nil {
 		return false, errors.Wrap(err, "Could not retrieve components")
 	}
@@ -218,41 +214,6 @@ func (this PVCProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 		this.logger.Infof("PVCProtectedEntity: Completed DeleteSnapshot with snapshotID: %s for the component: %s", snapshotToDelete.String(), components[0].GetID().String())
 	}
 
-	if false {
-		snapConfigMapName := GetSnapConfigMapName(pvc)
-		snapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Get(ctx, snapConfigMapName, metav1.GetOptions{})
-		if err != nil {
-			if !k8serrors.IsNotFound(err) {
-				return false, errors.Wrapf(err, "Could not retrieve snapshot configmap %s for %s", snapConfigMapName,
-					this.id.String())
-			}
-			this.logger.Infof("PVCProtectedEntity: No snapshot config map avaiable with name: %s", snapConfigMapName)
-		} else {
-			_, snapPVCInfoExists := snapConfigMap.BinaryData[componentSnapshotID.String()]
-			if snapPVCInfoExists {
-				delete(snapConfigMap.BinaryData, componentSnapshotID.String())
-				delete(snapConfigMap.BinaryData, "peinfo-"+componentSnapshotID.String())
-				updatedSnapConfigMap, err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Update(ctx, snapConfigMap, metav1.UpdateOptions{})
-				if err != nil {
-					return false, errors.Wrapf(err, "Could not update snapshot configmap %s for %s", snapConfigMapName,
-						this.id.String())
-				}
-				if updatedSnapConfigMap.BinaryData == nil {
-					// no snapshot after the update. So, clean up the config map
-					var zeroSecondsGracePeriod int64
-					zeroSecondsGracePeriod = 0
-					err := this.ppetm.clientSet.CoreV1().ConfigMaps(pvc.Namespace).Delete(ctx, updatedSnapConfigMap.Name, metav1.DeleteOptions{GracePeriodSeconds: &zeroSecondsGracePeriod})
-					if err != nil {
-						return false, errors.Wrapf(err, "Could not delete snapshot configmap %s for %s", snapConfigMapName,
-							this.id.String())
-					}
-				}
-				this.logger.Infof("PVCProtectedEntity: Successfully deleted snapshot entries in the config map: %s for snapshot: %s", snapConfigMapName, snapshotToDelete.String())
-			} else {
-				this.logger.Infof("PVCProtectedEntity: No entries found in config map : %s for the snapshot-id: %s", snapConfigMapName, snapshotToDelete.String())
-			}
-		}
-	}
 	// If the subsnapshot existed, then we successfully removed, otherwise
 	// there was no work (errors would have exited us already) so we return false
 	return deleteSnapStatus, nil
@@ -324,6 +285,57 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 		}
 	}
 	return nil, errors.Errorf("Could not find PE for Persistent Volume %s", pv.Name)
+}
+
+func (this PVCProtectedEntity) getComponentsFromSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID) ([]astrolabe.ProtectedEntity, error) {
+	this.logger.Infof("Attempting to get the components from the snapshot pe-id: %s", snapshotToDelete.String())
+	// PVC Component can be para-virt or ivd type.
+	snapshotID64Str := snapshotToDelete.String()
+	snapshotIDBytes, err := base64.RawStdEncoding.DecodeString(snapshotID64Str)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Could not decode snapshot ID encoded string %s", snapshotID64Str)
+		this.logger.WithError(err).Error(errorMsg)
+		return []astrolabe.ProtectedEntity{}, errors.Wrap(err, errorMsg)
+	}
+	decodedPEID, err := astrolabe.NewProtectedEntityIDFromString(string(snapshotIDBytes))
+	if err != nil {
+		errorMsg := fmt.Sprintf("Could not translate decoded snapshotID %s into pe-id", string(snapshotIDBytes))
+		this.logger.WithError(err).Error(errorMsg)
+		return []astrolabe.ProtectedEntity{}, errors.Wrap(err, errorMsg)
+	}
+	// Determine the component pe-type, should be either ivd or para-virt
+	expectedComponentPEType := this.getComponentPEType()
+	if expectedComponentPEType == decodedPEID.GetPeType() {
+		// If the decoded snap is of the expected component pe-type return.
+		componentPE, err := this.ppetm.pem.GetProtectedEntity(ctx, decodedPEID)
+		if err != nil {
+			return []astrolabe.ProtectedEntity{}, errors.Wrapf(err, "Could not get Protected Entity for PE %s", decodedPEID.String())
+		}
+		this.logger.Infof("Retrieved the component PE %s from the snapshot pe-id: %s", componentPE.GetID().String(), snapshotToDelete.String())
+		return []astrolabe.ProtectedEntity{componentPE}, nil
+	}
+	if expectedComponentPEType == astrolabe.IvdPEType && decodedPEID.GetPeType() == astrolabe.ParaVirtPvPEType {
+		// If the decoded snap is not of the expected component pe-type, decode further.
+		// This scenario occurs when backup is created in Guest and delete is attempted in Vanilla/Supervisor.
+		this.logger.Infof("Further decoding the snapshot pe-id %s from the original snapshot pe-id", decodedPEID.GetSnapshotID().String(), snapshotToDelete.String())
+		return this.getComponentsFromSnapshot(ctx, decodedPEID.GetSnapshotID())
+	} else if expectedComponentPEType == astrolabe.ParaVirtPvPEType && decodedPEID.GetPeType() == astrolabe.IvdPEType {
+		// The decoded snap-id component type is of ivd when the expected type is supposed to be ivd.
+		// The scenario occurs when backup is created in Vanilla/Supervisor and delete is attempted in Guest.
+		// Re-encode the pe-id into a para-virt type.
+		encodedSnapshotStr := base64.RawStdEncoding.EncodeToString([]byte(decodedPEID.String()))
+		componentSnapshotId := astrolabe.NewProtectedEntitySnapshotID(encodedSnapshotStr)
+		encodedPeId := astrolabe.NewProtectedEntityIDWithSnapshotID(astrolabe.ParaVirtPvPEType, "ivd-"+decodedPEID.GetID(), componentSnapshotId)
+		encodedComponentPE, err := this.ppetm.pem.GetProtectedEntity(ctx, encodedPeId)
+		if err != nil {
+			return []astrolabe.ProtectedEntity{}, errors.Wrapf(err, "Could not get Protected Entity for PE %s", encodedPeId.String())
+		}
+		return []astrolabe.ProtectedEntity{encodedComponentPE}, nil
+	} else {
+		errMsg := fmt.Sprintf("Unsupported PE type: %s when expected PE type: %s for pe-id: %s", decodedPEID.GetPeType(), expectedComponentPEType, decodedPEID.String())
+		this.logger.Error(errMsg)
+		return []astrolabe.ProtectedEntity{}, errors.New(errMsg)
+	}
 }
 
 func (this PVCProtectedEntity) GetID() astrolabe.ProtectedEntityID {

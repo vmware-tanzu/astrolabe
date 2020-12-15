@@ -81,10 +81,6 @@ func (this *PVCProtectedEntityTypeManager) GetProtectedEntity(ctx context.Contex
 		return nil, errors.Wrapf(err, "Could not create PVCProtectedEntity for namespace = %s, name = %s", namespace, name)
 	}
 
-	_, err = returnPE.GetPVC(ctx)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not retrieve PVC for namespace = %s, name = %s", namespace, name)
-	}
 	return returnPE, nil
 }
 
