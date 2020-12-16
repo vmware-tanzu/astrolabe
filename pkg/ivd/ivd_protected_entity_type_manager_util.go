@@ -230,7 +230,7 @@ func findSharedDatastoresFromAllNodeVMs(ctx context.Context, client *vim25.Clien
 }
 
 func createCnsVolumeWithClusterConfig(ctx context.Context, vcConfig *vsphere.VirtualCenterConfig, config *rest.Config, client *govmomi.Client, cnsManager *vsphere.CnsManager, md metadata, logger logrus.FieldLogger) (string, error) {
-	logger.Debugf("createCnsVolumeWithClusterConfig called with args, config params and metadata: %v", md)
+	logger.Infof("createCnsVolumeWithClusterConfig called with args, config params and metadata: %v", md)
 
 	reservedLabelsMap, err := fillInClusterSpecificParams(vcConfig, logger)
 	if err != nil {
@@ -239,7 +239,7 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, vcConfig *vsphere.Vir
 	}
 
 	// Preparing for the VolumeCreateSpec for the volume provisioning
-	logger.Debug("Preparing for the VolumeCreateSpec for the volume provisioning")
+	logger.Info("Preparing for the VolumeCreateSpec for the volume provisioning")
 	dsList, err := findSharedDatastoresFromAllNodeVMs(ctx, client.Client, config, logger)
 	if err != nil {
 		logger.WithError(err).Error("Failed to find any datastore in the underlying vSphere")
@@ -277,7 +277,7 @@ func createCnsVolumeWithClusterConfig(ctx context.Context, vcConfig *vsphere.Vir
 	}
 
 	cnsVolumeCreateSpecList = append(cnsVolumeCreateSpecList, cnsVolumeCreateSpec)
-	logger.Debugf("Provisioning volume using the spec: %v", cnsVolumeCreateSpec)
+	logger.Infof("Provisioning volume using the spec: %v", cnsVolumeCreateSpec)
 
 	// provision volume using CNS API
 	createTask, err := cnsManager.CreateVolume(ctx, cnsVolumeCreateSpecList)
@@ -383,7 +383,7 @@ func FilterLabelsFromMetadataForCnsAPIs(md metadata, prefix string, logger logru
 	}
 	md.ExtendedMetadata = kvsList
 
-	logger.Debugf("labels of CNS volume after filtering ones with certain prefix, %v: %v", prefix, md.ExtendedMetadata)
+	logger.Infof("labels of CNS volume after filtering ones with certain prefix, %v: %v", prefix, md.ExtendedMetadata)
 
 	return md
 }
