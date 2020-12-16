@@ -226,7 +226,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 		// To enable cross-cluster restore, need to filter out the cns specific labels, i.e. prefix: cns, in md
 		md = FilterLabelsFromMetadataForCnsAPIs(md, "cns", this.logger)
 
-		this.logger.Debugf("Ready to provision a new volume with the source metadata: %v", md)
+		this.logger.Infof("Ready to provision a new volume with the source metadata: %v", md)
 		volumeVimID, err := CreateCnsVolumeInCluster(ctx, this.vcenterConfig, this.vcenter.Client, this.cnsManager, md, this.logger)
 		if err != nil {
 			return nil, errors.Wrap(err, "CreateDisk failed")
@@ -240,7 +240,7 @@ func (this *IVDProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePE
 			this.logger.Errorf("Failed to copy data from data source to newly-provisioned IVD protected entity")
 			return nil, errors.Wrapf(err, "Failed to copy data from data source to newly-provisioned IVD protected entity")
 		}
-		this.logger.WithField("volumeId", volumeVimID.Id).WithField("volumeName", md.VirtualStorageObject.Config.Name).Debug("Copied snapshot data to newly-provisioned IVD protected entity")
+		this.logger.WithField("volumeId", volumeVimID.Id).WithField("volumeName", md.VirtualStorageObject.Config.Name).Info("Copied snapshot data to newly-provisioned IVD protected entity")
 	}
 	return retPE, nil
 }
@@ -289,7 +289,7 @@ func (this *IVDProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, params map[string]interface{}) error {
 	configLoadLock.Lock()
 	defer configLoadLock.Unlock()
-	this.logger.Infof("Started Load Config of IVD Protected Entity Manager")
+	this.logger.Debug("Started Load Config of IVD Protected Entity Manager")
 	newVcConfig, err := vsphere.GetVirtualCenterConfigFromParams(params, this.logger)
 	if err != nil {
 		this.logger.Errorf("Failed to populate VirtualCenterConfig during reload %v", err)
@@ -297,10 +297,10 @@ func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, par
 	}
 	configChanged := vsphere.CheckIfVirtualCenterConfigChanged(this.vcenterConfig, newVcConfig)
 	if !configChanged {
-		this.logger.Infof("No VirtualCenterConfig change detected during reload.")
+		this.logger.Debug("No VirtualCenterConfig change detected during periodic reload.")
 		return nil
 	}
-	this.logger.Infof("Detected VirtualCenterConfig change.")
+	this.logger.Infof("Detected VirtualCenterConfig change during periodic reload.")
 	if this.vcenter != nil {
 		// Disconnecting older vc instance.
 		err = this.vcenter.Disconnect(ctx)

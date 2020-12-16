@@ -82,7 +82,7 @@ func GetVirtualCenterConfigFromParams(params map[string]interface{}, logger logr
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof("Successfully retrieved VirtualCenterConfig from parameters.")
+	logger.Debug("Successfully retrieved VirtualCenterConfig from parameters.")
 	// Translate the params into VirtualCenterConfig.
 	vcConfig := &VirtualCenterConfig{
 		Scheme:          "https",

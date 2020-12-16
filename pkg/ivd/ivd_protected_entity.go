@@ -300,7 +300,7 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 		if err != nil {
 			return false, errors.Wrapf(err, "Failed to create a task for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
-		this.logger.Infof("Retrieved VSLM task %s to track CreateSnapshot on IVD %s", vslmTask.Value, this.id.String())
+		this.logger.Infof("Retrieved VSLM task %s to track CreateSnapshot on IVD %s", vslmTask.Value, this.GetID().String())
 		retryCount++
 		start := time.Now()
 		ivdSnapshotIDAny, err := vslmTask.Wait(ctx, waitTime)
@@ -376,6 +376,7 @@ func (this IVDProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.P
 }
 func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDelete astrolabe.ProtectedEntitySnapshotID, params map[string]map[string]interface{}) (bool, error) {
 	this.logger.Infof("DeleteSnapshot called on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+	retryCount := 0
 	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
 		this.logger.Debugf("Retrying DeleteSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
 		vslmTask, err := this.ipetm.vslmManager.DeleteSnapshot(ctx, NewVimIDFromPEID(this.GetID()), NewVimSnapshotIDFromPESnapshotID(snapshotToDelete))
@@ -392,8 +393,11 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 			}
 			return false, errors.Wrapf(err, "Failed to create a task for the DeleteSnapshot invocation on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 		}
-
+		this.logger.Infof("Retrieved VSLM task %s to track DeleteSnapshot on IVD %s", vslmTask.Value, this.GetID().String())
+		retryCount++
+		start := time.Now()
 		_, err = vslmTask.Wait(ctx, waitTime)
+		this.logger.Infof("Waited for %s to retrieve Task %s status.", time.Now().Sub(start), vslmTask.Value)
 		if err != nil {
 			if soap.IsVimFault(err) {
 				switch soap.ToVimFault(err).(type) {
@@ -426,7 +430,7 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	if err != nil {
 		return false, err
 	}
-	this.logger.Infof("DeleteSnapshot completed on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
+	this.logger.Infof("DeleteSnapshot completed on IVD Protected Entity, %s, with input arg, %s, Retry-Count: %d", this.GetID().String(), snapshotToDelete.String(), retryCount)
 	return true, nil
 }
 
@@ -444,6 +448,7 @@ func (this IVDProtectedEntity) GetID() astrolabe.ProtectedEntityID {
 
 func (this IVDProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
 	overwriteComponents bool) error {
+	this.logger.Infof("Overwriting current IVD PE %s with the source PE %s", this.GetID().String(), sourcePE.GetID().String())
 	// overwriteComponents is ignored because we have no components
 	if sourcePE.GetID().GetPeType() != "ivd" {
 		return errors.New("Overwrite source must be an ivd")
@@ -467,6 +472,7 @@ func (this IVDProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe
 	if err != nil {
 		return errors.Wrapf(err, "Data copy failed from PE %s, to PE %s", this.GetID().String(), sourcePE.GetID().String())
 	}
+	this.logger.Infof("Successfully Overwrote current IVD PE %s with the source PE %s", this.GetID().String(), sourcePE.GetID().String())
 	return nil
 }
 
