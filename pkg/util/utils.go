@@ -69,16 +69,14 @@ func RetrievePlatformInfoFromConfig(config *rest.Config, params map[string]inter
 		return errors.Errorf("Failed to get k8s clientset from the given config: %v", config)
 	}
 	// Get the cluster flavor
-	var ns, secretData string
+	var ns string
 	clusterFlavor, err := GetClusterFlavor(config)
 	if clusterFlavor == TkgGuest || clusterFlavor == Unknown {
 		return errors.New("RetrieveVcConfigSecret: Cannot retrieve VC secret")
 	} else if clusterFlavor == Supervisor {
 		ns = VCSecretNsSupervisor
-		secretData = VCSecretDataSupervisor
 	} else {
 		ns = VCSecretNs
-		secretData = VCSecretData
 	}
 
 	secretApis := clientset.CoreV1().Secrets(ns)
@@ -96,8 +94,20 @@ func RetrievePlatformInfoFromConfig(config *rest.Config, params map[string]inter
 		return errors.Errorf("Failed to get k8s secret, %s", vsphere_secrets)
 	}
 
-	sEnc := string(secret.Data[secretData])
-	lines := strings.Split(sEnc, "\n")
+	// No kv pairs in the secret.
+	if len(secret.Data) == 0 {
+		return errors.Errorf("Failed to get k8s secret, %s", vsphere_secrets)
+	}
+
+	var sEnc string
+	var lines []string
+
+	for _, value := range secret.Data {
+		sEnc = string(value)
+		lines = strings.Split(sEnc, "\n")
+		// will always have only one kv pair.
+		break
+	}
 
 	for _, line := range lines {
 		if strings.Contains(line, "VirtualCenter") {
