@@ -309,8 +309,8 @@ github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPU
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/vmware/govmomi v0.22.2-0.20200329013745-f2eef8fc745f h1:6LIYlihC1/LDUhZ7zYVp1WOEY5owzsvogiaHBqvBzPU=
 github.com/vmware/govmomi v0.22.2-0.20200329013745-f2eef8fc745f/go.mod h1:Y+Wq4lst78L85Ge/F8+ORXIWiKYqaro1vhAulACy9Lc=
-github.com/vmware/virtual-disks v0.0.1 h1:0YoFhMu+pGrOshgHHNgHXM0VacBTxQi8jTr+2n1aI8E=
-github.com/vmware/virtual-disks v0.0.1/go.mod h1:GrUXFHPgc8MovXpbn3YduOIbRfzpKNNTagwjoY2bfAI=
+github.com/vmware/virtual-disks v0.0.2 h1:zDlvkj2MIBYeujBBYNr9zCaMAcTnP4mAgdIBcHmmaeM=
+github.com/vmware/virtual-disks v0.0.2/go.mod h1:GrUXFHPgc8MovXpbn3YduOIbRfzpKNNTagwjoY2bfAI=
 github.com/vmware/vmw-guestinfo v0.0.0-20170707015358-25eff159a728/go.mod h1:x9oS4Wk2s2u4tS29nEaDLdzvuHdB19CvSGJjPgkZJNk=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
