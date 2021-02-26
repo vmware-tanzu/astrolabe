@@ -1,0 +1,8 @@
+The gvddk project has been split out into its own project.  It is now named the Go Library for Virtual Disk 
+Development Kit.  github.com/vmware/gvddk has now become 
+github.com/vmware/virtual-disks and it is moved out
+of the "vendor" directory and into its own project at 
+https://github.com/vmware/virtual-disks.
+
+The VDDK libraries should be installed in /usr/local/vmware-vix-disklib-distrib
+now rather than within the astrolabe/vendor/github.com/vmware/gvddk directory.

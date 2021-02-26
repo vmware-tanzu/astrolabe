@@ -26,7 +26,7 @@ import (
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vslm"
 	vslmtypes "github.com/vmware/govmomi/vslm/types"
-	"github.com/vmware/gvddk/gDiskLib"
+	"github.com/vmware/virtual-disks/pkg/disklib"
 	"io"
 	"sync"
 	"time"
@@ -339,7 +339,7 @@ func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, par
 		this.cnsManager.ResetManager(reloadedVc, cnsClient)
 	}
 
-	err = gDiskLib.Init(vsphereMajor, vSphereMinor, disklibLib64)
+	err = disklib.Init(vsphereMajor, vSphereMinor, disklibLib64)
 	if err != nil {
 		return errors.Wrap(err, "Could not initialize VDDK during config reload.")
 	}

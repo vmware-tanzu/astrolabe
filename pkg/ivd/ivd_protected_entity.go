@@ -27,8 +27,8 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	vim "github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vim25/xml"
-	"github.com/vmware/gvddk/gDiskLib"
-	gvddk_high "github.com/vmware/gvddk/gvddk-high"
+	"github.com/vmware/virtual-disks/pkg/disklib"
+	"github.com/vmware/virtual-disks/pkg/virtual_disks"
 	"io"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -61,12 +61,12 @@ func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser
 		return nil, err
 	}
 
-	diskReader, vErr := gvddk_high.Open(diskConnectParam, this.logger)
+	diskReader, vErr := virtual_disks.Open(diskConnectParam, this.logger)
 	if vErr != nil {
 		if vErr.VixErrorCode() == 20005 {
 			// Try the end access once
-			gDiskLib.EndAccess(diskConnectParam)
-			diskReader, vErr = gvddk_high.Open(diskConnectParam, this.logger)
+			disklib.EndAccess(diskConnectParam)
+			diskReader, vErr = virtual_disks.Open(diskConnectParam, this.logger)
 		}
 		if vErr != nil {
 			return nil, errors.New(fmt.Sprintf(vErr.Error()+" with error code: %d", vErr.VixErrorCode()))
@@ -107,7 +107,7 @@ func (this IVDProtectedEntity) getDataWriter(ctx context.Context) (io.WriteClose
 		return nil, err
 	}
 
-	diskWriter, vErr := gvddk_high.Open(diskConnectParam, this.logger)
+	diskWriter, vErr := virtual_disks.Open(diskConnectParam, this.logger)
 	if vErr != nil {
 		return nil, errors.New(fmt.Sprintf(vErr.Error()+" with error code: %d", vErr.VixErrorCode()))
 	}
@@ -115,12 +115,12 @@ func (this IVDProtectedEntity) getDataWriter(ctx context.Context) (io.WriteClose
 	return diskWriter, nil
 }
 
-func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, readOnly bool) (gDiskLib.ConnectParams, error) {
+func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, readOnly bool) (disklib.ConnectParams, error) {
 	vc := this.ipetm.vcenter
 	_, _, err := vc.Connect(ctx)
 	if err != nil {
 		this.logger.Errorf("Failed to connect to VC")
-		return gDiskLib.ConnectParams{}, err
+		return disklib.ConnectParams{}, err
 	}
 	url := vc.Client.Client.URL()
 	serverName := url.Hostname()
@@ -130,7 +130,7 @@ func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, read
 
 	vso, err := this.ipetm.vslmManager.Retrieve(ctx, NewVimIDFromPEID(this.id))
 	if err != nil {
-		return gDiskLib.ConnectParams{}, err
+		return disklib.ConnectParams{}, err
 	}
 	datastore := vso.Config.Backing.GetBaseConfigInfoBackingInfo().Datastore.String()
 	datastore = strings.TrimPrefix(datastore, "Datastore:")
@@ -142,18 +142,18 @@ func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, read
 	path := ""
 	var flags uint32
 	if readOnly {
-		flags = gDiskLib.VIXDISKLIB_FLAG_OPEN_COMPRESSION_SKIPZ | gDiskLib.VIXDISKLIB_FLAG_OPEN_READ_ONLY
+		flags = disklib.VIXDISKLIB_FLAG_OPEN_COMPRESSION_SKIPZ | disklib.VIXDISKLIB_FLAG_OPEN_READ_ONLY
 	} else {
-		flags = gDiskLib.VIXDISKLIB_FLAG_OPEN_UNBUFFERED
+		flags = disklib.VIXDISKLIB_FLAG_OPEN_UNBUFFERED
 	}
 	transportMode := "nbd"
-	thumbPrint, err := gDiskLib.GetThumbPrintForURL(*url)
+	thumbPrint, err := disklib.GetThumbPrintForURL(*url)
 	if err != nil {
 		this.logger.Errorf("Failed to get the thumb print for the URL, %s", url.String())
-		return gDiskLib.ConnectParams{}, err
+		return disklib.ConnectParams{}, err
 	}
 
-	params := gDiskLib.NewConnectParams("",
+	params := disklib.NewConnectParams("",
 		serverName,
 		thumbPrint,
 		userName,

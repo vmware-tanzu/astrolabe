@@ -15,10 +15,11 @@ jobs:
           path: src/github.com/vmware-tanzu/astrolabe
       - name: Download essential GVDDK libraries
         run: |
-          cd src/github.com/vmware-tanzu/astrolabe/vendor/github.com/vmware/gvddk
+          cd /tmp
           wget --quiet https://gvddk-libs.s3-us-west-1.amazonaws.com/VMware-vix-disklib-7.0.0-15832853.x86_64.tar.gz
-          tar xzf VMware-vix-disklib-7.0.0-15832853.x86_64.tar.gz
-          chmod 644 $(find vmware-vix-disklib-distrib/lib64/ -type f)
+          cd /usr/local
+          sudo tar xzf /tmp/VMware-vix-disklib-7.0.0-15832853.x86_64.tar.gz
+          sudo chmod 644 $(find vmware-vix-disklib-distrib/lib64/ -type f)
       - name: Make CI
         env:
           GOPATH: ${{ github.workspace }}
