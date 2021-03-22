@@ -56,6 +56,11 @@ type metadata struct {
 }
 
 func (this IVDProtectedEntity) GetDataReader(ctx context.Context) (io.ReadCloser, error) {
+	this.logger.Infof("GetDataReader called on IVD Protected Entity, %v", this.id.String())
+	err := this.ipetm.CheckVcenterConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	diskConnectParam, err := this.getDiskConnectionParams(ctx, true)
 	if err != nil {
 		return nil, err
@@ -172,6 +177,11 @@ func (this IVDProtectedEntity) getDiskConnectionParams(ctx context.Context, read
 }
 
 func (this IVDProtectedEntity) GetMetadataReader(ctx context.Context) (io.ReadCloser, error) {
+	this.logger.Infof("GetMetadataReader called on IVD Protected Entity, %v", this.id.String())
+	err := this.ipetm.CheckVcenterConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	infoBuf, err := this.getMetadataBuf(ctx)
 	if err != nil {
 		return nil, err
@@ -256,6 +266,11 @@ func newIVDProtectedEntity(ipetm *IVDProtectedEntityTypeManager, id astrolabe.Pr
 	return newIPE, nil
 }
 func (this IVDProtectedEntity) GetInfo(ctx context.Context) (astrolabe.ProtectedEntityInfo, error) {
+	this.logger.Infof("GetInfo called on IVD Protected Entity, %v", this.id.String())
+	err := this.ipetm.CheckVcenterConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	vsoID := vim.ID{
 		Id: this.id.GetID(),
 	}
@@ -295,9 +310,14 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	retryCount := 0
 	retrieveSnapDetailsErr := 0
 	err := wait.PollImmediate(retryInterval, time.Hour, func() (bool, error) {
+		err := this.ipetm.CheckVcenterConnections(ctx)
+		if err != nil {
+			this.logger.Errorf("The vCenter is disconnected during snapshot operation, error: %v, retrying..", err)
+			return false, nil
+		}
 		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum, Current retry count: %d", this.GetID().String(), retryCount)
 		var vslmTask *vslm.Task
-		vslmTask, err := this.ipetm.vslmManager.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
+		vslmTask, err = this.ipetm.vslmManager.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
 		if err != nil {
 			return false, errors.Wrapf(err, "Failed to create a task for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
@@ -364,11 +384,16 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 }
 
 func (this IVDProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.ProtectedEntitySnapshotID, error) {
+	peSnapshotIDs := []astrolabe.ProtectedEntitySnapshotID{}
+	this.logger.Infof("ListSnapshots called on IVD Protected Entity, %v", this.id.String())
+	err := this.ipetm.CheckVcenterConnections(ctx)
+	if err != nil {
+		return peSnapshotIDs, err
+	}
 	snapshotInfo, err := this.ipetm.vslmManager.RetrieveSnapshotInfo(ctx, NewVimIDFromPEID(this.GetID()))
 	if err != nil {
 		return nil, errors.Wrap(err, "RetrieveSnapshotInfo failed")
 	}
-	peSnapshotIDs := []astrolabe.ProtectedEntitySnapshotID{}
 	for _, curSnapshotInfo := range snapshotInfo {
 		peSnapshotIDs = append(peSnapshotIDs, astrolabe.NewProtectedEntitySnapshotID(curSnapshotInfo.Id.Id))
 	}
@@ -379,6 +404,11 @@ func (this IVDProtectedEntity) DeleteSnapshot(ctx context.Context, snapshotToDel
 	this.logger.Infof("DeleteSnapshot called on IVD Protected Entity, %v, with input arg, %v", this.GetID().String(), snapshotToDelete.String())
 	retryCount := 0
 	err := wait.PollImmediate(time.Second, time.Hour, func() (bool, error) {
+		err := this.ipetm.CheckVcenterConnections(ctx)
+		if err != nil {
+			this.logger.Errorf("The vCenter is disconnected during DeleteSnapshot operation, error: %v, retrying..", err)
+			return false, nil
+		}
 		this.logger.Debugf("Retrying DeleteSnapshot on IVD Protected Entity, %v, for one hour at the maximum", this.GetID().String())
 		vslmTask, err := this.ipetm.vslmManager.DeleteSnapshot(ctx, NewVimIDFromPEID(this.GetID()), NewVimSnapshotIDFromPESnapshotID(snapshotToDelete))
 		if err != nil {
@@ -453,6 +483,10 @@ func (this IVDProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe
 	// overwriteComponents is ignored because we have no components
 	if sourcePE.GetID().GetPeType() != "ivd" {
 		return errors.New("Overwrite source must be an ivd")
+	}
+	err := this.ipetm.CheckVcenterConnections(ctx)
+	if err != nil {
+		return err
 	}
 	// TODO - verify that our size is >= sourcePE size
 	metadataReader, err := sourcePE.GetMetadataReader(ctx)
