@@ -21,10 +21,13 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware-tanzu/astrolabe/pkg/s3repository"
+	"github.com/vmware/govmomi/cns"
+	cnstypes "github.com/vmware/govmomi/cns/types"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/pbm"
@@ -531,7 +534,7 @@ func vmCreate(ctx context.Context, client *vim25.Client, vmHost types.ManagedObj
 	return nodeVM, nil
 }
 
-func TestBackupEncryptedIVD(t *testing.T) {
+func TestBackupIVDs(t *testing.T) {
 	// #0: Setup the environment
 	// Prerequisite: export ASTROLABE_VC_URL='https://<VC USER>:<VC USER PASSWORD>@<VC IP>/sdk'
 	u, exist := os.LookupEnv("ASTROLABE_VC_URL")
@@ -539,9 +542,12 @@ func TestBackupEncryptedIVD(t *testing.T) {
 		t.Skipf("ASTROLABE_VC_URL is not set")
 	}
 
-	vcUrl, err := soap.ParseURL(u)
-	if err != nil {
-		t.Skipf("Failed to parse the env variable, ASTROLABE_VC_URL, with err: %v", err)
+	enableDebugLog := false
+	enableDebugLogStr, ok := os.LookupEnv("ENABLE_DEBUG_LOG")
+	if ok {
+		if res, _ := strconv.ParseBool(enableDebugLogStr); res {
+			enableDebugLog = true
+		}
 	}
 
 	ctx := context.Background()
@@ -550,18 +556,63 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	formatter.TimestampFormat = time.RFC3339Nano
 	formatter.FullTimestamp = true
 	logger.SetFormatter(formatter)
-	logger.SetLevel(logrus.DebugLevel)
+	if enableDebugLog {
+		logger.SetLevel(logrus.DebugLevel)
+	}
+
+	// BEGIN: configuration options
+	// Use two IVDs in this test case if not explicitly specified
+	nIVDs := 2
+	nIVDsStr, ok := os.LookupEnv("NUM_OF_IVD")
+	if ok {
+		nIVDsInt, err := strconv.Atoi(nIVDsStr)
+		if err == nil && nIVDsInt > 0 && nIVDsInt <= MaxNumOfIVDs {
+			nIVDs = nIVDsInt
+		}
+	}
+
+	// Use Encryption
+	useEncryption := false
+	useEncryptionStr, ok := os.LookupEnv("USE_ENCRYPTION")
+	if ok {
+		if res, _ := strconv.ParseBool(useEncryptionStr); res {
+			useEncryption = true
+		}
+	}
+
+	// Enable Remote Copy of IVD Snapshot
+	enableRemoteCopy := false
+	enableRemoteCopyStr, ok := os.LookupEnv("ENABLE_REMOTE_COPY")
+	if ok {
+		if res, _ := strconv.ParseBool(enableRemoteCopyStr); res {
+			enableRemoteCopy = true
+		}
+	}
+	logger.Debugf("Configuration options: numOfIVDs = %v, useEncryption=%v, enableRemoteCopy=%v", nIVDs, useEncryption, enableRemoteCopy)
+	// END: configuration options
+
+	vcUrl, err := soap.ParseURL(u)
+	if err != nil {
+		t.Skipf("Failed to parse the env variable, ASTROLABE_VC_URL, with err: %v", err)
+	}
+
 	s3Config := astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	}
 	params := make(map[string]interface{})
 	params[vsphere.HostVcParamKey] = vcUrl.Host
-	params[vsphere.PortVcParamKey] = vcUrl.Port()
+	if vcUrl.Port() == "" {
+		params[vsphere.PortVcParamKey] = "443"
+	} else {
+		params[vsphere.PortVcParamKey] = vcUrl.Port()
+	}
 	params[vsphere.UserVcParamKey] = vcUrl.User.Username()
 	password, _ := vcUrl.User.Password()
 	params[vsphere.PasswordVcParamKey] = password
-	params[vsphere.InsecureFlagVcParamKey] = true
+	params[vsphere.InsecureFlagVcParamKey] = "true"
 	params[vsphere.ClusterVcParamKey] = ""
+
+	logger.Infof("params: %v", params)
 
 	ivdPETM, err := NewIVDProtectedEntityTypeManager(params, s3Config, logger)
 	if err != nil {
@@ -575,12 +626,17 @@ func TestBackupEncryptedIVD(t *testing.T) {
 	}
 	vmDs := datastores[0]
 	ivdDs := datastores[len(datastores)-1]
-	encryptionProfileId, err := getEncryptionProfileId(ctx, virtualCenter.Client.Client)
-	if err != nil {
-		t.Skipf("Failed to get encryption profile ID: %v", err)
+
+	// check if use encrpytion on IVDs
+	var encryptionProfileId string
+	if useEncryption {
+		encryptionProfileId, err = getEncryptionProfileId(ctx, virtualCenter.Client.Client)
+		if err != nil {
+			t.Skipf("Failed to get encryption profile ID: %v", err)
+		}
 	}
 
-	// #1: Create an encrypted VM
+	// #1: Create an VM
 	logger.Info("Step 1: Creating a VM")
 	hosts, err := findAllHosts(ctx, virtualCenter.Client.Client)
 	if err != nil || len(hosts) <= 0 {
@@ -639,26 +695,17 @@ func TestBackupEncryptedIVD(t *testing.T) {
 		logger.Debugf("VM, %v(%v), powered off", vmRef, vmName)
 	}()
 
-	// #3: Create encrypted IVDs
-	nIVDs := 2
-	logger.Infof("Creating %v encrypted IVDs", nIVDs)
+	// #3: Create CNS Block Volumes
+	logger.Infof("Step 3: Creating %v IVDs", nIVDs)
 	ivdProfile := vmProfile
 
 	var ivdIds []types.ID
 	for i := 0; i < nIVDs; i++ {
-		createSpec := getCreateSpec(getRandomName("ivd", 5), 50, ivdDs, ivdProfile)
-		vslmTask, err := ivdPETM.vslmManager.CreateDisk(ctx, createSpec)
+		volumeIdStr, err := CnsCreateVolume(ctx, ivdPETM.vcenter.CnsClient, logger, getRandomName("ivd", 5), 50, ivdDs, ivdProfile)
 		if err != nil {
-			t.Skipf("Failed to create task for CreateDisk invocation")
+			t.Skip(err.Error())
 		}
-
-		taskResult, err := vslmTask.Wait(ctx, waitTime)
-		if err != nil {
-			t.Skipf("Failed at waiting for the CreateDisk invocation")
-		}
-		vStorageObject := taskResult.(types.VStorageObject)
-		ivdIds = append(ivdIds, vStorageObject.Config.Id)
-		logger.Debugf("IVD, %v, created", vStorageObject.Config.Id.Id)
+		ivdIds = append(ivdIds, types.ID{Id:volumeIdStr})
 	}
 
 	if ivdIds == nil {
@@ -667,23 +714,17 @@ func TestBackupEncryptedIVD(t *testing.T) {
 
 	defer func() {
 		for i := 0; i < nIVDs; i++ {
-			vslmTask, err := ivdPETM.vslmManager.Delete(ctx, ivdIds[i])
+			err := CnsDeleteVolume(ctx, ivdPETM.vcenter.CnsClient, logger, ivdIds[i].Id)
 			if err != nil {
-				t.Skipf("Failed to create task for DeleteDisk invocation with err: %v", err)
+				t.Skip(err.Error())
 			}
-
-			_, err = vslmTask.Wait(ctx, waitTime)
-			if err != nil {
-				t.Skipf("Failed at waiting for the DeleteDisk invocation with err: %v", err)
-			}
-			logger.Debugf("IVD, %v, deleted", ivdIds[i].Id)
 		}
 	}()
 
 	// #4: Attach it to VM
 	logger.Infof("Step 4: Attaching IVDs to VM %v", vmName)
 	for i := 0; i < nIVDs; i++ {
-		err = vmAttachDiskWithWait(ctx, virtualCenter.Client.Client, vmRef.Reference(), ivdIds[i], ivdDs.Reference())
+		err = CnsAttachVolume(ctx, ivdPETM.vcenter.CnsClient, logger, ivdIds[i].Id, vmRef.Reference())
 		if err != nil {
 			t.Skipf("Failed to attach ivd, %v, to, VM, %v with err: %v", ivdIds[i].Id, vmName, err)
 		}
@@ -701,8 +742,9 @@ func TestBackupEncryptedIVD(t *testing.T) {
 			logger.Debugf("IVD, %v, detached from VM, %v", ivdIds[i].Id, vmName)
 		}
 	}()
+
 	// #5: Backup the IVD
-	logger.Infof("Step 5: Backing up encrypted IVDs")
+	logger.Infof("Step 5: Backing up IVDs")
 	// #5.1: Create an IVD snapshot
 	logger.Debugf("Creating a snapshot on each IVD")
 	//var snapPEIDs []astrolabe.ProtectedEntityID
@@ -715,10 +757,25 @@ func TestBackupEncryptedIVD(t *testing.T) {
 
 		snapID, err := ivdPE.Snapshot(ctx, nil)
 		if err != nil {
-			t.Errorf("Failed to snapshot the IVD protected entity, %v", ivdId)
+			t.Fatalf("Failed to snapshot the IVD protected entity, %v: %v", ivdId, err)
 		}
 		snapPEID := astrolabe.NewProtectedEntityIDWithSnapshotID("ivd", ivdId.Id, snapID)
 		snapPEIDtoIvdPEMap[snapPEID] = ivdPE
+	}
+
+	defer func() {
+		// Delete the local IVD snapshot
+		for snapPEID, ivdPE := range snapPEIDtoIvdPEMap {
+			_, err := ivdPE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), make(map[string]map[string]interface{}))
+			if err != nil {
+				t.Fatalf("Failed to delete local IVD snapshot, %v: %v", snapPEID.GetSnapshotID(), err)
+			}
+		}
+	}()
+
+	if !enableRemoteCopy {
+		logger.Infof("Skipping the remote copy of IVD snapshot based on configuration options in test")
+		return
 	}
 
 	// #5.2: Copy the IVD snapshot to specified object store
@@ -750,14 +807,140 @@ func TestBackupEncryptedIVD(t *testing.T) {
 			}
 		}
 	}()
+}
 
-	// #5.3: Delete the local IVD snapshot
-	for snapPEID, ivdPE := range snapPEIDtoIvdPEMap {
-		_, err := ivdPE.DeleteSnapshot(ctx, snapPEID.GetSnapshotID(), make(map[string]map[string]interface{}))
-		if err != nil {
-			t.Fatalf("Failed to delete local IVD snapshot, %v: %v", snapPEID.GetSnapshotID(), err)
-		}
+func CnsCreateVolume(ctx context.Context, cnsClient *cns.Client, logger logrus.FieldLogger, name string, capacity int64, datastore types.ManagedObjectReference, profile []types.BaseVirtualMachineProfileSpec) (string, error) {
+	var dsList []types.ManagedObjectReference
+	dsList = append(dsList, datastore.Reference())
+
+	var containerClusterArray []cnstypes.CnsContainerCluster
+	containerCluster := cnstypes.CnsContainerCluster{
+		ClusterType:         string(cnstypes.CnsClusterTypeKubernetes),
+		ClusterId:           "demo-cluster-id",
+		VSphereUser:         "Administrator@vsphere.local",
+		ClusterFlavor:       string(cnstypes.CnsClusterFlavorVanilla),
 	}
+	containerClusterArray = append(containerClusterArray, containerCluster)
+
+	// Test CreateVolume API
+	var cnsVolumeCreateSpecList []cnstypes.CnsVolumeCreateSpec
+	cnsVolumeCreateSpec := cnstypes.CnsVolumeCreateSpec{
+		Name:       name,
+		VolumeType: string(cnstypes.CnsVolumeTypeBlock),
+		Datastores: dsList,
+		Metadata: cnstypes.CnsVolumeMetadata{
+			ContainerCluster: containerCluster,
+		},
+		BackingObjectDetails: &cnstypes.CnsBlockBackingDetails{
+			CnsBackingObjectDetails: cnstypes.CnsBackingObjectDetails{
+				CapacityInMb: capacity,
+			},
+		},
+		Profile: profile,
+	}
+	cnsVolumeCreateSpecList = append(cnsVolumeCreateSpecList, cnsVolumeCreateSpec)
+
+	createTask, err := cnsClient.CreateVolume(ctx, cnsVolumeCreateSpecList)
+	if err != nil {
+		logger.Errorf("Failed to create volume. Error: %+v \n", err)
+		return "", err
+	}
+	createTaskInfo, err := cns.GetTaskInfo(ctx, createTask)
+	if err != nil {
+		logger.Errorf("Failed to create volume. Error: %+v \n", err)
+		return "", err
+	}
+	createTaskResult, err := cns.GetTaskResult(ctx, createTaskInfo)
+	if err != nil {
+		logger.Errorf("Failed to create volume. Error: %+v \n", err)
+		return "", err
+	}
+	if createTaskResult == nil {
+		errorMsg := "Empty create task results"
+		return "", errors.New(errorMsg)
+	}
+	createVolumeOperationRes := createTaskResult.GetCnsVolumeOperationResult()
+	if createVolumeOperationRes.Fault != nil {
+		errorMsg := fmt.Sprintf("Failed to create volume: fault=%+v", createVolumeOperationRes.Fault)
+		logger.Error(errorMsg)
+		return "", errors.New(errorMsg)
+	}
+	volumeID := createVolumeOperationRes.VolumeId.Id
+	logger.Debugf("CNS Block Volume created sucessfully. volumeId: %s", volumeID)
+
+	return volumeID, nil
+}
+
+func CnsDeleteVolume(ctx context.Context, cnsClient *cns.Client, logger logrus.FieldLogger, volumeID string) error {
+	var deleteVolumeFromSnapshotVolumeIDList []cnstypes.CnsVolumeId
+	deleteVolumeFromSnapshotVolumeIDList = append(deleteVolumeFromSnapshotVolumeIDList, cnstypes.CnsVolumeId{Id: volumeID})
+	logger.Debugf("Deleting volume: %+v", deleteVolumeFromSnapshotVolumeIDList)
+	deleteVolumeFromSnapshotTask, err := cnsClient.DeleteVolume(ctx, deleteVolumeFromSnapshotVolumeIDList, true)
+	if err != nil {
+		logger.Errorf("Failed to delete volume. Error: %+v \n", err)
+		return err
+	}
+	deleteVolumeFromSnapshotTaskInfo, err := cns.GetTaskInfo(ctx, deleteVolumeFromSnapshotTask)
+	if err != nil {
+		logger.Errorf("Failed to delete volume. Error: %+v \n", err)
+		return err
+	}
+	deleteVolumeFromSnapshotTaskResult, err := cns.GetTaskResult(ctx, deleteVolumeFromSnapshotTaskInfo)
+	if err != nil {
+		logger.Errorf("Failed to delete volume. Error: %+v \n", err)
+		return err
+	}
+	if deleteVolumeFromSnapshotTaskResult == nil {
+		errorMsg := "Empty delete task results"
+		return errors.New(errorMsg)
+	}
+	deleteVolumeFromSnapshotOperationRes := deleteVolumeFromSnapshotTaskResult.GetCnsVolumeOperationResult()
+	if deleteVolumeFromSnapshotOperationRes.Fault != nil {
+		errorMsg := fmt.Sprintf("Failed to delete volume: fault=%+v", deleteVolumeFromSnapshotOperationRes.Fault)
+		return errors.New(errorMsg)
+	}
+	logger.Debugf("CNS Block Volume: %q deleted sucessfully", volumeID)
+	return nil
+}
+
+func CnsAttachVolume(ctx context.Context, cnsClient *cns.Client, logger logrus.FieldLogger, volumeID string, vmRef types.ManagedObjectReference) error {
+	var cnsVolumeAttachSpecList []cnstypes.CnsVolumeAttachDetachSpec
+	cnsVolumeAttachSpec := cnstypes.CnsVolumeAttachDetachSpec{
+		VolumeId: cnstypes.CnsVolumeId{
+			Id: volumeID,
+		},
+		Vm: vmRef,
+	}
+	cnsVolumeAttachSpecList = append(cnsVolumeAttachSpecList, cnsVolumeAttachSpec)
+	logger.Debugf("Attaching volume using the spec: %+v", cnsVolumeAttachSpec)
+	attachTask, err := cnsClient.AttachVolume(ctx, cnsVolumeAttachSpecList)
+	if err != nil {
+		logger.Errorf("Failed to attach volume. Error: %+v \n", err)
+		return err
+	}
+	attachTaskInfo, err := cns.GetTaskInfo(ctx, attachTask)
+	if err != nil {
+		logger.Errorf("Failed to attach volume. Error: %+v \n", err)
+		return err
+	}
+	attachTaskResult, err := cns.GetTaskResult(ctx, attachTaskInfo)
+	if err != nil {
+		logger.Errorf("Failed to attach volume. Error: %+v \n", err)
+		return err
+	}
+	if attachTaskResult == nil {
+		errorMsg := "Empty attach task results"
+		return errors.New(errorMsg)
+	}
+	attachVolumeOperationRes := attachTaskResult.GetCnsVolumeOperationResult()
+	if attachVolumeOperationRes.Fault != nil {
+		errorMsg := fmt.Sprintf("Failed to attach volume: fault=%+v", attachVolumeOperationRes.Fault)
+		return errors.New(errorMsg)
+	}
+	diskUUID := interface{}(attachTaskResult).(*cnstypes.CnsVolumeAttachResult).DiskUUID
+	logger.Debugf("CNS Block Volume attached sucessfully. Disk UUID: %s", diskUUID)
+
+	return nil
 }
 
 func getProfileSpecs(profileId string) []types.BaseVirtualMachineProfileSpec {

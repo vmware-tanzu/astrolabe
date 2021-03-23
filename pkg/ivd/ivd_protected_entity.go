@@ -295,13 +295,20 @@ func (this IVDProtectedEntity) Snapshot(ctx context.Context, params map[string]m
 	retrieveSnapDetailsErr := 0
 	err := wait.PollImmediate(retryInterval, time.Hour, func() (bool, error) {
 		this.logger.Infof("Retrying CreateSnapshot on IVD Protected Entity, %v, for one hour at the maximum, Current retry count: %d", this.GetID().String(), retryCount)
+		retryCount++
 		var vslmTask *vslm.Task
 		vslmTask, err := this.ipetm.vslmManager.CreateSnapshot(ctx, NewVimIDFromPEID(this.GetID()), "AstrolabeSnapshot")
 		if err != nil {
+			if soap.IsSoapFault(err) {
+				fault := soap.ToSoapFault(err).Detail.Fault
+				if _, ok := fault.(vim.NotFound); ok {
+					this.logger.WithError(err).Errorf("Creating a task for the CreateSnapshot request failed with NotFound. Will retry in %v second(s)", retryInterval)
+					return false, nil
+				}
+			}
 			return false, errors.Wrapf(err, "Failed to create a task for the CreateSnapshot invocation on IVD Protected Entity, %v", this.id.String())
 		}
 		this.logger.Infof("Retrieved VSLM task %s to track CreateSnapshot on IVD %s", vslmTask.Value, this.GetID().String())
-		retryCount++
 		start := time.Now()
 		ivdSnapshotIDAny, err := vslmTask.Wait(ctx, waitTime)
 		this.logger.Infof("Waited for %s to retrieve Task %s status.", time.Now().Sub(start), vslmTask.Value)
