@@ -70,7 +70,7 @@ func (this PVCProtectedEntity) GetInfo(ctx context.Context) (astrolabe.Protected
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not retrieve component")
 	}
-	retPEInfo := astrolabe.NewProtectedEntityInfo(this.id, pvc.Name, this.data, this.metadata, this.combined,
+	retPEInfo := astrolabe.NewProtectedEntityInfo(this.id, pvc.Name, 0, this.data, this.metadata, this.combined,
 		[]astrolabe.ProtectedEntityID{components[0].GetID()})
 	return retPEInfo, nil
 }

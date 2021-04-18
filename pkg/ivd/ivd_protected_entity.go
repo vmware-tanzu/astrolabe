@@ -267,6 +267,7 @@ func (this IVDProtectedEntity) GetInfo(ctx context.Context) (astrolabe.Protected
 	retVal := astrolabe.NewProtectedEntityInfo(
 		this.id,
 		vso.Config.Name,
+		vso.Config.CapacityInMB * 1024 * 1024,
 		this.data,
 		this.metadata,
 		this.combined,

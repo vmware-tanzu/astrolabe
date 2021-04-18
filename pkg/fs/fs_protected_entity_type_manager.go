@@ -53,7 +53,7 @@ func (this *FSProtectedEntityTypeManager) GetTypeName() string {
 
 func (this *FSProtectedEntityTypeManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (
 	astrolabe.ProtectedEntity, error) {
-	return newFSProtectedEntity(this, id, id.GetID(), filepath.Join(this.root, id.GetID()))
+	return newFSProtectedEntity(this, id, id.GetID(), -1, filepath.Join(this.root, id.GetID()))
 }
 
 func (this *FSProtectedEntityTypeManager) GetProtectedEntities(ctx context.Context) ([]astrolabe.ProtectedEntityID, error) {
@@ -121,7 +121,7 @@ func (this *FSProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEI
 		panic("uuid.NewRandom return err ")
 	}
 	newPEID := astrolabe.NewProtectedEntityID(kTYPE_NAME, fsUUID.String())
-	newPE, err := newFSProtectedEntity(this, newPEID, sourcePEInfo.GetName(), filepath.Join(this.root, newPEID.GetID()))
+	newPE, err := newFSProtectedEntity(this, newPEID, sourcePEInfo.GetName(), -1, filepath.Join(this.root, newPEID.GetID()))
 	if err != nil {
 		return nil, err
 	}

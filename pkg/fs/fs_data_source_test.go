@@ -26,7 +26,7 @@ import (
 func TestFSDataSource(t *testing.T) {
 	t.Log("TestFSDataSource called")
 
-	fs, err := newFSProtectedEntity(nil, astrolabe.ProtectedEntityID{}, "test", "/Users/dsmithuchida/Downloads")
+	fs, err := newFSProtectedEntity(nil, astrolabe.ProtectedEntityID{}, "test", 0, "/Users/dsmithuchida/Downloads")
 	if err != nil {
 		t.Fatal("Got error " + err.Error())
 	}
