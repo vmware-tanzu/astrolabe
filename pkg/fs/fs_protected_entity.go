@@ -36,6 +36,7 @@ type FSProtectedEntity struct {
 	fspetm   *FSProtectedEntityTypeManager
 	id       astrolabe.ProtectedEntityID
 	name     string
+	size     int64
 	root     string
 	data     []astrolabe.DataTransport
 	metadata []astrolabe.DataTransport
@@ -48,7 +49,7 @@ func newProtectedEntityID(id vim.ID) astrolabe.ProtectedEntityID {
 }
 
 func newFSProtectedEntity(fspetm *FSProtectedEntityTypeManager, id astrolabe.ProtectedEntityID,
-	name string, root string) (FSProtectedEntity, error) {
+	name string, size int64, root string) (FSProtectedEntity, error) {
 	data, metadata, combined, err := fspetm.getDataTransports(id)
 	if err != nil {
 		return FSProtectedEntity{}, err
@@ -57,6 +58,7 @@ func newFSProtectedEntity(fspetm *FSProtectedEntityTypeManager, id astrolabe.Pro
 		fspetm:   fspetm,
 		id:       id,
 		name:     name,
+		size:     size,
 		root:     root,
 		data:     data,
 		metadata: metadata,
@@ -69,6 +71,7 @@ func (this FSProtectedEntity) GetInfo(ctx context.Context) (astrolabe.ProtectedE
 	retVal := astrolabe.NewProtectedEntityInfo(
 		this.id,
 		this.name,
+		this.size,
 		this.data,
 		this.metadata,
 		this.combined,

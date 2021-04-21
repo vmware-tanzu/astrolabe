@@ -305,7 +305,8 @@ func (this *ProtectedEntityTypeManager) copyInt(ctx context.Context, sourcePEInf
 	combinedTransports := []astrolabe.DataTransport{}
 
 	rPEInfo := astrolabe.NewProtectedEntityInfo(sourcePEInfo.GetID(), sourcePEInfo.GetName(),
-		dataTransports, metadataTransports, combinedTransports, sourcePEInfo.GetComponentIDs())
+		sourcePEInfo.GetSize(), dataTransports, metadataTransports, combinedTransports,
+		sourcePEInfo.GetComponentIDs())
 
 	rpe := ProtectedEntity{
 		rpetm:  this,

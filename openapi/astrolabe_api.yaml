@@ -350,6 +350,8 @@ definitions:
         type: array
       name:
         type: string
+      size:
+        type: integer
     required:
       - id
       - name

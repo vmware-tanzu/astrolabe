@@ -42,6 +42,9 @@ type ProtectedEntityInfo struct {
 	// name
 	// Required: true
 	Name *string `json:"name"`
+
+	// size
+	Size int64 `json:"size,omitempty"`
 }
 
 // Validate validates this protected entity info

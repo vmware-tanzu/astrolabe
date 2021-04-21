@@ -1,0 +1,1 @@
+Added a size attribute for Protected Entities.  -1 can be used to indicate the size is unknown/uncomputed
