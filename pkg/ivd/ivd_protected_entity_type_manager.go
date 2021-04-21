@@ -58,7 +58,8 @@ func NewIVDProtectedEntityTypeManager(params map[string]interface{},
 	logger.Infof("Loading new IVD Protected Entity Manager")
 	err := retVal.ReloadConfig(context.Background(), params)
 	if err != nil {
-		return nil, err
+		logger.Errorf("Could not initialize ivd service, error: %v", err)
+		logger.Warn("Saving uninitialized ivd service, will retry on service access..")
 	}
 	return &retVal, nil
 }
@@ -68,6 +69,10 @@ func (this *IVDProtectedEntityTypeManager) GetTypeName() string {
 }
 
 func (this *IVDProtectedEntityTypeManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
+	err := this.CheckVcenterConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	retIPE, err := newIVDProtectedEntity(this, id)
 	if err != nil {
 		return nil, err
@@ -76,6 +81,10 @@ func (this *IVDProtectedEntityTypeManager) GetProtectedEntity(ctx context.Contex
 }
 
 func (this *IVDProtectedEntityTypeManager) GetProtectedEntities(ctx context.Context) ([]astrolabe.ProtectedEntityID, error) {
+	err := this.CheckVcenterConnections(ctx)
+	if err != nil {
+		return []astrolabe.ProtectedEntityID{}, err
+	}
 	// Kludge because of PR
 	spec := vslmtypes.VslmVsoVStorageObjectQuerySpec{
 		QueryField:    "createTime",
@@ -286,31 +295,61 @@ func (this *IVDProtectedEntityTypeManager) getDataTransports(id astrolabe.Protec
 	return data, md, combined, nil
 }
 
+func (this *IVDProtectedEntityTypeManager) CheckVcenterConnections(ctx context.Context) error {
+	this.logger.Infof("Checking vCenter connections...")
+	if this.vcenter == nil || this.vslmManager == nil || this.cnsManager == nil {
+		err := this.ReloadConfig(ctx, make(map[string]interface{}))
+		if err != nil {
+			this.logger.Errorf("The vCenter is disconnected, error: %v", err)
+			return err
+		}
+	}
+	this.logger.Infof("vCenter connected, proceeding with operation")
+	return nil
+}
+
 func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, params map[string]interface{}) error {
 	configLoadLock.Lock()
 	defer configLoadLock.Unlock()
 	this.logger.Debug("Started Load Config of IVD Protected Entity Manager")
-	newVcConfig, err := vsphere.GetVirtualCenterConfigFromParams(params, this.logger)
-	if err != nil {
-		this.logger.Errorf("Failed to populate VirtualCenterConfig during reload %v", err)
-		return err
+	var newVcConfig *vsphere.VirtualCenterConfig
+	var err error
+	if len(params) == 0  {
+		// vc operation path, for example createSnapshot.
+		// Used to verify if the connections are still up.
+		// Will be using the last known vcenter config for the checks.
+		newVcConfig = this.vcenterConfig
+	} else {
+		// The params are possibly updated, this is the password rotation path.
+		newVcConfig, err = vsphere.GetVirtualCenterConfigFromParams(params, this.logger)
+		if err != nil {
+			this.logger.Errorf("Failed to populate VirtualCenterConfig during reload %v", err)
+			return err
+		}
 	}
 	configChanged := vsphere.CheckIfVirtualCenterConfigChanged(this.vcenterConfig, newVcConfig)
 	if !configChanged {
 		this.logger.Debug("No VirtualCenterConfig change detected during periodic reload.")
-		return nil
-	}
-	this.logger.Infof("Detected VirtualCenterConfig change during periodic reload.")
-	if this.vcenter != nil {
-		// Disconnecting older vc instance.
-		err = this.vcenter.Disconnect(ctx)
-		if err != nil {
-			this.logger.Errorf("Failed to disconnect older vcenter instance.")
-			return err
+		// Check if the connections are initialized.
+		if this.vcenter != nil {
+			this.logger.Debug("The vcenter connections are alive, no reload necessary.")
+			// the vcenter connection is initialized, nothing to do
+			return nil
+		}
+	} else {
+		this.logger.Infof("Detected VirtualCenterConfig change during periodic reload.")
+		// Detected config change.
+		this.vcenterConfig = newVcConfig
+		if this.vcenter != nil {
+			// Disconnecting older vc instance.
+			err = this.vcenter.Disconnect(ctx)
+			if err != nil {
+				this.logger.Errorf("Failed to disconnect older vcenter instance.")
+				return err
+			}
 		}
 	}
-	// Detected config change.
-	this.vcenterConfig = newVcConfig
+	// continue to establish the connection.
 	reloadedVc, vslmClient, cnsClient, err := vsphere.GetVirtualCenter(ctx, newVcConfig, this.logger)
 	if err != nil {
 		return err
