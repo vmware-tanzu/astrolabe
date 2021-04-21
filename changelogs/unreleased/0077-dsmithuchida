@@ -1,0 +1,1 @@
+Added ZipProtectedEntity (pkg/astrolabe/pe_zip.go).  This allows a protected entity inside a Zip file to be accessed.
