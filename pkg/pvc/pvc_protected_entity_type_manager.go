@@ -173,7 +173,7 @@ func (this *PVCProtectedEntityTypeManager) CreateFromMetadata(ctx context.Contex
 			// Save succeeded.
 			if err != nil {
 				this.logger.Infof("PVC %s/%s already exists, reusing", pvc.Namespace, pvc.Name)
-				err = nil
+				return nil, nil
 			} else {
 				this.logger.Infof("PVC %s/%s saved", pvc.Namespace, pvc.Name)
 			}
