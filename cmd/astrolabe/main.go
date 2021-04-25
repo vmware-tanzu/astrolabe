@@ -309,7 +309,7 @@ func cp(c *cli.Context) error {
 
 func zipPE(ctx context.Context, pe astrolabe.ProtectedEntity, writer io.WriteCloser) {
 	defer writer.Close()
-	err := astrolabe.ZipProtectedEntity(ctx, pe, writer)
+	err := astrolabe.ZipProtectedEntityToWriter(ctx, pe, writer)
 	if err != nil {
 		log.Fatalf("Failed to zip protected entity %s, err = %v", pe.GetID().String(), err)
 	}
