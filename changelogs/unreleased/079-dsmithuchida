@@ -1,0 +1,6 @@
+Fixed a bug in the s3repository 
+RepositoryProtectedEntityTypeManager.GetProtectedEntitiesByIDPrefix that was
+not handling pagination in results properly.  This call would loop if there were
+more than 1000 results matching the prefix.  Fixed to use the NextContinuationToken
+instead of ContinuationToken for the where to start the next loop
+
