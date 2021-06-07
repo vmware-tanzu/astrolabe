@@ -20,10 +20,11 @@ import (
 	"archive/zip"
 	"context"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 func ZipProtectedEntityToWriter(ctx context.Context, pe ProtectedEntity, writer io.Writer) error {
@@ -109,6 +110,33 @@ func ZipProtectedEntityToWriter(ctx context.Context, pe ProtectedEntity, writer 
 		return errors.Wrapf(err, "Zipwriter close failed for for %s", pe.GetID().String())
 	}
 	return nil
+}
+
+func zipPE(ctx context.Context, pe ProtectedEntity, writer io.WriteCloser) error {
+	defer writer.Close()
+	err := ZipProtectedEntityToWriter(ctx, pe, writer)
+	if err != nil {
+		return errors.Errorf("Failed to zip protected entity %s, err = %v", pe.GetID().String(), err)
+	}
+	return nil
+}
+
+func ZipProtectedEntityToFile(ctx context.Context, srcPE ProtectedEntity, zipFileWriter io.WriteCloser) (bytesWritten int64, err error) {
+	reader, writer := io.Pipe()
+	go func() {
+		err = zipPE(ctx, srcPE, writer)
+	}()
+	if err != nil {
+		return
+	}
+
+	bytesWritten, err = io.Copy(zipFileWriter, reader)
+	if err != nil {
+		err = errors.Errorf("Error copying %v", err)
+		return
+	}
+
+	return
 }
 
 type ZipProtectedEntity struct {
@@ -212,4 +240,18 @@ func GetPEFromZipStream(ctx context.Context, reader io.ReaderAt, size int64) (Pr
 		// TODO - Should log an error here for unknown type
 	}
 	return retEntity, nil
+}
+
+func UnzipFileToProtectedEntity(ctx context.Context, zipFileReader io.ReaderAt, zipFileSize int64, destPE ProtectedEntity) error {
+	srcPE, err := GetPEFromZipStream(ctx, zipFileReader, zipFileSize)
+	if err != nil {
+		return errors.Errorf("Got err %v when unzipping PE from the source zip file", err)
+	}
+
+	var params map[string]map[string]interface{}
+	if err := destPE.Overwrite(ctx, srcPE, params, true); err != nil {
+		return errors.Errorf("Got err %v overwriting the dest PE %v with source PE %v", err, destPE.GetID(), srcPE.GetID())
+	}
+
+	return nil
 }

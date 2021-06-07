@@ -5,21 +5,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"gotest.tools/assert"
 	"io"
 	"io/ioutil"
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/google/uuid"
+	"gotest.tools/assert"
 )
 
 type DummyReaderAt struct {
 	dummyData []byte
-	closed *bool
-	size int64
-	offset * int64	// Offset in our stream
-	mutex * sync.Mutex
+	closed    *bool
+	size      int64
+	offset    *int64 // Offset in our stream
+	mutex     *sync.Mutex
 }
 
 func NewDummyReaderAt(dummyData []byte, size int64) DummyReaderAt {
@@ -28,10 +29,10 @@ func NewDummyReaderAt(dummyData []byte, size int64) DummyReaderAt {
 	var closed bool
 	return DummyReaderAt{
 		dummyData: dummyData,
-		size:size,
-		offset: &offset,
-		mutex: &mutex,
-		closed: &closed,
+		size:      size,
+		offset:    &offset,
+		mutex:     &mutex,
+		closed:    &closed,
 	}
 }
 
@@ -41,8 +42,8 @@ func (recv DummyReaderAt) ReadAt(buf []byte, off int64) (bytesRead int, err erro
 	} else {
 		// Tiles recv.dummyData into the buffer.  off and dummyData may not be alig*-
 		bytesRead = 0
-		if off + int64(len(buf)) > recv.size {
-			err = io.EOF	// We're not going to return the number of bytes asked so set EOF here
+		if off+int64(len(buf)) > recv.size {
+			err = io.EOF // We're not going to return the number of bytes asked so set EOF here
 		}
 		if off < recv.size {
 			dummyOff := int(off % int64(len(recv.dummyData)))
@@ -55,12 +56,12 @@ func (recv DummyReaderAt) ReadAt(buf []byte, off int64) (bytesRead int, err erro
 			}
 			for bytesRead+len(recv.dummyData) < len(buf) && // Not going to overflow the buffer with a full write of dummyData
 				len(buf)-bytesRead >= len(recv.dummyData) && // Need a full write of dummyData
-				off + int64(bytesRead + len(recv.dummyData)) < recv.size /* Not going past the end*/{
+				off+int64(bytesRead+len(recv.dummyData)) < recv.size /* Not going past the end*/ {
 				bytesRead += copy(buf[bytesRead:], recv.dummyData)
 			}
-			if off + int64(bytesRead) < recv.size /* Not going past the end*/ {
-				dummyEnd := len(buf)-bytesRead
-				if off + int64(bytesRead + dummyEnd) > recv.size {
+			if off+int64(bytesRead) < recv.size /* Not going past the end*/ {
+				dummyEnd := len(buf) - bytesRead
+				if off+int64(bytesRead+dummyEnd) > recv.size {
 					dummyEnd = int(recv.size - (off + int64(bytesRead)))
 				}
 				bytesRead += copy(buf[bytesRead:], recv.dummyData[:dummyEnd])
@@ -85,11 +86,10 @@ func (recv DummyReaderAt) Close() (err error) {
 	return
 }
 
-
 type DummyPE struct {
 	info       ProtectedEntityInfoImpl
 	mdSize     int32
-	components [] ProtectedEntity
+	components []ProtectedEntity
 }
 
 func (recv DummyPE) GetInfo(ctx context.Context) (ProtectedEntityInfo, error) {
@@ -125,11 +125,11 @@ func (recv DummyPE) GetID() ProtectedEntityID {
 }
 
 func (recv DummyPE) GetDataReader(ctx context.Context) (io.ReadCloser, error) {
-	return NewDummyReaderAt([]byte("data-" + recv.GetID().String()), recv.info.size), nil
+	return NewDummyReaderAt([]byte("data-"+recv.GetID().String()), recv.info.size), nil
 }
 
 func (recv DummyPE) GetMetadataReader(ctx context.Context) (io.ReadCloser, error) {
-	return NewDummyReaderAt([]byte("md-" + recv.GetID().String()), int64(recv.mdSize)), nil
+	return NewDummyReaderAt([]byte("md-"+recv.GetID().String()), int64(recv.mdSize)), nil
 
 }
 
@@ -162,7 +162,7 @@ func compareReaders(reader1 io.Reader, reader2 io.Reader, expectedBytes int64) (
 		err = errors.New(fmt.Sprintf("Expected %d bytes, read %d", expectedBytes, offset))
 	}
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
-		err = nil		// EOF is expected
+		err = nil // EOF is expected
 	}
 	return
 }
@@ -175,16 +175,16 @@ func TestZipUnZipSinglePE(t *testing.T) {
 	}
 	name := "dummy-" + id.String()
 	srcPE := DummyPE{
-		info:       ProtectedEntityInfoImpl{
+		info: ProtectedEntityInfoImpl{
 			id:   NewProtectedEntityID("dmy", id.String()),
 			name: name,
-			size: 1024*1024,
+			size: 1024 * 1024,
 		},
 		mdSize:     1024,
 		components: nil,
 	}
 
-	file, err := ioutil.TempFile("", name + ".zip")
+	file, err := ioutil.TempFile("", name+".zip")
 	if err != nil {
 		t.Errorf("Got err %v creating temp file", err)
 	}
@@ -235,4 +235,3 @@ func TestZipUnZipSinglePE(t *testing.T) {
 	}
 
 }
-
