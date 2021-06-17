@@ -22,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
+	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 	"github.com/vmware/govmomi/vslm"
@@ -35,6 +36,7 @@ import (
 const vsphereMajor = 6
 const vSphereMinor = 7
 const disklibLib64 = "/usr/lib/vmware-vix-disklib/lib64"
+const vddkconfig = "vddk-config"
 
 var configLoadLock sync.Mutex
 
@@ -378,11 +380,31 @@ func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, par
 		this.cnsManager.ResetManager(reloadedVc, cnsClient)
 	}
 
-	err = disklib.Init(vsphereMajor, vSphereMinor, disklibLib64)
+	// check whether customized vddk config is provided.
+	// currently only support user to modify vixdisklib nfc log level and transport log level
+	path := ""
+	if _, ok := params[vddkconfig]; !ok {
+		this.logger.Info("No customized vddk log level provided, set vddk log level as default")
+	} else {
+		this.logger.Infof("Customized vddk config provided: %v", params[vddkconfig])
+		vddkConfig := params[vddkconfig].(map[string]string)
+		path, err = util.CreateConfigFile(vddkConfig, this.logger)
+		if err != nil {
+			this.logger.Error("Failed to create config file for vddk. Cannot proceed to init vddk lib")
+			return errors.Wrap(err, "Failed to create config file")
+		}
+	}
+	err = disklib.InitEx(vsphereMajor, vSphereMinor, disklibLib64, path)
 	if err != nil {
-		return errors.Wrap(err, "Could not initialize VDDK during config reload.")
+		return errors.Wrap(err, "Could not initialize VDDK during config reload")
+	}
+	if path != "" {
+		err = util.DeleteConfigFile(path, this.logger)
+		if err != nil {
+			return errors.Wrap(err, "Failed to delete config file")
+		}
 	}
 	this.logger.Infof("Initialized VDDK")
-	this.logger.Infof("Load Config of IVD Protected Entity Manager completed successfully.")
+	this.logger.Infof("Load Config of IVD Protected Entity Manager completed successfully")
 	return nil
 }

@@ -27,7 +27,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/vmware/govmomi v0.22.2-0.20200329013745-f2eef8fc745f
-	github.com/vmware/virtual-disks v0.0.2
+	github.com/vmware/virtual-disks v0.0.4
 	go.mongodb.org/mongo-driver v1.3.1 // indirect
 	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
