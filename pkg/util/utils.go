@@ -8,10 +8,13 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"os"
 	"strings"
 )
 
 // TODO: Merge constants from plugin and here
+const VddkConfigPath = "/tmp/config"
+
 const (
 	VCSecretNs             = "kube-system"
 	VCSecretNsSupervisor   = "vmware-system-csi"
@@ -180,4 +183,69 @@ func GetClusterFlavor(config *rest.Config) (ClusterFlavor, error) {
 
 	// Did not match any search criteria. Unknown cluster flavor.
 	return Unknown, errors.New("GetClusterFlavor: Failed to identify cluster flavor")
+}
+
+func CreateConfigFile(vddkConfig map[string]string, logger logrus.FieldLogger) (string, error) {
+	path := VddkConfigPath
+	logger.Infof("Customized vddk config: %v", vddkConfig)
+	err := createFile(path, vddkConfig, logger)
+	if err != nil {
+		logger.WithError(err).Error("Failed to create config file")
+		return "", err
+	}
+	return path, nil
+}
+
+func DeleteConfigFile(path string, logger logrus.FieldLogger) error {
+	return deleteFile(path, logger)
+}
+
+func createFile(path string, config map[string]string, logger logrus.FieldLogger) error {
+	// check if file exists
+	var _, err = os.Stat(path)
+
+	// create file if not exists
+	if os.IsNotExist(err) {
+		var file, err = os.Create(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+	}
+
+	file, err := os.OpenFile(path, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for k, v := range config {
+		logger.Infof("Writing config %s=%s", k, v)
+		// Write some text line-by-line to file.
+		_, err = file.WriteString(k + "=" + v + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	// Save file changes.
+	err = file.Sync()
+	if err != nil {
+		return err
+	}
+
+	logger.Debugf("Config File %v Created Successfully", path)
+	return nil
+}
+
+func deleteFile(path string, logger logrus.FieldLogger) error {
+	// delete file
+	var err = os.Remove(path)
+	if err != nil {
+		logger.Errorf("Failed to delete config file %s", path)
+		return err
+	}
+
+	logger.Debugf("File %s Deleted", path)
+	return nil
 }
