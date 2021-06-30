@@ -119,6 +119,11 @@ func (this *VirtualCenter) newClient(ctx context.Context) (*govmomi.Client, erro
 		log.Errorf("failed to parse URL %s with err: %v", url, err)
 		return nil, err
 	}
+	if this.Config.Insecure == false {
+		log.Warnf("The vCenter Configuration states secure connection, overriding to use insecure connection..")
+		this.Config.Insecure = true
+		// TODO: support vCenter connection using certs.
+	}
 	soapClient := soap.NewClient(url, this.Config.Insecure)
 	soapClient.Timeout = time.Duration(this.Config.VCClientTimeout) * time.Minute
 	log.Debugf("Setting vCenter soap client timeout to %v", soapClient.Timeout)
