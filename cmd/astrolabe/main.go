@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -98,7 +99,7 @@ func main() {
 func setupProtectedEntityManager(c *cli.Context) (pem astrolabe.ProtectedEntityManager, err error) {
 	confDirStr := c.String("confDir")
 	if confDirStr != "" {
-		pem = server.NewProtectedEntityManager(confDirStr)
+		pem = server.NewProtectedEntityManager(confDirStr, nil, logrus.StandardLogger())
 		return
 	}
 	host := c.String("host")
