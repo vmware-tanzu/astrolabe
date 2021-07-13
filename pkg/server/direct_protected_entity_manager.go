@@ -25,7 +25,6 @@ import (
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
 	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
-	"github.com/vmware-tanzu/astrolabe/pkg/kubernetes"
 	"github.com/vmware-tanzu/astrolabe/pkg/pvc"
 	"io/ioutil"
 	"log"
@@ -33,6 +32,10 @@ import (
 	"path/filepath"
 	"strings"
 )
+
+type InitFunc func(params map[string]interface{},
+	s3Config astrolabe.S3Config,
+	logger logrus.FieldLogger) (astrolabe.ProtectedEntityTypeManager, error)
 
 type DirectProtectedEntityManager struct {
 	typeManager map[string]astrolabe.ProtectedEntityTypeManager
@@ -56,15 +59,24 @@ func NewDirectProtectedEntityManager(petms []astrolabe.ProtectedEntityTypeManage
 	return
 }
 
-func NewDirectProtectedEntityManagerFromConfigDir(confDirPath string) *DirectProtectedEntityManager {
+func NewDirectProtectedEntityManagerFromConfigDir(confDirPath string, addonInits map[string]InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
 	configInfo, err := readConfigFiles(confDirPath)
 	if err != nil {
 		log.Fatalf("Could not read config files from dir %s, err: %v", confDirPath, err)
 	}
-	return NewDirectProtectedEntityManagerFromParamMap(configInfo, nil)
+	return NewDirectProtectedEntityManagerFromParamMap(configInfo, addonInits, logger)
 }
 
-func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger logrus.FieldLogger) *DirectProtectedEntityManager {
+func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, addonInits map[string]InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
+	initFuncs := make(map[string]InitFunc)
+	initFuncs["ivd"] = ivd.NewIVDProtectedEntityTypeManager
+	initFuncs["fs"] = fs.NewFSProtectedEntityTypeManagerFromConfig
+	initFuncs["pvc"] = pvc.NewPVCProtectedEntityTypeManagerFromConfig
+	if addonInits != nil {
+		for peType, initFunc := range addonInits {
+			initFuncs[peType] = initFunc
+		}
+	}
 	petms := make([]astrolabe.ProtectedEntityTypeManager, 0) // No guarantee all configs will be valid, so don't preallocate
 	var err error
 	if logger == nil {
@@ -72,25 +84,18 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, logger l
 	}
 	for serviceName, params := range configInfo.PEConfigs {
 		var curService astrolabe.ProtectedEntityTypeManager
-		switch serviceName {
-		case "ivd":
-			curService, err = ivd.NewIVDProtectedEntityTypeManager(params, configInfo.S3Config, logger)
-		case "k8sns":
-			curService, err = kubernetes.NewKubernetesNamespaceProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config,
-				logger)
-		case "fs":
-			curService, err = fs.NewFSProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
-		case "pvc":
-			curService, err = pvc.NewPVCProtectedEntityTypeManagerFromConfig(params, configInfo.S3Config, logger)
-		default:
+		initFunc := initFuncs[serviceName]
+		if initFunc != nil {
+			curService, err = initFunc(params, configInfo.S3Config, logger)
+			if err != nil {
+				logger.Infof("Could not start service %s err=%v", serviceName, err)
+				continue
+			}
+			if curService != nil {
+				petms = append(petms, curService)
+			}
+		} else {
 			logger.Warnf("Unknown service type, %v", serviceName)
-		}
-		if err != nil {
-			logger.Infof("Could not start service %s err=%v", serviceName, err)
-			continue
-		}
-		if curService != nil {
-			petms = append(petms, curService)
 		}
 	}
 	return NewDirectProtectedEntityManager(petms, configInfo.S3Config, logger)

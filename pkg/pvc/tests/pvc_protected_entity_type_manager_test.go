@@ -55,7 +55,7 @@ func TestGetPVCComponents(t *testing.T) {
 		URLBase: "VOID_URL",
 	})
 
-	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
+	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, nil, logger)
 
 	pvc_petm := pem.GetProtectedEntityTypeManager("pvc")
 	if pvc_petm == nil {
@@ -122,7 +122,7 @@ func TestSnapshotOps(t *testing.T) {
 		URLBase: "VOID_URL",
 	})
 
-	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
+	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, nil, logger)
 
 	pvc_petm := pem.GetProtectedEntityTypeManager("pvc")
 	if pvc_petm == nil {
@@ -209,7 +209,7 @@ func TestCreateVolumeFromMetadata(t *testing.T) {
 		URLBase: "VOID_URL",
 	})
 
-	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
+	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, nil, logger)
 
 	pvc_petm := pem.GetProtectedEntityTypeManager("pvc")
 	if pvc_petm == nil {
@@ -291,7 +291,7 @@ func TestCreateVolumeFromMetadataAndS3(t *testing.T) {
 		URLBase: "VOID_URL",
 	})
 
-	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, logger)
+	pem := server.NewDirectProtectedEntityManagerFromParamMap(configInfo, nil, logger)
 
 	pvc_petm := pem.GetProtectedEntityTypeManager("pvc")
 	if pvc_petm == nil {

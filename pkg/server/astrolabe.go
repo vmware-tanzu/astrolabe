@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"github.com/labstack/echo"
+	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"net/http"
 )
@@ -29,8 +30,8 @@ type Astrolabe struct {
 	s3_services  map[string]*ServiceS3
 }
 
-func NewProtectedEntityManager(confDirPath string) astrolabe.ProtectedEntityManager {
-	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath)
+func NewProtectedEntityManager(confDirPath string, addonInits map[string]InitFunc, logger logrus.FieldLogger) astrolabe.ProtectedEntityManager {
+	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath, addonInits, logger)
 	var pem astrolabe.ProtectedEntityManager
 	pem = dpem
 	return pem
