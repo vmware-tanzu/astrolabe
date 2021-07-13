@@ -22,9 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"github.com/vmware-tanzu/astrolabe/pkg/common/vsphere"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
-	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
 	"log"
 	"testing"
 )
@@ -190,6 +188,7 @@ func TestRetrieveEntity(t *testing.T) {
 
 	*/
 }
+/*
 func TestCopyIVDProtectedEntity(t *testing.T) {
 	s3petm, err := setupPETM(t, "ivd")
 	if err != nil {
@@ -290,3 +289,4 @@ func TestCopyIVDProtectedEntity(t *testing.T) {
 		}
 	*/
 }
+*/

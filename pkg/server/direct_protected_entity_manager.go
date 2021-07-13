@@ -24,7 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
-	"github.com/vmware-tanzu/astrolabe/pkg/ivd"
 	"github.com/vmware-tanzu/astrolabe/pkg/pvc"
 	"io/ioutil"
 	"log"
@@ -69,7 +68,6 @@ func NewDirectProtectedEntityManagerFromConfigDir(confDirPath string, addonInits
 
 func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, addonInits map[string]InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
 	initFuncs := make(map[string]InitFunc)
-	initFuncs["ivd"] = ivd.NewIVDProtectedEntityTypeManager
 	initFuncs["fs"] = fs.NewFSProtectedEntityTypeManagerFromConfig
 	initFuncs["pvc"] = pvc.NewPVCProtectedEntityTypeManagerFromConfig
 	if addonInits != nil {

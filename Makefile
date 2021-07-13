@@ -19,7 +19,7 @@ export GOFLAGS=-mod=readonly
 
 all: build
 
-build: model-gen client-gen astrolabe ivd kubernetes pvc s3repository fs server client astrolabe_server astrolabe_cli
+build: model-gen client-gen astrolabe kubernetes pvc s3repository fs server client astrolabe_server astrolabe_cli
 
 astrolabe_server: 
 	cd cmd/astrolabe_server; go build
@@ -30,11 +30,8 @@ astrolabe_cli:
 astrolabe: 
 	cd pkg/astrolabe; go build
 
-ivd: 
-	cd pkg/ivd; go build
-
 fs: 
-	cd pkg/ivd; go build
+	cd pkg/fs; go build
 
 s3repository: 
 	cd pkg/s3repository; go build
