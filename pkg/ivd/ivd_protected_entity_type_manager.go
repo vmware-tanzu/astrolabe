@@ -346,8 +346,8 @@ func (this *IVDProtectedEntityTypeManager) ReloadConfig(ctx context.Context, par
 			// Disconnecting older vc instance.
 			err = this.vcenter.Disconnect(ctx)
 			if err != nil {
-				this.logger.Errorf("Failed to disconnect older vcenter instance.")
-				return err
+				this.logger.Warnf("Failed to disconnect older vcenter instance," +
+					" ignoring and proceeding, err: %+v", err)
 			}
 		}
 	}
