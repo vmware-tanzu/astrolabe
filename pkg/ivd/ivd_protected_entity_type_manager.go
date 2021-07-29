@@ -51,7 +51,7 @@ type IVDProtectedEntityTypeManager struct {
 
 func NewIVDProtectedEntityTypeManager(params map[string]interface{},
 	s3Config astrolabe.S3Config,
-	logger logrus.FieldLogger) (*IVDProtectedEntityTypeManager, error) {
+	logger logrus.FieldLogger) (astrolabe.ProtectedEntityTypeManager, error) {
 	logger.Infof("Initializing IVD Protected Entity Manager")
 	retVal := IVDProtectedEntityTypeManager{
 		s3Config:      s3Config,

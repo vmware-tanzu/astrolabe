@@ -36,7 +36,7 @@ type FSProtectedEntityTypeManager struct {
 const kTYPE_NAME = "fs"
 
 func NewFSProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
-	logger logrus.FieldLogger) (*FSProtectedEntityTypeManager, error) {
+	logger logrus.FieldLogger) (astrolabe.ProtectedEntityTypeManager, error) {
 	root := params["root"].(string)
 
 	returnTypeManager := FSProtectedEntityTypeManager{

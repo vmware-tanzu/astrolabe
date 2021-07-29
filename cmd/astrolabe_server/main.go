@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"github.com/go-openapi/loads"
+	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi/operations"
 	"github.com/vmware-tanzu/astrolabe/pkg/server"
@@ -44,7 +45,7 @@ func main() {
 		log.Printf("apiPort %s is not an integer\n", *apiPortStr)
 		os.Exit(1)
 	}
-	pem := server.NewProtectedEntityManager(*confDirStr)
+	pem := server.NewProtectedEntityManager(*confDirStr, nil, logrus.StandardLogger())
 	tm := server.NewTaskManager()
 	apiHandler := server.NewOpenAPIAstrolabeHandler(pem, tm)
 	// load embedded swagger file

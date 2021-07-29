@@ -36,7 +36,7 @@ restConfig - *rest.Config - if set, this will be used
 if restConfig is not set, masterURL and kubeConfigPath will be used.  Either can be set
 */
 func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s3Config astrolabe.S3Config,
-	logger logrus.FieldLogger) (*PVCProtectedEntityTypeManager, error) {
+	logger logrus.FieldLogger) (astrolabe.ProtectedEntityTypeManager, error) {
 	var err error
 	var config *rest.Config
 	config, ok := params["restConfig"].(*rest.Config)
