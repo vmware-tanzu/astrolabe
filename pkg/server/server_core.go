@@ -24,21 +24,21 @@ import (
 	"github.com/vmware-tanzu/astrolabe/gen/restapi"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi/operations"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"log"
 	"strconv"
 )
 
 func ServerMain(addonInits map[string]InitFunc) {
+	log := logrus.StandardLogger()
 	server, _, err := ServerInit(addonInits)
 	if err != nil {
-		log.Println("Error initializing server = %v\n", err)
+		log.Errorf("Error initializing server = %v", err)
 		return
 	}
 	defer server.Shutdown()
 
 	// serve API
 	if err := server.Serve(); err != nil {
-		log.Fatalln(err)
+		log.Errorf("Fatal error while serving %v", err)
 	}
 }
 
@@ -53,7 +53,7 @@ func ServerInit(addonInits map[string]InitFunc) (*restapi.Server, astrolabe.Prot
 	}
 	apiPort, err := strconv.Atoi(*apiPortStr)
 	if err != nil {
-		log.Fatalln("apiPort %s is not an integer\n", *apiPortStr)
+		return nil, nil, errors.Errorf("apiPort %s is not an integer\n", *apiPortStr)
 	}
 	pem := NewProtectedEntityManager(*confDirStr, addonInits, logrus.New())
 	tm := NewTaskManager()
@@ -61,7 +61,7 @@ func ServerInit(addonInits map[string]InitFunc) (*restapi.Server, astrolabe.Prot
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
 	if err != nil {
-		log.Fatalln(err)
+		return nil, nil, errors.WithMessage(err, "Could not load swagger spec")
 	}
 
 	// create new service API
