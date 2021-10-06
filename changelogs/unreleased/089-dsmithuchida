@@ -1,0 +1,1 @@
+Added BlockSourceReader that provides a generic byte stream wrapper for block oriented BlockSource providers
