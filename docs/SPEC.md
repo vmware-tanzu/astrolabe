@@ -1,4 +1,5 @@
 Astrolabe Specification
+![](images/402465-astrolabe-os-logo-FINAL.svg)
 # Overview
 Astrolabe is a framework for data protection.
 It provides an abstraction designed for data protection.  Astrolabe abstracts the different
