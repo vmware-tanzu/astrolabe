@@ -1,3 +1,5 @@
+![](docs/images/402465-astrolabe-os-logo-FINAL.svg)
+
 ## Overview
 
 Modern distributed applications are complex.  They may consist of containers,
@@ -12,6 +14,7 @@ extraction, copying and restoration.
 
 The Astrolabe project consists of:
 
+* Kubernetes CRD API (in-progress)
 * OpenAPI API specification
 * Reference server implementation
 * Reference Protected Entity implementations
