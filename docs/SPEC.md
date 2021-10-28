@@ -44,12 +44,12 @@ Name Space.  It also finds Component Protected Entities of the namespace.  Curre
 of the Persistent Volumes, mapped to their lower level PEs (FCD, EBS).  K8S Namespace metadata is provided
 via an S3 URI.
 
-### VMWare First Class Disk
-A VMWare First Class Disk represents a VMWare virtual disk (vmdk).  First Class Disks (FCDs are addressable
-by UUID.  They have an independent lifecycle from a VMWare virtual machine, unlike traditional VMware disks.
+### VMware First Class Disk
+A VMware First Class Disk represents a VMware virtual disk (vmdk).  First Class Disks (FCDs are addressable
+by UUID.  They have an independent lifecycle from a VMware virtual machine, unlike traditional VMware disks.
 
 An FCD Protected Entity may be snapshotted.  The data and metadata of the FCD is available via the S3 URIs as
-well as via VMWare VADP.
+well as via VMware VADP.
 
 The FCD PE is a leaf node.  It may be copied and restored.
 
