@@ -249,3 +249,7 @@ func getPEIDForComponentSnapshot(sourceSnapshotID astrolabe.ProtectedEntityID, l
 	}
 	return astrolabe.NewProtectedEntityIDFromString(string(componentIDBytes))
 }
+
+func (this *PVCProtectedEntityTypeManager) Delete(ctx context.Context, id astrolabe.ProtectedEntityID) error {
+	panic("implement me")
+}

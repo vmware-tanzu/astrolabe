@@ -170,3 +170,6 @@ func (this *FSProtectedEntityTypeManager) getDataTransports(id astrolabe.Protect
 	return data, md, combined, nil
 }
 
+func (this *FSProtectedEntityTypeManager) Delete(ctx context.Context, id astrolabe.ProtectedEntityID) error {
+	return errors.New("Not implemented")
+}

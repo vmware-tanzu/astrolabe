@@ -1,0 +1,1 @@
+Added Delete method to ProtectedEntityTypeManager.  This allows for deletion of protected entities and snapshots.
