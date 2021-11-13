@@ -355,3 +355,37 @@ func (this *ProtectedEntityTypeManager) getDataTransports(id astrolabe.Protected
 
 	return data, md, combined, nil
 }
+
+func (this *ProtectedEntityTypeManager) Delete(ctx context.Context, id astrolabe.ProtectedEntityID) error {
+	if id.GetPeType() != this.typeName {
+		return errors.New(id.GetPeType() + " is not of type " + this.typeName)
+	}
+
+	peToDelete, err := this.GetProtectedEntity(ctx, id)
+	if err != nil {
+		return err
+	}
+	peInfoName := this.peinfoName(peToDelete.GetID())
+	deleteObjects := []*s3.ObjectIdentifier{
+		&s3.ObjectIdentifier{
+			Key:       aws.String(peInfoName),
+		},
+	}
+	deleteObjectsInput := s3.DeleteObjectsInput{
+		Bucket:                    aws.String(this.bucket),
+		Delete:                    & s3.Delete{
+			Objects: deleteObjects,
+		},
+		MFA:                       nil,
+		RequestPayer:              nil,
+	}
+
+	deleteObjectsOutput, err := this.s3.DeleteObjects(&deleteObjectsInput)
+	if err != nil {
+		return err
+	}
+	if len(deleteObjectsOutput.Errors) > 0 {
+		return errors.New("Could not delete all S3 objects")
+	}
+	return nil
+}

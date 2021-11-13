@@ -35,4 +35,5 @@ type ProtectedEntityTypeManager interface {
 	GetProtectedEntities(ctx context.Context) ([]ProtectedEntityID, error)
 	Copy(ctx context.Context, pe ProtectedEntity, params map[string]map[string]interface{}, options CopyCreateOptions) (ProtectedEntity, error)
 	CopyFromInfo(ctx context.Context, info ProtectedEntityInfo, params map[string]map[string]interface{}, options CopyCreateOptions) (ProtectedEntity, error)
+	Delete(ctx context.Context, id ProtectedEntityID) error
 }
