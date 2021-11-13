@@ -111,9 +111,19 @@ func (this ProtectedEntityID) GetPeType() string {
 	return this.peType
 }
 
+func (this ProtectedEntityID) GetBaseID() ProtectedEntityID {
+	if this.HasSnapshot() {
+		return ProtectedEntityID{
+			peType:     this.peType,
+			id:         this.id,
+			snapshotID: ProtectedEntitySnapshotID{},
+		}
+	}
+	return this
+}
+
 func (this ProtectedEntityID) GetSnapshotID() ProtectedEntitySnapshotID {
 	return this.snapshotID
-
 }
 
 func (this ProtectedEntityID) HasSnapshot() bool {
