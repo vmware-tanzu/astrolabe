@@ -163,6 +163,10 @@ func (this DataTransport) GetParam(key string) (string, bool) {
 	return val, ok
 }
 
+func (this DataTransport) GetParams() map[string]string {
+	return this.params
+}
+
 func (this DataTransport) getModelDataTransport() models.DataTransport {
 	return models.DataTransport{
 		TransportType: this.transportType,

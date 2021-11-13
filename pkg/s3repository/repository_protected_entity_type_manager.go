@@ -355,3 +355,4 @@ func (this *ProtectedEntityTypeManager) getDataTransports(id astrolabe.Protected
 
 	return data, md, combined, nil
 }
+

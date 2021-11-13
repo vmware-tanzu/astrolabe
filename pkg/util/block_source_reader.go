@@ -46,7 +46,7 @@ func (recv BlockSourceReader) Read(p []byte) (n int, err error) {
 	defer recv.offsetMutex.Unlock()
 	bytesRead, err := recv.ReadAt(p, *recv.offset)
 	*recv.offset += int64(bytesRead)
-	recv.logger.Infof("Read returning %d, len(p) = %d, offset=%d\n", bytesRead, len(p), *recv.offset)
+	recv.logger.Debugf("Read returning %d, len(p) = %d, offset=%d\n", bytesRead, len(p), *recv.offset)
 	return bytesRead, err
 }
 
@@ -103,7 +103,7 @@ func (recv BlockSourceReader) ReadAt(p []byte, off int64) (n int, err error) {
 		if err != nil {
 			return total, err
 		}
-		if sectorsRead != 1 {
+		if sectorsRead != uint64(numAlignedSectors) {
 			return total, errors.Errorf("Expected %d sector, got %d", numAlignedSectors, sectorsRead)
 		}
 		startSector = startSector + int64(numAlignedSectors)

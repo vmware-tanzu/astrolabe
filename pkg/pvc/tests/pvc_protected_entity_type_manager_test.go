@@ -51,7 +51,7 @@ func TestGetPVCComponents(t *testing.T) {
 	configParams["pvc"] = pvcParams
 	configParams["ivd"] = ivdParams
 
-	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
+	configInfo := util.NewConfigInfo(configParams, astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	})
 
@@ -118,7 +118,7 @@ func TestSnapshotOps(t *testing.T) {
 	configParams["pvc"] = pvcParams
 	configParams["ivd"] = ivdParams
 
-	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
+	configInfo := util.NewConfigInfo(configParams, astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	})
 
@@ -205,7 +205,7 @@ func TestCreateVolumeFromMetadata(t *testing.T) {
 	configParams := make(map[string]map[string]interface{})
 	configParams["pvc"] = pvcParams
 
-	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
+	configInfo := util.NewConfigInfo(configParams, astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	})
 
@@ -287,7 +287,7 @@ func TestCreateVolumeFromMetadataAndS3(t *testing.T) {
 		t.Fatalf("Failed to retrieve VC config secret: %+v", err)
 	}
 	configParams["ivd"] = ivdParams
-	configInfo := server.NewConfigInfo(configParams, astrolabe.S3Config{
+	configInfo := util.NewConfigInfo(configParams, astrolabe.S3Config{
 		URLBase: "VOID_URL",
 	})
 

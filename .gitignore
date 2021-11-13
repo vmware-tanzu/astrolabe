@@ -1,3 +1,5 @@
 .idea
+.DS_Store
 cmd/astrolabe_server/astrolabe_server
 cmd/astrolabe/astrolabe
+plugins/fs/fs

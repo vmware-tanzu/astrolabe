@@ -24,10 +24,11 @@ import (
 	"github.com/vmware-tanzu/astrolabe/gen/restapi"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi/operations"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
+	"github.com/vmware-tanzu/astrolabe/pkg/plugin"
 	"strconv"
 )
 
-func ServerMain(addonInits map[string]InitFunc) {
+func ServerMain(addonInits map[string]astrolabe.InitFunc) {
 	log := logrus.StandardLogger()
 	server, _, err := ServerInit(addonInits)
 	if err != nil {
@@ -42,10 +43,12 @@ func ServerMain(addonInits map[string]InitFunc) {
 	}
 }
 
-func ServerInit(addonInits map[string]InitFunc) (*restapi.Server, astrolabe.ProtectedEntityManager, error) {
+func ServerInit(addonInits map[string]astrolabe.InitFunc) (*restapi.Server, astrolabe.ProtectedEntityManager, error) {
 	confDirStr := flag.String("confDir", "", "Configuration directory")
 	apiPortStr := flag.String("apiPort", "1323", "REST API port")
 	insecure := flag.Bool("insecure", false, "Only use HTTP")
+	pluginsDirStr := flag.String("pluginsDir", "", "Plugin directory")
+
 	flag.Parse()
 	if *confDirStr == "" {
 		flag.Usage()
@@ -55,7 +58,15 @@ func ServerInit(addonInits map[string]InitFunc) (*restapi.Server, astrolabe.Prot
 	if err != nil {
 		return nil, nil, errors.Errorf("apiPort %s is not an integer\n", *apiPortStr)
 	}
-	pem := NewProtectedEntityManager(*confDirStr, addonInits, logrus.New())
+	var pem astrolabe.ProtectedEntityManager
+	if *pluginsDirStr == "" {
+		pem = NewProtectedEntityManager(*confDirStr, addonInits, logrus.New())
+	} else {
+		pem, err = plugin.NewPluginProtectedEntityManagerFromConfigDir(*confDirStr, *pluginsDirStr, logrus.New())
+		if err != nil {
+			return nil, nil, errors.WithMessage(err, "Could not create plugin protected entity manager")
+		}
+	}
 	tm := NewTaskManager()
 	apiHandler := NewOpenAPIAstrolabeHandler(pem, tm)
 	// load embedded swagger file

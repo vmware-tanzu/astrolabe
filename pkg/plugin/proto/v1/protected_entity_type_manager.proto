@@ -1,0 +1,110 @@
+syntax = "proto3";
+package generated;
+option go_package="github.com/vmware-tanzu/astrolabe/pkg/plugin/generated";
+
+import "shared.proto";
+
+message InitRequest {
+    string configInfo = 1;
+    string s3Config = 2;
+}
+
+message GetTypeNameResponse {
+    string typeName = 1;
+}
+
+message GetProtectedEntitiesResponse {
+    repeated ProtectedEntityID ids = 1;
+}
+message CopyFromInfoRequest {
+    ProtectedEntityInfo info = 1;
+}
+
+message CopyFromInfoResponse {
+    ProtectedEntityID id = 1;
+}
+
+message GetCombinedInfoResponse {
+    repeated ProtectedEntityInfo info = 1;
+}
+
+message SnapshotRequest {
+    ProtectedEntityID id = 1;
+    string params = 2;
+}
+
+message ListSnapshotsResponse {
+    repeated ProtectedEntitySnapshotID snapshotIDs = 1;
+}
+
+message DeleteSnapshotRequest {
+    ProtectedEntityID id = 1;
+    ProtectedEntitySnapshotID snapshotID = 2;
+    string params = 3;
+}
+
+message DeleteSnapshotResponse {
+    bool success = 1;
+}
+
+message GetInfoForSnapshotRequest {
+    ProtectedEntityID id = 1;
+    ProtectedEntitySnapshotID snapshotID = 2;
+}
+
+message GetComponentsResponse {
+    repeated ProtectedEntityID components = 1;
+}
+
+message ReaderResponse {
+    int64 readerID = 1;
+    bool isReaderAt = 2;
+}
+
+message ReadRequest {
+    // The ID of the reader to read from
+    int64 readerID = 1;
+    int64 bytesToRead = 2;
+}
+
+message ReadAtRequest {
+    // The ID of the reader to read from
+    int64 readerID = 1;
+    int64 bytesToRead = 2;
+    int64 offset = 3;
+}
+
+message ReadResponse {
+    bytes data = 1;
+}
+
+message CloseRequest {
+    int64 readerID = 1;
+}
+
+service ProtectedEntityTypeManager {
+    rpc Init(InitRequest) returns (Empty);
+	rpc GetTypeName(Empty) returns (GetTypeNameResponse);
+    rpc GetProtectedEntities(Empty) returns (GetProtectedEntitiesResponse);
+   	rpc CopyFromInfo(CopyFromInfoRequest) returns (CopyFromInfoResponse);
+
+   	// Methods for ProtectedEntity and Reader are here for simplicity
+   	// Protected Entity
+   	rpc GetInfo(ProtectedEntityID) returns (ProtectedEntityInfo);
+   	rpc GetCombinedInfo(ProtectedEntityID) returns (GetCombinedInfoResponse);
+   	rpc Snapshot(SnapshotRequest) returns (ProtectedEntitySnapshotID);
+   	rpc ListSnapshots(ProtectedEntityID) returns (ListSnapshotsResponse);
+   	rpc DeleteSnapshot(DeleteSnapshotRequest) returns (DeleteSnapshotResponse);
+   	rpc GetInfoForSnapshot(GetInfoForSnapshotRequest) returns (ProtectedEntityInfo);
+   	rpc GetComponents(ProtectedEntityID) returns (GetComponentsResponse);
+
+    rpc GetMetadataReader(ProtectedEntityID) returns (ReaderResponse);
+    rpc GetDataReader(ProtectedEntityID) returns (ReaderResponse);
+
+   	// ReaderCloser
+   	rpc Read(ReadRequest) returns (ReadResponse);
+   	// ReaderAt
+   	rpc ReadAt(ReadAtRequest) returns (ReadResponse);
+   	rpc Close(CloseRequest) returns (Empty);
+}
+

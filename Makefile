@@ -32,6 +32,7 @@ astrolabe:
 
 fs: 
 	cd pkg/fs; go build
+	cd plugins/fs; go build
 
 s3repository: 
 	cd pkg/s3repository; go build
@@ -67,3 +68,6 @@ client-gen:
 
 model-gen:
 	bin/swagger_linux_amd64 generate model -f openapi/astrolabe_api.yaml -t gen
+
+proto:
+	protoc --proto_path=pkg/plugin/proto/v1 --go_out=pkg/plugin/generated/v1 --go-grpc_out=pkg/plugin/generated/v1 --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative protected_entity_type_manager.proto shared.proto

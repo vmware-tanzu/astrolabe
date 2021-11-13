@@ -30,14 +30,12 @@ type Astrolabe struct {
 	s3_services  map[string]*ServiceS3
 }
 
-func NewProtectedEntityManager(confDirPath string, addonInits map[string]InitFunc, logger logrus.FieldLogger) astrolabe.ProtectedEntityManager {
+func NewProtectedEntityManager(confDirPath string, addonInits map[string]astrolabe.InitFunc, logger logrus.FieldLogger) astrolabe.ProtectedEntityManager {
 	dpem := NewDirectProtectedEntityManagerFromConfigDir(confDirPath, addonInits, logger)
 	var pem astrolabe.ProtectedEntityManager
 	pem = dpem
 	return pem
 }
-
-const fileSuffix = ".pe.json"
 
 func getProtectedEntityForIDStr(petm astrolabe.ProtectedEntityTypeManager, idStr string,
 	echoContext echo.Context) (astrolabe.ProtectedEntityID, astrolabe.ProtectedEntity, error) {

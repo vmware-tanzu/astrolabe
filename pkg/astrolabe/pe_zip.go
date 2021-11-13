@@ -73,7 +73,7 @@ func ZipProtectedEntityToWriter(ctx context.Context, pe ProtectedEntity, writer 
 		if err != nil {
 			return errors.Wrapf(err, "Failed to create data zip writer for %s", pe.GetID().String())
 		}
-		dataWritten, err := io.Copy(peDataWriter, dataReader)
+		dataWritten, err := io.CopyBuffer(peDataWriter, dataReader, make([]byte, 1024 * 1024))
 		if err != nil {
 			return errors.Wrapf(err, "Failed to write data for %s", pe.GetID().String())
 		}
@@ -130,7 +130,7 @@ func ZipProtectedEntityToFile(ctx context.Context, srcPE ProtectedEntity, zipFil
 		return
 	}
 
-	bytesWritten, err = io.Copy(zipFileWriter, reader)
+	bytesWritten, err = io.CopyBuffer(zipFileWriter, reader, make([]byte, 512*1024))
 	if err != nil {
 		err = errors.Errorf("Error copying %v", err)
 		return

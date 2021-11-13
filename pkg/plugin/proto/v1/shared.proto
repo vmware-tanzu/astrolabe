@@ -1,0 +1,30 @@
+syntax = "proto3";
+package generated;
+option go_package="github.com/vmware-tanzu/astrolabe/pkg/plugin/generated";
+
+message Empty {}
+
+message ProtectedEntityID {
+	string peType = 1;
+	string id = 2;
+	ProtectedEntitySnapshotID snapshotID = 3;
+}
+
+message ProtectedEntitySnapshotID {
+    string id = 1;
+}
+
+message DataTransport {
+	string transportType = 1;
+	map<string, string> params = 2;
+}
+
+message ProtectedEntityInfo {
+	ProtectedEntityID id = 1;
+	string name = 2;
+	int64 size = 3;
+	repeated DataTransport dataTransports = 4;
+	repeated DataTransport metadataTransports = 5;
+	repeated DataTransport combinedTransports = 6;
+	repeated ProtectedEntityID componentIDs = 7;
+}

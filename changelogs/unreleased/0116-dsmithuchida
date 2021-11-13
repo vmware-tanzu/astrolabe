@@ -1,0 +1,6 @@
+Hashicorp/GRPC plugins
+Enables using local plugins without static linking.  See docs/plugins.md for
+usage.
+Added GetParams to DataTransport to enable retrieving all parameters for the 
+transport
+Moved InitFunc from server to astrolabe package

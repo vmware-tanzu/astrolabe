@@ -16,10 +16,10 @@ import (
 
 type cliContext struct {
 	context.Context
-	addonInits map[string]server.InitFunc
+	addonInits map[string]astrolabe.InitFunc
 }
 
-func CliCore(addonInits map[string]server.InitFunc) {
+func CliCore(addonInits map[string]astrolabe.InitFunc) {
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -108,12 +108,12 @@ func CliCore(addonInits map[string]server.InitFunc) {
 	}
 }
 
-func setupProtectedEntityManager(c *cli.Context, addonInits map[string]server.InitFunc) (pem astrolabe.ProtectedEntityManager, err error) {
+func setupProtectedEntityManager(c *cli.Context, addonInits map[string]astrolabe.InitFunc) (pem astrolabe.ProtectedEntityManager, err error) {
 	pem, _, err = setupProtectedEntityManagers(c, addonInits, false)
 	return
 }
 
-func setupProtectedEntityManagers(c *cli.Context, addonInits map[string]server.InitFunc, allowDual bool) (srcPem astrolabe.ProtectedEntityManager,
+func setupProtectedEntityManagers(c *cli.Context, addonInits map[string]astrolabe.InitFunc, allowDual bool) (srcPem astrolabe.ProtectedEntityManager,
 	destPem astrolabe.ProtectedEntityManager, err error) {
 	confDirStr := c.String("confDir")
 	if confDirStr != "" {
@@ -167,7 +167,7 @@ func setupHostPEM(host string, c *cli.Context) (hostPem astrolabe.ProtectedEntit
 }
 
 func types(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -184,7 +184,7 @@ func types(c *cli.Context) error {
 }
 
 func ls(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -211,7 +211,7 @@ func ls(c *cli.Context) error {
 }
 
 func lssn(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -246,7 +246,7 @@ func lssn(c *cli.Context) error {
 }
 
 func show(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -281,7 +281,7 @@ func show(c *cli.Context) error {
 }
 
 func snap(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -310,7 +310,7 @@ func snap(c *cli.Context) error {
 }
 
 func rmsn(c *cli.Context) error {
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -347,7 +347,7 @@ func cp(c *cli.Context) error {
 	if c.NArg() != 2 {
 		logrus.Fatalf("Expected two arguments for cp, got %d", c.NArg())
 	}
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits
@@ -433,7 +433,7 @@ func overwrite(c *cli.Context) error {
 	if c.NArg() != 2 {
 		logrus.Fatalf("Expected two arguments for overwrite, got %d", c.NArg())
 	}
-	var addonInits map[string]server.InitFunc
+	var addonInits map[string]astrolabe.InitFunc
 	cliCTX, ok := c.Context.(cliContext)
 	if ok {
 		addonInits = cliCTX.addonInits

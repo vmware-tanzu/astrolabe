@@ -18,23 +18,14 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/fs"
 	"github.com/vmware-tanzu/astrolabe/pkg/pvc"
-	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
+	"github.com/vmware-tanzu/astrolabe/pkg/util"
 )
-
-type InitFunc func(params map[string]interface{},
-	s3Config astrolabe.S3Config,
-	logger logrus.FieldLogger) (astrolabe.ProtectedEntityTypeManager, error)
 
 type DirectProtectedEntityManager struct {
 	typeManager map[string]astrolabe.ProtectedEntityTypeManager
@@ -42,6 +33,8 @@ type DirectProtectedEntityManager struct {
 	logger      logrus.FieldLogger
 }
 
+// NewDirectProtectedEntityManager - This will create a Protected Entity Manager with a set of configured
+// Protected Entity Type Managers from petms.   s3Config will be used to create S3 transports for the PEs.
 func NewDirectProtectedEntityManager(petms []astrolabe.ProtectedEntityTypeManager, s3Config astrolabe.S3Config, logger logrus.FieldLogger) (returnPEM *DirectProtectedEntityManager) {
 	returnPEM = &DirectProtectedEntityManager{
 		typeManager: make(map[string]astrolabe.ProtectedEntityTypeManager),
@@ -58,16 +51,21 @@ func NewDirectProtectedEntityManager(petms []astrolabe.ProtectedEntityTypeManage
 	return
 }
 
-func NewDirectProtectedEntityManagerFromConfigDir(confDirPath string, addonInits map[string]InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
-	configInfo, err := readConfigFiles(confDirPath)
+// NewDirectProtectedEntityManagerFromConfigDir - This reads an Astrolabe configuration directory and creates and configures
+// Protected Entity Type Managers with the information from the config directory confDirPath using the addOnInits map to
+// find InitFuncs to create the PETMS as needed.
+func NewDirectProtectedEntityManagerFromConfigDir(confDirPath string, addonInits map[string]astrolabe.InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
+	configInfo, err := util.ReadConfigFiles(confDirPath)
 	if err != nil {
-		log.Fatalf("Could not read config files from dir %s, err: %v", confDirPath, err)
+		logger.Fatalf("Could not read config files from dir %s, err: %v", confDirPath, err)
 	}
 	return NewDirectProtectedEntityManagerFromParamMap(configInfo, addonInits, logger)
 }
 
-func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, addonInits map[string]InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
-	initFuncs := make(map[string]InitFunc)
+// NewDirectProtectedEntityManagerFromParamMap - Creates and configures Protected Entity Type Managers with the
+// configuration in configInfo using the addOnInits map to find InitFuncs to create the PETMS as needed.
+func NewDirectProtectedEntityManagerFromParamMap(configInfo util.ConfigInfo, addonInits map[string]astrolabe.InitFunc, logger logrus.FieldLogger) *DirectProtectedEntityManager {
+	initFuncs := make(map[string]astrolabe.InitFunc)
 	initFuncs["fs"] = fs.NewFSProtectedEntityTypeManagerFromConfig
 	initFuncs["pvc"] = pvc.NewPVCProtectedEntityTypeManagerFromConfig
 	if addonInits != nil {
@@ -99,101 +97,6 @@ func NewDirectProtectedEntityManagerFromParamMap(configInfo ConfigInfo, addonIni
 	return NewDirectProtectedEntityManager(petms, configInfo.S3Config, logger)
 }
 
-type ConfigInfo struct {
-	PEConfigs map[string]map[string]interface{}
-	S3Config  astrolabe.S3Config
-}
-
-func NewConfigInfo(peConfigs map[string]map[string]interface{}, s3Config astrolabe.S3Config) ConfigInfo {
-	return ConfigInfo{
-		PEConfigs: peConfigs,
-		S3Config:  s3Config,
-	}
-}
-
-func readConfigFiles(confDirPath string) (ConfigInfo, error) {
-	configMap := make(map[string]map[string]interface{})
-
-	confDir, err := os.Stat(confDirPath)
-	if err != nil {
-		log.Panicln("Could not stat configuration directory " + confDirPath)
-	}
-	if !confDir.Mode().IsDir() {
-		log.Panicln(confDirPath + " is not a directory")
-
-	}
-
-	peDirPath := confDirPath + "/pes"
-	peDir, err := os.Stat(peDirPath)
-	if err != nil {
-		log.Panicf("Could not stat protected entity configuration directory %s, err = %v\n", peDirPath, err)
-	}
-	if !peDir.Mode().IsDir() {
-		log.Panicf("%s is not a directory", peDirPath)
-
-	}
-	files, err := ioutil.ReadDir(peDirPath)
-	if err != nil {
-		log.Panicf("Could not list protected entity configuration directory %s, err = %v\n", peDirPath, err)
-	}
-	for _, curFile := range files {
-		if !strings.HasPrefix(curFile.Name(), ".") && strings.HasSuffix(curFile.Name(), fileSuffix) {
-			peTypeName := strings.TrimSuffix(curFile.Name(), fileSuffix)
-			peConf, err := readConfigFile(filepath.Join(peDirPath, curFile.Name()))
-			if err != nil {
-				log.Panicln("Could not process conf file " + curFile.Name() + " continuing, err = " + err.Error())
-			} else {
-				configMap[peTypeName] = peConf
-			}
-		}
-	}
-
-	s3ConfFilePath := filepath.Join(confDirPath, "s3config.json")
-
-	s3Config, err := readS3ConfigFile(s3ConfFilePath)
-	if err != nil {
-		log.Panicf("Could not read S3 configuration directory %s, err = %v\n", s3ConfFilePath, err)
-	}
-
-	return NewConfigInfo(configMap, *s3Config), nil
-}
-
-func readConfigFile(confFile string) (map[string]interface{}, error) {
-	jsonFile, err := os.Open(confFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not open conf file %s", confFile)
-	}
-	defer jsonFile.Close()
-	jsonBytes, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not read conf file %s", confFile)
-	}
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(jsonBytes), &result)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to unmarshal JSON from %s", confFile)
-	}
-	return result, nil
-}
-
-func readS3ConfigFile(s3ConfFile string) (*astrolabe.S3Config, error) {
-	jsonFile, err := os.Open(s3ConfFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not open conf file %s", s3ConfFile)
-	}
-	defer jsonFile.Close()
-	jsonBytes, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not read conf file %s", s3ConfFile)
-	}
-	var result astrolabe.S3Config
-	err = json.Unmarshal([]byte(jsonBytes), &result)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to unmarshal JSON from %s", s3ConfFile)
-	}
-	return &result, nil
-}
-
 func (this *DirectProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
 	typeManager, ok := this.typeManager[id.GetPeType()]
 	if !ok {
@@ -222,4 +125,3 @@ func (this *DirectProtectedEntityManager) RegisterExternalProtectedEntityTypeMan
 		this.typeManager[curPETM.GetTypeName()] = curPETM
 	}
 }
-
