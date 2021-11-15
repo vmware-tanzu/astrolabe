@@ -29,6 +29,30 @@ const (
 	AllocateObjectWithID CopyCreateOptions = 3
 )
 
+func StringFromCopyCreateOption(options CopyCreateOptions) string {
+	switch options {
+	case AllocateNewObject:
+		return "create_new"
+	case UpdateExistingObject:
+		return "update"
+	case AllocateObjectWithID:
+		return "create"
+	}
+	return ""
+}
+
+func CopyCreateOptionFromString(optionStr string) CopyCreateOptions {
+	switch optionStr {
+	case "create_new":
+		return AllocateNewObject
+	case "update":
+		return UpdateExistingObject
+	case "create":
+		return AllocateObjectWithID
+	}
+	return AllocateNewObject
+}
+
 type ProtectedEntityTypeManager interface {
 	GetTypeName() string
 	GetProtectedEntity(ctx context.Context, id ProtectedEntityID) (ProtectedEntity, error)
