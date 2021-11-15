@@ -219,7 +219,7 @@ func (this *ProtectedEntityTypeManager) GetProtectedEntitiesByIDPrefix(ctx conte
 		if !*results.IsTruncated {
 			hasMore = false
 		} else {
-			continuationToken = results.ContinuationToken
+			continuationToken = results.NextContinuationToken
 		}
 	}
 	return retPEIDs, nil
