@@ -175,8 +175,8 @@ func (this *ProtectedEntityInfoImpl) FillFromModel(jsonStruct *models.ProtectedE
 	this.metadataTransports = convertToTransports(jsonStruct.MetadataTransports)
 	this.combinedTransports = convertToTransports(jsonStruct.CombinedTransports)
 	componentIDs := make([]ProtectedEntityID, len(jsonStruct.ComponentSpecs))
-	for curComponentNum, curComponentSpec := range componentIDs {
-		componentID, err := NewProtectedEntityIDFromString(curComponentSpec.id)
+	for curComponentNum, curComponentSpec := range jsonStruct.ComponentSpecs {
+		componentID, err := NewProtectedEntityIDFromString(string(curComponentSpec.ID))
 		if err != nil {
 			return err
 		}
