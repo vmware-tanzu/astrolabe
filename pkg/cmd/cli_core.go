@@ -122,11 +122,9 @@ func setupProtectedEntityManagers(c *cli.Context, addonInits map[string]server.I
 	}
 	host := c.String("host")
 	if host != "" {
-		insecure := c.Bool("insecure")
-		transport := restClient.DefaultTransportConfig()
-		transport.Host = host
-		if insecure {
-			transport.Schemes = []string{"http"}
+		srcPem, err = setupHostPEM(host, c)
+		if err != nil {
+			return
 		}
 	}
 
