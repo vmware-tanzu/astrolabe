@@ -35,6 +35,12 @@ func (o *ListProtectedEntitiesReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
+	case 500:
+		result := NewListProtectedEntitiesInternalServerError()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -81,16 +87,61 @@ func NewListProtectedEntitiesNotFound() *ListProtectedEntitiesNotFound {
 
 /*ListProtectedEntitiesNotFound handles this case with default header values.
 
-Service or Protected Entity not found
+404 response
 */
 type ListProtectedEntitiesNotFound struct {
+	Payload *models.NotFoundError
 }
 
 func (o *ListProtectedEntitiesNotFound) Error() string {
-	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesNotFound ", 404)
+	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesNotFound  %+v", 404, o.Payload)
+}
+
+func (o *ListProtectedEntitiesNotFound) GetPayload() *models.NotFoundError {
+	return o.Payload
 }
 
 func (o *ListProtectedEntitiesNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.NotFoundError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// NewListProtectedEntitiesInternalServerError creates a ListProtectedEntitiesInternalServerError with default headers values
+func NewListProtectedEntitiesInternalServerError() *ListProtectedEntitiesInternalServerError {
+	return &ListProtectedEntitiesInternalServerError{}
+}
+
+/*ListProtectedEntitiesInternalServerError handles this case with default header values.
+
+500 response
+*/
+type ListProtectedEntitiesInternalServerError struct {
+	Payload *models.ServerError
+}
+
+func (o *ListProtectedEntitiesInternalServerError) Error() string {
+	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesInternalServerError  %+v", 500, o.Payload)
+}
+
+func (o *ListProtectedEntitiesInternalServerError) GetPayload() *models.ServerError {
+	return o.Payload
+}
+
+func (o *ListProtectedEntitiesInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.ServerError)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }

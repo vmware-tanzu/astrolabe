@@ -60,11 +60,16 @@ func (o *ListProtectedEntitiesOK) WriteResponse(rw http.ResponseWriter, producer
 // ListProtectedEntitiesNotFoundCode is the HTTP code returned for type ListProtectedEntitiesNotFound
 const ListProtectedEntitiesNotFoundCode int = 404
 
-/*ListProtectedEntitiesNotFound Service or Protected Entity not found
+/*ListProtectedEntitiesNotFound 404 response
 
 swagger:response listProtectedEntitiesNotFound
 */
 type ListProtectedEntitiesNotFound struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.NotFoundError `json:"body,omitempty"`
 }
 
 // NewListProtectedEntitiesNotFound creates ListProtectedEntitiesNotFound with default headers values
@@ -73,10 +78,69 @@ func NewListProtectedEntitiesNotFound() *ListProtectedEntitiesNotFound {
 	return &ListProtectedEntitiesNotFound{}
 }
 
+// WithPayload adds the payload to the list protected entities not found response
+func (o *ListProtectedEntitiesNotFound) WithPayload(payload *models.NotFoundError) *ListProtectedEntitiesNotFound {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list protected entities not found response
+func (o *ListProtectedEntitiesNotFound) SetPayload(payload *models.NotFoundError) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *ListProtectedEntitiesNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(404)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
+// ListProtectedEntitiesInternalServerErrorCode is the HTTP code returned for type ListProtectedEntitiesInternalServerError
+const ListProtectedEntitiesInternalServerErrorCode int = 500
+
+/*ListProtectedEntitiesInternalServerError 500 response
+
+swagger:response listProtectedEntitiesInternalServerError
+*/
+type ListProtectedEntitiesInternalServerError struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.ServerError `json:"body,omitempty"`
+}
+
+// NewListProtectedEntitiesInternalServerError creates ListProtectedEntitiesInternalServerError with default headers values
+func NewListProtectedEntitiesInternalServerError() *ListProtectedEntitiesInternalServerError {
+
+	return &ListProtectedEntitiesInternalServerError{}
+}
+
+// WithPayload adds the payload to the list protected entities internal server error response
+func (o *ListProtectedEntitiesInternalServerError) WithPayload(payload *models.ServerError) *ListProtectedEntitiesInternalServerError {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the list protected entities internal server error response
+func (o *ListProtectedEntitiesInternalServerError) SetPayload(payload *models.ServerError) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ListProtectedEntitiesInternalServerError) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(500)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }

@@ -18,21 +18,23 @@ package server
 import (
 	"context"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/gen/models"
 	"github.com/vmware-tanzu/astrolabe/gen/restapi/operations"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"time"
 )
 
 type OpenAPIAstrolabeHandler struct {
 	pem astrolabe.ProtectedEntityManager
 	tm  *TaskManager
+	logger logrus.FieldLogger
 }
 
 func NewOpenAPIAstrolabeHandler(pem astrolabe.ProtectedEntityManager, tm *TaskManager) OpenAPIAstrolabeHandler {
 	return OpenAPIAstrolabeHandler{
 		pem: pem,
 		tm:  tm,
+		logger: logrus.StandardLogger(),
 	}
 }
 func (this OpenAPIAstrolabeHandler) AttachHandlers(api *operations.AstrolabeAPI) {
@@ -62,7 +64,12 @@ func (this OpenAPIAstrolabeHandler) ListProtectedEntities(params operations.List
 	}
 	peids, err := petm.GetProtectedEntities(context.Background())
 	if err != nil {
-
+		errStr := err.Error()
+		return operations.NewListProtectedEntitiesInternalServerError().WithPayload(&models.ServerError{
+			Error:            models.Error{
+				Message: &errStr,
+			},
+		})
 	}
 	mpeids := make([]models.ProtectedEntityID, len(peids))
 	for peidNum, peid := range peids {
@@ -76,20 +83,28 @@ func (this OpenAPIAstrolabeHandler) ListProtectedEntities(params operations.List
 }
 
 func (this OpenAPIAstrolabeHandler) GetProtectedEntityInfo(params operations.GetProtectedEntityInfoParams) middleware.Responder {
-
+	this.logger.WithField("service", params.Service)
+	this.logger.WithField("peid", params.ProtectedEntityID)
 	petm := this.pem.GetProtectedEntityTypeManager(params.Service)
 	if petm == nil {
-
+		this.logger.Error("Could not find Protected Entity Type Manager")
+		return operations.NewGetProtectedEntityInfoNotFound()
 	}
 	peid, err := astrolabe.NewProtectedEntityIDFromString(params.ProtectedEntityID)
 	if err != nil {
-
+		this.logger.Error("Could not find Protected Entity ID")
+		return operations.NewGetProtectedEntityInfoNotFound()
 	}
 	pe, err := petm.GetProtectedEntity(context.Background(), peid)
 	if err != nil {
-
+		this.logger.Errorf("Could not retrieve Protected Entity, err:%v", err)
+		return operations.NewGetProtectedEntityInfoNotFound()
 	}
 	peInfo, err := pe.GetInfo(context.Background())
+	if err != nil {
+		this.logger.Errorf("Could not retrieve Protected Entity, err:%v", err)
+		return operations.NewGetProtectedEntityInfoNotFound()
+	}
 	peInfoResponse := peInfo.GetModelProtectedEntityInfo()
 	return operations.NewGetProtectedEntityInfoOK().WithPayload(&peInfoResponse)
 }
@@ -130,7 +145,30 @@ func (this OpenAPIAstrolabeHandler) CreateSnapshot(params operations.CreateSnaps
 }
 
 func (this OpenAPIAstrolabeHandler) ListSnapshots(params operations.ListSnapshotsParams) middleware.Responder {
-	return nil
+	petm := this.pem.GetProtectedEntityTypeManager(params.Service)
+	if petm == nil {
+
+	}
+	peid, err := astrolabe.NewProtectedEntityIDFromString(params.ProtectedEntityID)
+	if err != nil {
+
+	}
+	pe, err := petm.GetProtectedEntity(context.Background(), peid)
+	if err != nil {
+
+	}
+	snapshots, err := pe.ListSnapshots(context.Background())
+	mpeids := make([]models.ProtectedEntityID, len(snapshots))
+	for snidNum, snid := range snapshots {
+		mpeids[snidNum] = models.ProtectedEntityID(peid.IDWithSnapshot(snid).String())
+	}
+
+	peList := models.ProtectedEntityList{
+		List:      mpeids,
+		Truncated: false,
+	}
+	return operations.NewListSnapshotsOK().WithPayload(&peList)
+
 }
 
 func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyProtectedEntityParams) middleware.Responder {
@@ -155,8 +193,13 @@ func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyPr
 			}
 		}
 	}
-	startedTime := time.Now()
+	//startedTime := time.Now()
 	newPE, err := petm.CopyFromInfo(context.Background(), pei, copyParams, astrolabe.AllocateNewObject)
+	if err != nil {
+		// TODO - create an error path
+		//return NewCopyProtectedEntity
+	}
+	/*
 	var taskStatus astrolabe.TaskStatus
 	if err != nil {
 		taskStatus = astrolabe.Failed
@@ -171,5 +214,15 @@ func (this OpenAPIAstrolabeHandler) CopyProtectedEntity(params operations.CopyPr
 	task.Progress = 100
 	task.TaskStatus = taskStatus
 	task.Result = newPE.GetID().GetModelProtectedEntityID()
-	return operations.NewCopyProtectedEntityAccepted()
+	 */
+	/*
+	For now we are not actually implementing tasks.  Instead we are abusing the TaskID field and returning the ID of the PE
+	that was created (if any)
+	 */
+	ncpea := operations.NewCopyProtectedEntityAccepted()
+	payload := models.CreateInProgressResponse{
+		TaskID: models.TaskID(newPE.GetID().String()),
+	}
+	ncpea.Payload = &payload
+	return ncpea
 }

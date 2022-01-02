@@ -145,9 +145,14 @@ paths:
           description: 200 response
           schema:
             $ref: '#/definitions/ProtectedEntityList'
+        '500':
+          description: 500 response
+          schema:
+            $ref: '#/definitions/ServerError'
         '404':
-          description: 'Service or Protected Entity not found'
-
+          description: 404 response
+          schema:
+            $ref: '#/definitions/NotFoundError'
       operationId: listProtectedEntities
       description: |
         List protected entities for the service.  Results will be returned in
@@ -243,6 +248,8 @@ paths:
           description: 200 response
           schema:
             $ref: '#/definitions/ProtectedEntityInfo'
+        '404':
+          description: 404 (Not Found) error
       operationId: getProtectedEntityInfo
       description: |
         Get the info for a Protected Entity including name, data access and
@@ -475,4 +482,37 @@ definitions:
           $ref: '#/definitions/ProtectedEntityInfo'
       copyParams:
           $ref: '#/definitions/OperationParamList'
+  Error:
+    title: Error Structure
+    description: |
+      Contains all the properties any error response from the API will contain.
+      Some properties are optional so might be empty most of the time
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        description: the error code, this is not necessarily the http status code
+        type: integer
+        format: int32
+      message:
+        description: a human readable version of the error
+        type: string
+      helpUrl:
+        description: an optional url for getting more help about this error
+        type: string
+        format: uri
+  ServerError:
+    allOf:
+      - $ref: "#/definitions/Error"
+      - type: object
+  NotFoundError:
+    allOf:
+      - $ref: "#/definitions/Error"
+      - type: object
+        properties:
+          field:
+            description: entity not found
+            type: string
 x-components: {}

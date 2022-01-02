@@ -56,3 +56,27 @@ func (o *GetProtectedEntityInfoOK) WriteResponse(rw http.ResponseWriter, produce
 		}
 	}
 }
+
+// GetProtectedEntityInfoNotFoundCode is the HTTP code returned for type GetProtectedEntityInfoNotFound
+const GetProtectedEntityInfoNotFoundCode int = 404
+
+/*GetProtectedEntityInfoNotFound 404 (Not Found) error
+
+swagger:response getProtectedEntityInfoNotFound
+*/
+type GetProtectedEntityInfoNotFound struct {
+}
+
+// NewGetProtectedEntityInfoNotFound creates GetProtectedEntityInfoNotFound with default headers values
+func NewGetProtectedEntityInfoNotFound() *GetProtectedEntityInfoNotFound {
+
+	return &GetProtectedEntityInfoNotFound{}
+}
+
+// WriteResponse to the client
+func (o *GetProtectedEntityInfoNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+
+	rw.WriteHeader(404)
+}

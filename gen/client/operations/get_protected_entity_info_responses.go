@@ -29,6 +29,12 @@ func (o *GetProtectedEntityInfoReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return result, nil
+	case 404:
+		result := NewGetProtectedEntityInfoNotFound()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 
 	default:
 		return nil, runtime.NewAPIError("unknown error", response, response.Code())
@@ -64,6 +70,27 @@ func (o *GetProtectedEntityInfoOK) readResponse(response runtime.ClientResponse,
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+// NewGetProtectedEntityInfoNotFound creates a GetProtectedEntityInfoNotFound with default headers values
+func NewGetProtectedEntityInfoNotFound() *GetProtectedEntityInfoNotFound {
+	return &GetProtectedEntityInfoNotFound{}
+}
+
+/*GetProtectedEntityInfoNotFound handles this case with default header values.
+
+404 (Not Found) error
+*/
+type GetProtectedEntityInfoNotFound struct {
+}
+
+func (o *GetProtectedEntityInfoNotFound) Error() string {
+	return fmt.Sprintf("[GET /astrolabe/{service}/{protectedEntityID}][%d] getProtectedEntityInfoNotFound ", 404)
+}
+
+func (o *GetProtectedEntityInfoNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	return nil
 }
