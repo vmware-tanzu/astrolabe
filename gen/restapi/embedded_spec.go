@@ -196,7 +196,16 @@ func init() {
             }
           },
           "404": {
-            "description": "Service or Protected Entity not found"
+            "description": "404 response",
+            "schema": {
+              "$ref": "#/definitions/NotFoundError"
+            }
+          },
+          "500": {
+            "description": "500 response",
+            "schema": {
+              "$ref": "#/definitions/ServerError"
+            }
           }
         }
       },
@@ -278,6 +287,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ProtectedEntityInfo"
             }
+          },
+          "404": {
+            "description": "404 (Not Found) error"
           }
         }
       },
@@ -437,6 +449,47 @@ func init() {
         }
       }
     },
+    "Error": {
+      "description": "Contains all the properties any error response from the API will contain.\nSome properties are optional so might be empty most of the time\n",
+      "type": "object",
+      "title": "Error Structure",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "description": "the error code, this is not necessarily the http status code",
+          "type": "integer",
+          "format": "int32"
+        },
+        "helpUrl": {
+          "description": "an optional url for getting more help about this error",
+          "type": "string",
+          "format": "uri"
+        },
+        "message": {
+          "description": "a human readable version of the error",
+          "type": "string"
+        }
+      }
+    },
+    "NotFoundError": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Error"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "description": "entity not found",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
     "OperationPEParamItem": {
       "type": "object",
       "properties": {
@@ -514,6 +567,9 @@ func init() {
         },
         "name": {
           "type": "string"
+        },
+        "size": {
+          "type": "integer"
         }
       }
     },
@@ -533,6 +589,16 @@ func init() {
     },
     "ProtectedEntitySnapshotID": {
       "type": "string"
+    },
+    "ServerError": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Error"
+        },
+        {
+          "type": "object"
+        }
+      ]
     },
     "ServiceList": {
       "type": "object",
@@ -825,7 +891,16 @@ func init() {
             }
           },
           "404": {
-            "description": "Service or Protected Entity not found"
+            "description": "404 response",
+            "schema": {
+              "$ref": "#/definitions/NotFoundError"
+            }
+          },
+          "500": {
+            "description": "500 response",
+            "schema": {
+              "$ref": "#/definitions/ServerError"
+            }
           }
         }
       },
@@ -907,6 +982,9 @@ func init() {
             "schema": {
               "$ref": "#/definitions/ProtectedEntityInfo"
             }
+          },
+          "404": {
+            "description": "404 (Not Found) error"
           }
         }
       },
@@ -1066,6 +1144,47 @@ func init() {
         }
       }
     },
+    "Error": {
+      "description": "Contains all the properties any error response from the API will contain.\nSome properties are optional so might be empty most of the time\n",
+      "type": "object",
+      "title": "Error Structure",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "description": "the error code, this is not necessarily the http status code",
+          "type": "integer",
+          "format": "int32"
+        },
+        "helpUrl": {
+          "description": "an optional url for getting more help about this error",
+          "type": "string",
+          "format": "uri"
+        },
+        "message": {
+          "description": "a human readable version of the error",
+          "type": "string"
+        }
+      }
+    },
+    "NotFoundError": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Error"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "description": "entity not found",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
     "OperationPEParamItem": {
       "type": "object",
       "properties": {
@@ -1143,6 +1262,9 @@ func init() {
         },
         "name": {
           "type": "string"
+        },
+        "size": {
+          "type": "integer"
         }
       }
     },
@@ -1162,6 +1284,19 @@ func init() {
     },
     "ProtectedEntitySnapshotID": {
       "type": "string"
+    },
+    "ServerError": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Error"
+        },
+        {
+          "$ref": "#/definitions/ServerErrorAllOf1"
+        }
+      ]
+    },
+    "ServerErrorAllOf1": {
+      "type": "object"
     },
     "ServiceList": {
       "type": "object",
