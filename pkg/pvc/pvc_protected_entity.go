@@ -6,15 +6,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
-	"io"
-	"io/ioutil"
 	core_v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 /*
@@ -283,6 +286,74 @@ func (this PVCProtectedEntity) getProtectedEntityForPV(ctx context.Context, pv *
 				return nil, errors.Errorf("Unexpected access mode, %v, for Persistent Volume %s", pv.Spec.AccessModes[0], pv.Name)
 			}
 		}
+	} else if pv.Spec.VsphereVolume != nil {
+		if pv.Spec.AccessModes[0] != core_v1.ReadWriteOnce {
+			return nil, errors.Errorf("Unexpected access mode, %v, for Persistent Volume %s, only core_v1.ReadWriteOnce is supported", pv.Spec.AccessModes[0], pv.Name)
+		}
+		if pv.Annotations[MigratedCSIVolumeAnnotation] == VSphereCSIProvisioner {
+			volumePath := pv.Spec.VsphereVolume.VolumePath
+			this.logger.Infof("Trying to get volume id for migrated volume path %s", volumePath)
+			// Migrated volume must be of type ivd
+			pvPEType := this.getComponentPEType()
+			if pvPEType != astrolabe.IvdPEType {
+				return nil, errors.Errorf("Could not support %s as migrated csi volume type", pvPEType)
+			}
+
+			migrationResourcelist, err := this.getMigrationResourcelist(ctx)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not list resource for cnsvspherevolumemigrations")
+			}
+			var pvIDstr string
+			for _, item := range migrationResourcelist.Items {
+				name := item.GetName()
+				// Parse volumeid and volumepath field from cnsvspherevolumemigrations
+				migrationVolumeId, exists, err := unstructured.NestedString(item.UnstructuredContent(), "spec", "volumeid")
+				if err != nil {
+					this.logger.Errorf("Error reading cnsvspherevolumemigrations %s: %v", name, err)
+					continue
+				}
+				if !exists {
+					this.logger.Errorf("Error reading field spec.volumeid cnsvspherevolumemigrations %s: %v", name, err)
+					continue
+				}
+				migrationVolumePath, exists, err := unstructured.NestedString(item.UnstructuredContent(), "spec", "volumepath")
+				if err != nil {
+					this.logger.Errorf("Error reading cnsvspherevolumemigrations %s: %v", name, err)
+					continue
+				}
+				if !exists {
+					this.logger.Errorf("Error reading field spec.volumepath cnsvspherevolumemigrations %s: %v", name, err)
+					continue
+				}
+
+				// If migrationVolumePath field matches volumePath from migrated volume
+				if migrationVolumePath == volumePath {
+					pvIDstr = migrationVolumeId
+					break
+				}
+			}
+			// If pvIDstr is empty, it means we could not find a match from cnsvspherevolumemigrations
+			if pvIDstr == "" {
+				return nil, errors.Errorf("Could not find matching volume id for Persistent Volume %s", pv.Name)
+			}
+
+			var pvPEID astrolabe.ProtectedEntityID
+			if this.GetID().HasSnapshot() {
+				pvPEID, err = getPEIDForComponentSnapshot(this.GetID(), this.logger)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Could not decode component snapshot ID for %s", this.GetID().String())
+				}
+				this.logger.Infof("The pvPEID: %s with snapshot was decoded", pvPEID.String())
+			} else {
+				pvPEID = astrolabe.NewProtectedEntityID(pvPEType, pvIDstr)
+			}
+			pvPE, err := this.ppetm.pem.GetProtectedEntity(ctx, pvPEID)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Could not get Protected Entity for PV %s", pvPEID.String())
+			}
+			this.logger.Infof("getProtectedEntityForPV: migrated csi volume, type: %s, pvIDstr: %s, snapshot: %s", pvPEType, pvIDstr, this.id.GetSnapshotID())
+			return pvPE, nil
+		}
 	}
 	return nil, errors.Errorf("Could not find PE for Persistent Volume %s", pv.Name)
 }
@@ -393,6 +464,12 @@ func (this PVCProtectedEntity) getComponentPEType() string {
 	return peType
 }
 
+func (this PVCProtectedEntity) getMigrationResourcelist(ctx context.Context) (*unstructured.UnstructuredList, error) {
+	migrationGVR := schema.GroupVersionResource{Group: "cns.vmware.com", Version: "v1alpha1", Resource: "cnsvspherevolumemigrations"}
+	migrationResource := this.ppetm.dynamicClient.Resource(migrationGVR)
+	migrationResourcelist, err := migrationResource.List(ctx, metav1.ListOptions{})
+	return migrationResourcelist, err
+}
 func (this PVCProtectedEntity) Overwrite(ctx context.Context, sourcePE astrolabe.ProtectedEntity, params map[string]map[string]interface{},
 	overwriteComponents bool) error {
 

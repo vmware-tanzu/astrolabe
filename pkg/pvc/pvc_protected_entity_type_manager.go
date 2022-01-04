@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -19,6 +20,7 @@ import (
 
 type PVCProtectedEntityTypeManager struct {
 	clientSet *kubernetes.Clientset
+	dynamicClient dynamic.Interface
 	isGuest   bool
 	pem       astrolabe.ProtectedEntityManager
 	s3Config  astrolabe.S3Config
@@ -49,12 +51,14 @@ func NewPVCProtectedEntityTypeManagerFromConfig(params map[string]interface{}, s
 		}
 	}
 	clientSet, err := kubernetes.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 	_, isGuest := params["svcNamespace"]
 	return &PVCProtectedEntityTypeManager{
 		clientSet: clientSet,
+		dynamicClient: dynamicClient,
 		isGuest:   isGuest,
 		s3Config:  s3Config,
 		logger:    logger,
