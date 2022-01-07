@@ -42,6 +42,9 @@ kubernetes:
 pvc:
 	cd pkg/pvc; go build
 
+localsnap:
+	cd pkg/localsnap; go build
+
 server: 
 	cd pkg/server; go build
 
