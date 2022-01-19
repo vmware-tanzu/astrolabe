@@ -7,27 +7,29 @@ executables, not to provide a general remote access mechanism.  It uses the
 
 ## Creating a plugin
 To create a plugin, implement `ProtectedEntityTypeManager` and `ProtectedEntity`
-for your Protected Entity type as Go classes.  The plugin will be packaged
+for your Protected Entity type as Go classes
+([More info on creating _Protected Entity Types_](creating_protected_entity_type.md).
+The plugin will be packaged
 as an executable with a single Protected Entity type per executable.  Create the
 executable with a `main.go` similar to this:
 
     package main
 
     import (
-    "github.com/hashicorp/go-plugin"
-    "github.com/vmware-tanzu/astrolabe/pkg/fs"
-    astrolabe_plugin "github.com/vmware-tanzu/astrolabe/pkg/plugin"
-    "github.com/vmware-tanzu/astrolabe/pkg/plugin/framework"
+        "github.com/hashicorp/go-plugin"
+        "YourPluginPackage"
+        astrolabe_plugin "github.com/vmware-tanzu/astrolabe/pkg/plugin"
+        github.com/vmware-tanzu/astrolabe/pkg/plugin/framework"
     )
 
     func main() {
-    plugin.Serve(&plugin.ServeConfig{
-    HandshakeConfig: framework.Handshake,
-    Plugins: map[string]plugin.Plugin{
-    astrolabe_plugin.PetmPluginName: &framework.ProtectedEntityTypeManagerPlugin{InitFunc: fs.NewFSProtectedEntityTypeManagerFromConfig},
-    },
-    
-    		// A non-nil value here enables gRPC serving for this plugin...
+        plugin.Serve(&plugin.ServeConfig{
+        andshakeConfig: framework.Handshake,
+        Plugins: map[string]plugin.Plugin{
+            astrolabe_plugin.PetmPluginName: &framework.ProtectedEntityTypeManagerPlugin{InitFunc: your_plugin_package.YourInitFunc},
+        },
+
+    	// A non-nil value here enables gRPC serving for this plugin...
 	    	GRPCServer: plugin.DefaultGRPCServer,
 	    })
     }
