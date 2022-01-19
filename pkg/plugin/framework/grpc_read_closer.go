@@ -7,7 +7,7 @@ import (
 
 type grpcReadCloser struct {
 	readerID int64
-	client generated.ProtectedEntityTypeManagerClient
+	client   generated.ProtectedEntityTypeManagerClient
 }
 
 func (recv grpcReadCloser) Read(buf []byte) (bytesRead int, err error) {
@@ -22,7 +22,6 @@ func (recv grpcReadCloser) Read(buf []byte) (bytesRead int, err error) {
 
 	return copy(buf, resp.Data), nil
 }
-
 
 func (recv grpcReadCloser) Close() error {
 	closeReq := generated.CloseRequest{
@@ -40,7 +39,7 @@ func (recv grpcReadAtCloser) ReadAt(buf []byte, offset int64) (bytesRead int, er
 	readReq := generated.ReadAtRequest{
 		ReaderID:    recv.readerID,
 		BytesToRead: int64(len(buf)),
-		Offset: offset,
+		Offset:      offset,
 	}
 	resp, err := recv.client.ReadAt(context.Background(), &readReq)
 	if err != nil {

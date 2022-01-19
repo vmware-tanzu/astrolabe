@@ -125,6 +125,7 @@ type bufferedReadCloser struct {
 	io.Reader
 	io.Closer
 }
+
 func (recv protectedEntityClient) GetDataReader(ctx context.Context) (io.ReadCloser, error) {
 	resp, err := recv.client.GetDataReader(ctx, ProtoFromProtectedEntityID(recv.id))
 	if err != nil {

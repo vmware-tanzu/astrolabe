@@ -10,7 +10,7 @@ import (
 )
 
 type ProtectedEntityTypeManagerPlugin struct {
-	plugin.NetRPCUnsupportedPlugin	// Embed NetRPCUnsupportedPlugin to implement plugin.Plugin and turn off net/rpc plugins.
+	plugin.NetRPCUnsupportedPlugin // Embed NetRPCUnsupportedPlugin to implement plugin.Plugin and turn off net/rpc plugins.
 	// We implement GRPCPlugin interface instead
 	InitFunc astrolabe.InitFunc // The init func to create a new Protected Entity Type Manager - only used for the server
 }

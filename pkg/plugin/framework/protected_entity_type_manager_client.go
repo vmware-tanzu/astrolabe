@@ -9,7 +9,7 @@ import (
 )
 
 type ProtectedEntityTypeManagerClient interface {
-	Init(params map[string]interface{},	s3Config astrolabe.S3Config) error
+	Init(params map[string]interface{}, s3Config astrolabe.S3Config) error
 	astrolabe.ProtectedEntityTypeManager
 }
 type protectedEntityTypeManagerClient struct {
@@ -51,7 +51,7 @@ func (recv *protectedEntityTypeManagerClient) GetProtectedEntity(ctx context.Con
 	return &protectedEntityClient{
 		id:     id,
 		client: recv.client,
-		petm: recv,
+		petm:   recv,
 	}, nil
 }
 

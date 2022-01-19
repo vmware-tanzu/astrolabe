@@ -42,7 +42,7 @@ func ProtectedEntityIDsFromProtos(protos []*generated.ProtectedEntityID) []astro
 	return ids
 }
 
-func ProtectedEntitySnapshotIDFromProto(snapshotID * generated.ProtectedEntitySnapshotID) astrolabe.ProtectedEntitySnapshotID {
+func ProtectedEntitySnapshotIDFromProto(snapshotID *generated.ProtectedEntitySnapshotID) astrolabe.ProtectedEntitySnapshotID {
 	return astrolabe.NewProtectedEntitySnapshotID(snapshotID.Id)
 }
 
@@ -53,7 +53,7 @@ func ProtoFromProtectedEntitySnapshotID(snapshotID astrolabe.ProtectedEntitySnap
 func ProtoFromDataTransport(transport astrolabe.DataTransport) *generated.DataTransport {
 	return &generated.DataTransport{
 		TransportType: transport.GetTransportType(),
-		Params: transport.GetParams(),
+		Params:        transport.GetParams(),
 	}
 }
 
@@ -88,7 +88,6 @@ func ProtoFromProtectedEntityInfo(info astrolabe.ProtectedEntityInfo) *generated
 		ComponentIDs:       ProtosFromProtectedEntityIDs(info.GetComponentIDs()),
 	}
 }
-
 
 func ProtectedEntityInfoFromProto(protoPEInfo *generated.ProtectedEntityInfo) astrolabe.ProtectedEntityInfo {
 	return astrolabe.NewProtectedEntityInfo(ProtectedEntityIDFromProto(protoPEInfo.Id),

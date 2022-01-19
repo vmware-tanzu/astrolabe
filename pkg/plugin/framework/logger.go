@@ -26,12 +26,12 @@ import (
 func NewLogger() *logrus.Logger {
 	logger := logrus.New()
 	/*
-		!!!DO NOT SET THE OUTPUT TO STDOUT!!!
+			!!!DO NOT SET THE OUTPUT TO STDOUT!!!
 
-		go-plugin uses stdout for a communications protocol between client and server.
+			go-plugin uses stdout for a communications protocol between client and server.
 
-		stderr is used for log messages from server to client. The astrolabe server makes sure they are logged to the correct
-	    destination.
+			stderr is used for log messages from server to client. The astrolabe server makes sure they are logged to the correct
+		    destination.
 	*/
 
 	// we use the JSON formatter because go-plugin will parse incoming
