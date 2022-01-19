@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"github.com/vmware-tanzu/astrolabe/pkg/plugin/framework"
-	generated "github.com/vmware-tanzu/astrolabe/pkg/plugin/generated/v1"
+	"github.com/vmware-tanzu/astrolabe/pkg/plugin/generated/v1"
 	"github.com/vmware-tanzu/astrolabe/pkg/util"
 	"os"
 	"os/exec"
@@ -31,20 +31,20 @@ import (
 )
 
 type pluginProtectedEntityManager struct {
-	logger logrus.FieldLogger
-	pluginsDir string
+	logger      logrus.FieldLogger
+	pluginsDir  string
 	pluginPETMs map[string]*pluginPETM
 }
 
 type pluginPETM struct {
 	client *plugin.Client
-	petm framework.ProtectedEntityTypeManagerClient
+	petm   framework.ProtectedEntityTypeManagerClient
 }
 
 func NewPluginProtectedEntityManagerFromConfigDir(confDirPath string, pluginsDir string, logger logrus.FieldLogger) (astrolabe.ProtectedEntityManager, error) {
 	configInfo, err := util.ReadConfigFiles(confDirPath)
 	if err != nil {
-		logger.Fatalf("Could not read config files from dir %s, err: %v", confDirPath, err)
+		return nil, errors.Wrapf(err, "could not read config files from dir %s, err: %v", confDirPath)
 	}
 	return NewPluginProtectedEntityManagerFromParamMap(configInfo, pluginsDir, logger)
 }
@@ -61,12 +61,12 @@ func NewPluginProtectedEntityManagerFromParamMap(configInfo util.ConfigInfo, plu
 
 	pluginsDirFile, err := os.Open(pluginsDir)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not open pluginsDir %s", pluginsDir)
+		return nil, errors.Wrapf(err, "could not open pluginsDir %s", pluginsDir)
 	}
 
 	fileNames, err := pluginsDirFile.Readdirnames(0)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Could not list plugindDir %s", pluginsDir)
+	if err != nil{
+		return nil, errors.Wrapf(err, "could not list pluginsDir %s", pluginsDir)
 	}
 
 	pluginPETMs := map[string]*pluginPETM{}
@@ -91,8 +91,8 @@ func NewPluginProtectedEntityManagerFromParamMap(configInfo util.ConfigInfo, plu
 		pluginPETMs[peName] = pluginPETM
 	}
 	ppem := pluginProtectedEntityManager{
-		logger:     logger,
-		pluginsDir: pluginsDir,
+		logger:      logger,
+		pluginsDir:  pluginsDir,
 		pluginPETMs: pluginPETMs,
 	}
 	return &ppem, nil
@@ -101,6 +101,7 @@ func NewPluginProtectedEntityManagerFromParamMap(configInfo util.ConfigInfo, plu
 const (
 	PetmPluginName = "petm"
 )
+
 // PluginMap is the map of plugins we can dispense.
 var PluginMap = map[string]plugin.Plugin{
 	PetmPluginName: &framework.ProtectedEntityTypeManagerPlugin{},
@@ -109,29 +110,29 @@ var PluginMap = map[string]plugin.Plugin{
 func startPluginPETM(pluginExecutable string) (*pluginPETM, error) {
 	pluginExecutableInfo, err := os.Stat(pluginExecutable)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not stat plugin %s", pluginExecutable)
+		return nil, errors.Wrapf(err, "could not stat plugin %s", pluginExecutable)
 	}
 	if pluginExecutableInfo.IsDir() {
 		return nil, errors.Errorf("pluginsDir %s is not a file", pluginExecutable)
 	}
 
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: framework.Handshake,
-		Plugins:         PluginMap,
-		Cmd:             exec.Command("sh", "-c", pluginExecutable),
+		HandshakeConfig:  framework.Handshake,
+		Plugins:          PluginMap,
+		Cmd:              exec.Command("sh", "-c", pluginExecutable),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	})
 
 	// Connect via GRPC
 	rpcClient, err := client.Client()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not start client for plugin executable %s", pluginExecutable)
+		return nil, errors.Wrapf(err, "could not start client for plugin executable %s", pluginExecutable)
 	}
 
 	// Request the plugin
 	raw, err := rpcClient.Dispense(PetmPluginName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not get PETM for plugin executable %s", pluginExecutable)
+		return nil, errors.Wrapf(err, "could not get PETM for plugin executable %s", pluginExecutable)
 	}
 
 	petm := framework.NewProtectedEntityTypeManagerClient(raw.(generated.ProtectedEntityTypeManagerClient))
@@ -142,17 +143,17 @@ func startPluginPETM(pluginExecutable string) (*pluginPETM, error) {
 	}, nil
 }
 
-func (recv * pluginProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
+func (recv *pluginProtectedEntityManager) GetProtectedEntity(ctx context.Context, id astrolabe.ProtectedEntityID) (astrolabe.ProtectedEntity, error) {
 	petm := recv.GetProtectedEntityTypeManager(id.GetPeType())
 	if petm == nil {
-			errMsg := fmt.Sprintf("PeType, %v, is not available", id.GetPeType())
-			recv.logger.Error(errMsg)
-			return nil, errors.New(errMsg)
+		errMsg := fmt.Sprintf("PeType, %v, is not available", id.GetPeType())
+		recv.logger.Error(errMsg)
+		return nil, errors.New(errMsg)
 	}
 	return petm.GetProtectedEntity(ctx, id)
 }
 
-func (recv * pluginProtectedEntityManager) GetProtectedEntityTypeManager(peType string) astrolabe.ProtectedEntityTypeManager {
+func (recv *pluginProtectedEntityManager) GetProtectedEntityTypeManager(peType string) astrolabe.ProtectedEntityTypeManager {
 	returnPluginPETM := recv.pluginPETMs[peType]
 	if returnPluginPETM != nil {
 		return returnPluginPETM.petm
@@ -161,7 +162,7 @@ func (recv * pluginProtectedEntityManager) GetProtectedEntityTypeManager(peType 
 	}
 }
 
-func (recv * pluginProtectedEntityManager) ListEntityTypeManagers() []astrolabe.ProtectedEntityTypeManager {
+func (recv *pluginProtectedEntityManager) ListEntityTypeManagers() []astrolabe.ProtectedEntityTypeManager {
 	returnPETMs := []astrolabe.ProtectedEntityTypeManager{}
 	for _, petm := range recv.pluginPETMs {
 		returnPETMs = append(returnPETMs, petm.petm)
