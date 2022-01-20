@@ -11,3 +11,4 @@ Astrolabe shares governance with the Velero project.
 | Xing Yang | [xing-yang](https://github.com/xing-yang) | [VMware](https://www.github.com/vmware/) |
 | Lintong Jiang | [lintongj](https://github.com/lintongj) | [VMware](https://www.github.com/vmware/)|
 | Deepak Kinni | [deepakkinni](https://github.com/deepakkinni) | [VMware](https://www.github.com/vmware)|
+| Rafael Brito | [brito-rafa](https://github.com/brito-rafa) | [VMware](https://www.github.com/vmware)|
