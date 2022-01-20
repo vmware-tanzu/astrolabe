@@ -16,64 +16,79 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewGetProtectedEntityInfoParams creates a new GetProtectedEntityInfoParams object
-// with the default values initialized.
+// NewGetProtectedEntityInfoParams creates a new GetProtectedEntityInfoParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetProtectedEntityInfoParams() *GetProtectedEntityInfoParams {
-	var ()
 	return &GetProtectedEntityInfoParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetProtectedEntityInfoParamsWithTimeout creates a new GetProtectedEntityInfoParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetProtectedEntityInfoParamsWithTimeout(timeout time.Duration) *GetProtectedEntityInfoParams {
-	var ()
 	return &GetProtectedEntityInfoParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetProtectedEntityInfoParamsWithContext creates a new GetProtectedEntityInfoParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetProtectedEntityInfoParamsWithContext(ctx context.Context) *GetProtectedEntityInfoParams {
-	var ()
 	return &GetProtectedEntityInfoParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetProtectedEntityInfoParamsWithHTTPClient creates a new GetProtectedEntityInfoParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetProtectedEntityInfoParamsWithHTTPClient(client *http.Client) *GetProtectedEntityInfoParams {
-	var ()
 	return &GetProtectedEntityInfoParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetProtectedEntityInfoParams contains all the parameters to send to the API endpoint
-for the get protected entity info operation typically these are written to a http.Request
+/* GetProtectedEntityInfoParams contains all the parameters to send to the API endpoint
+   for the get protected entity info operation.
+
+   Typically these are written to a http.Request.
 */
 type GetProtectedEntityInfoParams struct {
 
-	/*ProtectedEntityID
-	  The protected entity ID to retrieve info for
+	/* ProtectedEntityID.
 
+	   The protected entity ID to retrieve info for
 	*/
 	ProtectedEntityID string
-	/*Service
-	  The service for the protected entity
 
+	/* Service.
+
+	   The service for the protected entity
 	*/
 	Service string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get protected entity info params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetProtectedEntityInfoParams) WithDefaults() *GetProtectedEntityInfoParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get protected entity info params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetProtectedEntityInfoParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get protected entity info params

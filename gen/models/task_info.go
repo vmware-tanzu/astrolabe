@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -34,7 +35,7 @@ type TaskInfo struct {
 
 	// id
 	// Required: true
-	ID TaskID `json:"id"`
+	ID *TaskID `json:"id"`
 
 	// progress
 	// Required: true
@@ -104,11 +105,23 @@ func (m *TaskInfo) validateCompleted(formats strfmt.Registry) error {
 
 func (m *TaskInfo) validateID(formats strfmt.Registry) error {
 
-	if err := m.ID.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("id")
-		}
+	if err := validate.Required("id", "body", m.ID); err != nil {
 		return err
+	}
+
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
+	}
+
+	if m.ID != nil {
+		if err := m.ID.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -120,11 +133,11 @@ func (m *TaskInfo) validateProgress(formats strfmt.Registry) error {
 		return err
 	}
 
-	if err := validate.Minimum("progress", "body", float64(*m.Progress), 0, false); err != nil {
+	if err := validate.Minimum("progress", "body", *m.Progress, 0, false); err != nil {
 		return err
 	}
 
-	if err := validate.Maximum("progress", "body", float64(*m.Progress), 100, false); err != nil {
+	if err := validate.Maximum("progress", "body", *m.Progress, 100, false); err != nil {
 		return err
 	}
 
@@ -178,7 +191,7 @@ const (
 
 // prop value enum
 func (m *TaskInfo) validateStatusEnum(path, location string, value string) error {
-	if err := validate.Enum(path, location, value, taskInfoTypeStatusPropEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, taskInfoTypeStatusPropEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -193,6 +206,36 @@ func (m *TaskInfo) validateStatus(formats strfmt.Registry) error {
 	// value enum
 	if err := m.validateStatusEnum("status", "body", *m.Status); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this task info based on the context it is used
+func (m *TaskInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateID(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *TaskInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.ID != nil {
+		if err := m.ID.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
+			}
+			return err
+		}
 	}
 
 	return nil

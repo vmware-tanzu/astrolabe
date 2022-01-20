@@ -25,31 +25,34 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption is the option for Client methods
+type ClientOption func(*runtime.ClientOperation)
+
 // ClientService is the interface for Client methods
 type ClientService interface {
-	GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexusTaskNexusIDParams) (*GetAstrolabeTasksNexusTaskNexusIDOK, error)
+	GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexusTaskNexusIDParams, opts ...ClientOption) (*GetAstrolabeTasksNexusTaskNexusIDOK, error)
 
-	PostAstrolabeTasksNexus(params *PostAstrolabeTasksNexusParams) (*PostAstrolabeTasksNexusOK, error)
+	PostAstrolabeTasksNexus(params *PostAstrolabeTasksNexusParams, opts ...ClientOption) (*PostAstrolabeTasksNexusOK, error)
 
-	CopyProtectedEntity(params *CopyProtectedEntityParams) (*CopyProtectedEntityAccepted, error)
+	CopyProtectedEntity(params *CopyProtectedEntityParams, opts ...ClientOption) (*CopyProtectedEntityAccepted, error)
 
-	CreateSnapshot(params *CreateSnapshotParams) (*CreateSnapshotOK, error)
+	CreateSnapshot(params *CreateSnapshotParams, opts ...ClientOption) (*CreateSnapshotOK, error)
 
-	DeleteProtectedEntity(params *DeleteProtectedEntityParams) (*DeleteProtectedEntityOK, error)
+	DeleteProtectedEntity(params *DeleteProtectedEntityParams, opts ...ClientOption) (*DeleteProtectedEntityOK, error)
 
-	GetProtectedEntityInfo(params *GetProtectedEntityInfoParams) (*GetProtectedEntityInfoOK, error)
+	GetProtectedEntityInfo(params *GetProtectedEntityInfoParams, opts ...ClientOption) (*GetProtectedEntityInfoOK, error)
 
-	GetTaskInfo(params *GetTaskInfoParams) (*GetTaskInfoOK, error)
+	GetTaskInfo(params *GetTaskInfoParams, opts ...ClientOption) (*GetTaskInfoOK, error)
 
-	ListProtectedEntities(params *ListProtectedEntitiesParams) (*ListProtectedEntitiesOK, error)
+	ListProtectedEntities(params *ListProtectedEntitiesParams, opts ...ClientOption) (*ListProtectedEntitiesOK, error)
 
-	ListServices(params *ListServicesParams) (*ListServicesOK, error)
+	ListServices(params *ListServicesParams, opts ...ClientOption) (*ListServicesOK, error)
 
-	ListSnapshots(params *ListSnapshotsParams) (*ListSnapshotsOK, error)
+	ListSnapshots(params *ListSnapshotsParams, opts ...ClientOption) (*ListSnapshotsOK, error)
 
-	ListTaskNexus(params *ListTaskNexusParams) (*ListTaskNexusOK, error)
+	ListTaskNexus(params *ListTaskNexusParams, opts ...ClientOption) (*ListTaskNexusOK, error)
 
-	ListTasks(params *ListTasksParams) (*ListTasksOK, error)
+	ListTasks(params *ListTasksParams, opts ...ClientOption) (*ListTasksOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -57,13 +60,12 @@ type ClientService interface {
 /*
   GetAstrolabeTasksNexusTaskNexusID get astrolabe tasks nexus task nexus ID API
 */
-func (a *Client) GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexusTaskNexusIDParams) (*GetAstrolabeTasksNexusTaskNexusIDOK, error) {
+func (a *Client) GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexusTaskNexusIDParams, opts ...ClientOption) (*GetAstrolabeTasksNexusTaskNexusIDOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetAstrolabeTasksNexusTaskNexusIDParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "GetAstrolabeTasksNexusTaskNexusID",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/tasks/nexus/{taskNexusID}",
@@ -74,7 +76,12 @@ func (a *Client) GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexu
 		Reader:             &GetAstrolabeTasksNexusTaskNexusIDReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -91,13 +98,12 @@ func (a *Client) GetAstrolabeTasksNexusTaskNexusID(params *GetAstrolabeTasksNexu
 /*
   PostAstrolabeTasksNexus Creates a new nexus for monitoring task completion
 */
-func (a *Client) PostAstrolabeTasksNexus(params *PostAstrolabeTasksNexusParams) (*PostAstrolabeTasksNexusOK, error) {
+func (a *Client) PostAstrolabeTasksNexus(params *PostAstrolabeTasksNexusParams, opts ...ClientOption) (*PostAstrolabeTasksNexusOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPostAstrolabeTasksNexusParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PostAstrolabeTasksNexus",
 		Method:             "POST",
 		PathPattern:        "/astrolabe/tasks/nexus",
@@ -108,7 +114,12 @@ func (a *Client) PostAstrolabeTasksNexus(params *PostAstrolabeTasksNexusParams) 
 		Reader:             &PostAstrolabeTasksNexusReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +140,12 @@ self-contained object, use the restore from zip file option in the S3
 API REST API
 
 */
-func (a *Client) CopyProtectedEntity(params *CopyProtectedEntityParams) (*CopyProtectedEntityAccepted, error) {
+func (a *Client) CopyProtectedEntity(params *CopyProtectedEntityParams, opts ...ClientOption) (*CopyProtectedEntityAccepted, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewCopyProtectedEntityParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "copyProtectedEntity",
 		Method:             "POST",
 		PathPattern:        "/astrolabe/{service}",
@@ -146,7 +156,12 @@ func (a *Client) CopyProtectedEntity(params *CopyProtectedEntityParams) (*CopyPr
 		Reader:             &CopyProtectedEntityReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -164,13 +179,12 @@ func (a *Client) CopyProtectedEntity(params *CopyProtectedEntityParams) (*CopyPr
   CreateSnapshot Creates a new snapshot for this protected entity
 
 */
-func (a *Client) CreateSnapshot(params *CreateSnapshotParams) (*CreateSnapshotOK, error) {
+func (a *Client) CreateSnapshot(params *CreateSnapshotParams, opts ...ClientOption) (*CreateSnapshotOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewCreateSnapshotParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "createSnapshot",
 		Method:             "POST",
 		PathPattern:        "/astrolabe/{service}/{protectedEntityID}/snapshots",
@@ -181,7 +195,12 @@ func (a *Client) CreateSnapshot(params *CreateSnapshotParams) (*CreateSnapshotOK
 		Reader:             &CreateSnapshotReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -200,13 +219,12 @@ func (a *Client) CreateSnapshot(params *CreateSnapshotParams) (*CreateSnapshotOK
 snapshot ID is specified)
 
 */
-func (a *Client) DeleteProtectedEntity(params *DeleteProtectedEntityParams) (*DeleteProtectedEntityOK, error) {
+func (a *Client) DeleteProtectedEntity(params *DeleteProtectedEntityParams, opts ...ClientOption) (*DeleteProtectedEntityOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewDeleteProtectedEntityParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "deleteProtectedEntity",
 		Method:             "DELETE",
 		PathPattern:        "/astrolabe/{service}/{protectedEntityID}",
@@ -217,7 +235,12 @@ func (a *Client) DeleteProtectedEntity(params *DeleteProtectedEntityParams) (*De
 		Reader:             &DeleteProtectedEntityReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +259,12 @@ func (a *Client) DeleteProtectedEntity(params *DeleteProtectedEntityParams) (*De
 components
 
 */
-func (a *Client) GetProtectedEntityInfo(params *GetProtectedEntityInfoParams) (*GetProtectedEntityInfoOK, error) {
+func (a *Client) GetProtectedEntityInfo(params *GetProtectedEntityInfoParams, opts ...ClientOption) (*GetProtectedEntityInfoOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetProtectedEntityInfoParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "getProtectedEntityInfo",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/{service}/{protectedEntityID}",
@@ -253,7 +275,12 @@ func (a *Client) GetProtectedEntityInfo(params *GetProtectedEntityInfoParams) (*
 		Reader:             &GetProtectedEntityInfoReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -270,13 +297,12 @@ func (a *Client) GetProtectedEntityInfo(params *GetProtectedEntityInfoParams) (*
 /*
   GetTaskInfo gets info about a running or recently completed task
 */
-func (a *Client) GetTaskInfo(params *GetTaskInfoParams) (*GetTaskInfoOK, error) {
+func (a *Client) GetTaskInfo(params *GetTaskInfoParams, opts ...ClientOption) (*GetTaskInfoOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewGetTaskInfoParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "getTaskInfo",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/tasks/{taskID}",
@@ -287,7 +313,12 @@ func (a *Client) GetTaskInfo(params *GetTaskInfoParams) (*GetTaskInfoOK, error) 
 		Reader:             &GetTaskInfoReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -308,13 +339,12 @@ expected, the ProtectedEntityList has a field specifying if the list has
 been truncated.
 
 */
-func (a *Client) ListProtectedEntities(params *ListProtectedEntitiesParams) (*ListProtectedEntitiesOK, error) {
+func (a *Client) ListProtectedEntities(params *ListProtectedEntitiesParams, opts ...ClientOption) (*ListProtectedEntitiesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListProtectedEntitiesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "listProtectedEntities",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/{service}",
@@ -325,7 +355,12 @@ func (a *Client) ListProtectedEntities(params *ListProtectedEntitiesParams) (*Li
 		Reader:             &ListProtectedEntitiesReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -345,13 +380,12 @@ func (a *Client) ListProtectedEntities(params *ListProtectedEntitiesParams) (*Li
   This returns the list of services that this Astrolabe server supports
 
 */
-func (a *Client) ListServices(params *ListServicesParams) (*ListServicesOK, error) {
+func (a *Client) ListServices(params *ListServicesParams, opts ...ClientOption) (*ListServicesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListServicesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "listServices",
 		Method:             "GET",
 		PathPattern:        "/astrolabe",
@@ -362,7 +396,12 @@ func (a *Client) ListServices(params *ListServicesParams) (*ListServicesOK, erro
 		Reader:             &ListServicesReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -380,13 +419,12 @@ func (a *Client) ListServices(params *ListServicesParams) (*ListServicesOK, erro
   ListSnapshots Gets the list of snapshots for this protected entity
 
 */
-func (a *Client) ListSnapshots(params *ListSnapshotsParams) (*ListSnapshotsOK, error) {
+func (a *Client) ListSnapshots(params *ListSnapshotsParams, opts ...ClientOption) (*ListSnapshotsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListSnapshotsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "listSnapshots",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/{service}/{protectedEntityID}/snapshots",
@@ -397,7 +435,12 @@ func (a *Client) ListSnapshots(params *ListSnapshotsParams) (*ListSnapshotsOK, e
 		Reader:             &ListSnapshotsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -414,13 +457,12 @@ func (a *Client) ListSnapshots(params *ListSnapshotsParams) (*ListSnapshotsOK, e
 /*
   ListTaskNexus Provides a list of current task nexus
 */
-func (a *Client) ListTaskNexus(params *ListTaskNexusParams) (*ListTaskNexusOK, error) {
+func (a *Client) ListTaskNexus(params *ListTaskNexusParams, opts ...ClientOption) (*ListTaskNexusOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListTaskNexusParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "listTaskNexus",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/tasks/nexus",
@@ -431,7 +473,12 @@ func (a *Client) ListTaskNexus(params *ListTaskNexusParams) (*ListTaskNexusOK, e
 		Reader:             &ListTaskNexusReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
@@ -448,13 +495,12 @@ func (a *Client) ListTaskNexus(params *ListTaskNexusParams) (*ListTaskNexusOK, e
 /*
   ListTasks Lists running and recent tasks
 */
-func (a *Client) ListTasks(params *ListTasksParams) (*ListTasksOK, error) {
+func (a *Client) ListTasks(params *ListTasksParams, opts ...ClientOption) (*ListTasksOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewListTasksParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "listTasks",
 		Method:             "GET",
 		PathPattern:        "/astrolabe/tasks",
@@ -465,7 +511,12 @@ func (a *Client) ListTasks(params *ListTasksParams) (*ListTasksOK, error) {
 		Reader:             &ListTasksReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}

@@ -16,64 +16,79 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewListSnapshotsParams creates a new ListSnapshotsParams object
-// with the default values initialized.
+// NewListSnapshotsParams creates a new ListSnapshotsParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListSnapshotsParams() *ListSnapshotsParams {
-	var ()
 	return &ListSnapshotsParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListSnapshotsParamsWithTimeout creates a new ListSnapshotsParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListSnapshotsParamsWithTimeout(timeout time.Duration) *ListSnapshotsParams {
-	var ()
 	return &ListSnapshotsParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListSnapshotsParamsWithContext creates a new ListSnapshotsParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListSnapshotsParamsWithContext(ctx context.Context) *ListSnapshotsParams {
-	var ()
 	return &ListSnapshotsParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListSnapshotsParamsWithHTTPClient creates a new ListSnapshotsParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListSnapshotsParamsWithHTTPClient(client *http.Client) *ListSnapshotsParams {
-	var ()
 	return &ListSnapshotsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListSnapshotsParams contains all the parameters to send to the API endpoint
-for the list snapshots operation typically these are written to a http.Request
+/* ListSnapshotsParams contains all the parameters to send to the API endpoint
+   for the list snapshots operation.
+
+   Typically these are written to a http.Request.
 */
 type ListSnapshotsParams struct {
 
-	/*ProtectedEntityID
-	  The protected entity ID to retrieve info for
+	/* ProtectedEntityID.
 
+	   The protected entity ID to retrieve info for
 	*/
 	ProtectedEntityID string
-	/*Service
-	  The service for the protected entity
 
+	/* Service.
+
+	   The service for the protected entity
 	*/
 	Service string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list snapshots params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListSnapshotsParams) WithDefaults() *ListSnapshotsParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list snapshots params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListSnapshotsParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list snapshots params

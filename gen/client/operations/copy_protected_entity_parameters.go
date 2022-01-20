@@ -18,57 +18,58 @@ import (
 	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
-// NewCopyProtectedEntityParams creates a new CopyProtectedEntityParams object
-// with the default values initialized.
+// NewCopyProtectedEntityParams creates a new CopyProtectedEntityParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewCopyProtectedEntityParams() *CopyProtectedEntityParams {
-	var ()
 	return &CopyProtectedEntityParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewCopyProtectedEntityParamsWithTimeout creates a new CopyProtectedEntityParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewCopyProtectedEntityParamsWithTimeout(timeout time.Duration) *CopyProtectedEntityParams {
-	var ()
 	return &CopyProtectedEntityParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewCopyProtectedEntityParamsWithContext creates a new CopyProtectedEntityParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewCopyProtectedEntityParamsWithContext(ctx context.Context) *CopyProtectedEntityParams {
-	var ()
 	return &CopyProtectedEntityParams{
-
 		Context: ctx,
 	}
 }
 
 // NewCopyProtectedEntityParamsWithHTTPClient creates a new CopyProtectedEntityParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewCopyProtectedEntityParamsWithHTTPClient(client *http.Client) *CopyProtectedEntityParams {
-	var ()
 	return &CopyProtectedEntityParams{
 		HTTPClient: client,
 	}
 }
 
-/*CopyProtectedEntityParams contains all the parameters to send to the API endpoint
-for the copy protected entity operation typically these are written to a http.Request
+/* CopyProtectedEntityParams contains all the parameters to send to the API endpoint
+   for the copy protected entity operation.
+
+   Typically these are written to a http.Request.
 */
 type CopyProtectedEntityParams struct {
 
-	/*Body
-	  Copy Parameters including protected entity to copy
+	/* Body.
 
+	   Copy Parameters including protected entity to copy
 	*/
 	Body *models.CopyParameters
-	/*Mode
-	  How to handle the copy.  create - a new protected entity with the
+
+	/* Mode.
+
+	     How to handle the copy.  create - a new protected entity with the
 	Protected Entity ID will be created.  If the Protected Entity ID
 	already exists, the copy will fail.  create_new - A Protected Entity
 	with a new ID will be created with data and metadata from the source
@@ -78,18 +79,33 @@ type CopyProtectedEntityParams struct {
 	the mode will be applied to all of the component entities that are
 	part of this operation as well.
 
-
 	*/
 	Mode string
-	/*Service
-	  The service to copy the protected entity into
 
+	/* Service.
+
+	   The service to copy the protected entity into
 	*/
 	Service string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the copy protected entity params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CopyProtectedEntityParams) WithDefaults() *CopyProtectedEntityParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the copy protected entity params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CopyProtectedEntityParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the copy protected entity params
@@ -165,7 +181,6 @@ func (o *CopyProtectedEntityParams) WriteToRequest(r runtime.ClientRequest, reg 
 		return err
 	}
 	var res []error
-
 	if o.Body != nil {
 		if err := r.SetBodyParam(o.Body); err != nil {
 			return err
@@ -176,6 +191,7 @@ func (o *CopyProtectedEntityParams) WriteToRequest(r runtime.ClientRequest, reg 
 	qrMode := o.Mode
 	qMode := qrMode
 	if qMode != "" {
+
 		if err := r.SetQueryParam("mode", qMode); err != nil {
 			return err
 		}

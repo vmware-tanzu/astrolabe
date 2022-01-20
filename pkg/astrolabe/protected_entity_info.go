@@ -110,12 +110,12 @@ func (this ProtectedEntityInfoImpl) GetModelProtectedEntityInfo() models.Protect
 	componentSpecs := make([]*models.ComponentSpec, len(this.componentIDs))
 	for curComponentNum, curComponentID := range this.componentIDs {
 		componentSpecs[curComponentNum] = &models.ComponentSpec{
-			ID:     models.ProtectedEntityID(curComponentID.String()),
+			ID:     curComponentID.GetModelProtectedEntityID(),
 			Server: "", // TODO - convert to component specs throughout
 		}
 	}
 	jsonStruct := models.ProtectedEntityInfo{
-		ID:                 models.ProtectedEntityID(this.id.String()),
+		ID:                 this.id.GetModelProtectedEntityID(),
 		Name:               &this.name,
 		DataTransports:     convertToModelTransports(this.dataTransports),
 		MetadataTransports: convertToModelTransports(this.metadataTransports),
@@ -166,7 +166,7 @@ func (this *ProtectedEntityInfoImpl) UnmarshalJSON(data []byte) error {
 
 func (this *ProtectedEntityInfoImpl) FillFromModel(jsonStruct *models.ProtectedEntityInfo) error {
 	var err error
-	this.id, err = NewProtectedEntityIDFromString(string(jsonStruct.ID))
+	this.id, err = NewProtectedEntityIDFromModel(jsonStruct.ID)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (this *ProtectedEntityInfoImpl) FillFromModel(jsonStruct *models.ProtectedE
 	this.combinedTransports = convertToTransports(jsonStruct.CombinedTransports)
 	componentIDs := make([]ProtectedEntityID, len(jsonStruct.ComponentSpecs))
 	for curComponentNum, curComponentSpec := range jsonStruct.ComponentSpecs {
-		componentID, err := NewProtectedEntityIDFromString(string(curComponentSpec.ID))
+		componentID, err := NewProtectedEntityIDFromModel(curComponentSpec.ID)
 		if err != nil {
 			return err
 		}

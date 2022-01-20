@@ -13,7 +13,8 @@ import (
 )
 
 // NewListServicesParams creates a new ListServicesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListServicesParams() ListServicesParams {
 
 	return ListServicesParams{}

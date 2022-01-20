@@ -51,7 +51,7 @@ func (this ClientProtectedEntityTypeManager) GetProtectedEntities(ctx context.Co
 	}
 	returnPEIDs := make([]astrolabe.ProtectedEntityID, len(listPEsOK.GetPayload().List))
 	for curPEIDNum, curPEID := range listPEsOK.GetPayload().List {
-		returnPEIDs[curPEIDNum], err = astrolabe.NewProtectedEntityIDFromModel(curPEID)
+		returnPEIDs[curPEIDNum], err = astrolabe.NewProtectedEntityIDFromModel(&curPEID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed in to convert Protected Entity ID %v", curPEID)
 		}

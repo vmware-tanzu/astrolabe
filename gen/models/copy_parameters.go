@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -42,7 +44,6 @@ func (m *CopyParameters) Validate(formats strfmt.Registry) error {
 }
 
 func (m *CopyParameters) validateCopyParams(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CopyParams) { // not required
 		return nil
 	}
@@ -50,6 +51,8 @@ func (m *CopyParameters) validateCopyParams(formats strfmt.Registry) error {
 	if err := m.CopyParams.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("copyParams")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("copyParams")
 		}
 		return err
 	}
@@ -58,7 +61,6 @@ func (m *CopyParameters) validateCopyParams(formats strfmt.Registry) error {
 }
 
 func (m *CopyParameters) validateProtectedEntityInfo(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ProtectedEntityInfo) { // not required
 		return nil
 	}
@@ -67,6 +69,56 @@ func (m *CopyParameters) validateProtectedEntityInfo(formats strfmt.Registry) er
 		if err := m.ProtectedEntityInfo.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("protectedEntityInfo")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("protectedEntityInfo")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this copy parameters based on the context it is used
+func (m *CopyParameters) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateCopyParams(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateProtectedEntityInfo(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *CopyParameters) contextValidateCopyParams(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.CopyParams.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("copyParams")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("copyParams")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (m *CopyParameters) contextValidateProtectedEntityInfo(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.ProtectedEntityInfo != nil {
+		if err := m.ProtectedEntityInfo.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("protectedEntityInfo")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("protectedEntityInfo")
 			}
 			return err
 		}

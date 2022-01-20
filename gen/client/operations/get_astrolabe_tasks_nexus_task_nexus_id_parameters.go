@@ -17,73 +17,89 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewGetAstrolabeTasksNexusTaskNexusIDParams creates a new GetAstrolabeTasksNexusTaskNexusIDParams object
-// with the default values initialized.
+// NewGetAstrolabeTasksNexusTaskNexusIDParams creates a new GetAstrolabeTasksNexusTaskNexusIDParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewGetAstrolabeTasksNexusTaskNexusIDParams() *GetAstrolabeTasksNexusTaskNexusIDParams {
-	var ()
 	return &GetAstrolabeTasksNexusTaskNexusIDParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewGetAstrolabeTasksNexusTaskNexusIDParamsWithTimeout creates a new GetAstrolabeTasksNexusTaskNexusIDParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewGetAstrolabeTasksNexusTaskNexusIDParamsWithTimeout(timeout time.Duration) *GetAstrolabeTasksNexusTaskNexusIDParams {
-	var ()
 	return &GetAstrolabeTasksNexusTaskNexusIDParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewGetAstrolabeTasksNexusTaskNexusIDParamsWithContext creates a new GetAstrolabeTasksNexusTaskNexusIDParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewGetAstrolabeTasksNexusTaskNexusIDParamsWithContext(ctx context.Context) *GetAstrolabeTasksNexusTaskNexusIDParams {
-	var ()
 	return &GetAstrolabeTasksNexusTaskNexusIDParams{
-
 		Context: ctx,
 	}
 }
 
 // NewGetAstrolabeTasksNexusTaskNexusIDParamsWithHTTPClient creates a new GetAstrolabeTasksNexusTaskNexusIDParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewGetAstrolabeTasksNexusTaskNexusIDParamsWithHTTPClient(client *http.Client) *GetAstrolabeTasksNexusTaskNexusIDParams {
-	var ()
 	return &GetAstrolabeTasksNexusTaskNexusIDParams{
 		HTTPClient: client,
 	}
 }
 
-/*GetAstrolabeTasksNexusTaskNexusIDParams contains all the parameters to send to the API endpoint
-for the get astrolabe tasks nexus task nexus ID operation typically these are written to a http.Request
+/* GetAstrolabeTasksNexusTaskNexusIDParams contains all the parameters to send to the API endpoint
+   for the get astrolabe tasks nexus task nexus ID operation.
+
+   Typically these are written to a http.Request.
 */
 type GetAstrolabeTasksNexusTaskNexusIDParams struct {
 
-	/*LastFinishedNS
-	  Last finished time seen by this client.  Tasks that have completed after this time tick will be returned, or if no tasks
+	/* LastFinishedNS.
+
+	     Last finished time seen by this client.  Tasks that have completed after this time tick will be returned, or if no tasks
 	have finished, the call will hang until waitTime has passed or a task finishes.  Starting time tick should
 	be the finished time of the last task that the caller saw completed on this nexus.  Use 0 to get all finished
 	tasks (tasks that have finished and timed out of the server will not be shown)
 
-
 	*/
 	LastFinishedNS int64
-	/*TaskNexusID
-	  The nexus to wait on
 
+	/* TaskNexusID.
+
+	   The nexus to wait on
 	*/
 	TaskNexusID string
-	/*WaitTime
-	  Time to wait (milliseconds) before returning if no tasks   complete
 
+	/* WaitTime.
+
+	   Time to wait (milliseconds) before returning if no tasks   complete
 	*/
 	WaitTime int64
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the get astrolabe tasks nexus task nexus ID params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetAstrolabeTasksNexusTaskNexusIDParams) WithDefaults() *GetAstrolabeTasksNexusTaskNexusIDParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the get astrolabe tasks nexus task nexus ID params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *GetAstrolabeTasksNexusTaskNexusIDParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the get astrolabe tasks nexus task nexus ID params
@@ -164,6 +180,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) WriteToRequest(r runtime.Clien
 	qrLastFinishedNS := o.LastFinishedNS
 	qLastFinishedNS := swag.FormatInt64(qrLastFinishedNS)
 	if qLastFinishedNS != "" {
+
 		if err := r.SetQueryParam("lastFinishedNS", qLastFinishedNS); err != nil {
 			return err
 		}
@@ -178,6 +195,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) WriteToRequest(r runtime.Clien
 	qrWaitTime := o.WaitTime
 	qWaitTime := swag.FormatInt64(qrWaitTime)
 	if qWaitTime != "" {
+
 		if err := r.SetQueryParam("waitTime", qWaitTime); err != nil {
 			return err
 		}

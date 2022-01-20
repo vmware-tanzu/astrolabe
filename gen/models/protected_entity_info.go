@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -33,7 +34,7 @@ type ProtectedEntityInfo struct {
 
 	// id
 	// Required: true
-	ID ProtectedEntityID `json:"id"`
+	ID *ProtectedEntityID `json:"id"`
 
 	// metadata transports
 	// Required: true
@@ -96,6 +97,8 @@ func (m *ProtectedEntityInfo) validateCombinedTransports(formats strfmt.Registry
 			if err := m.CombinedTransports[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("combinedTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("combinedTransports" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -121,6 +124,8 @@ func (m *ProtectedEntityInfo) validateComponentSpecs(formats strfmt.Registry) er
 			if err := m.ComponentSpecs[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("componentSpecs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("componentSpecs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -146,6 +151,8 @@ func (m *ProtectedEntityInfo) validateDataTransports(formats strfmt.Registry) er
 			if err := m.DataTransports[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("dataTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("dataTransports" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -158,11 +165,23 @@ func (m *ProtectedEntityInfo) validateDataTransports(formats strfmt.Registry) er
 
 func (m *ProtectedEntityInfo) validateID(formats strfmt.Registry) error {
 
-	if err := m.ID.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("id")
-		}
+	if err := validate.Required("id", "body", m.ID); err != nil {
 		return err
+	}
+
+	if err := validate.Required("id", "body", m.ID); err != nil {
+		return err
+	}
+
+	if m.ID != nil {
+		if err := m.ID.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -183,6 +202,8 @@ func (m *ProtectedEntityInfo) validateMetadataTransports(formats strfmt.Registry
 			if err := m.MetadataTransports[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("metadataTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("metadataTransports" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -197,6 +218,132 @@ func (m *ProtectedEntityInfo) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this protected entity info based on the context it is used
+func (m *ProtectedEntityInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateCombinedTransports(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateComponentSpecs(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateDataTransports(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateID(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateMetadataTransports(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ProtectedEntityInfo) contextValidateCombinedTransports(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.CombinedTransports); i++ {
+
+		if m.CombinedTransports[i] != nil {
+			if err := m.CombinedTransports[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("combinedTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("combinedTransports" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ProtectedEntityInfo) contextValidateComponentSpecs(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.ComponentSpecs); i++ {
+
+		if m.ComponentSpecs[i] != nil {
+			if err := m.ComponentSpecs[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("componentSpecs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("componentSpecs" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ProtectedEntityInfo) contextValidateDataTransports(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.DataTransports); i++ {
+
+		if m.DataTransports[i] != nil {
+			if err := m.DataTransports[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("dataTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("dataTransports" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *ProtectedEntityInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.ID != nil {
+		if err := m.ID.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("id")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("id")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ProtectedEntityInfo) contextValidateMetadataTransports(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.MetadataTransports); i++ {
+
+		if m.MetadataTransports[i] != nil {
+			if err := m.MetadataTransports[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("metadataTransports" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("metadataTransports" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

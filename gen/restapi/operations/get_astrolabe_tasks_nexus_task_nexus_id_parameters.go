@@ -17,7 +17,8 @@ import (
 )
 
 // NewGetAstrolabeTasksNexusTaskNexusIDParams creates a new GetAstrolabeTasksNexusTaskNexusIDParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetAstrolabeTasksNexusTaskNexusIDParams() GetAstrolabeTasksNexusTaskNexusIDParams {
 
 	return GetAstrolabeTasksNexusTaskNexusIDParams{}
@@ -78,7 +79,6 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) BindRequest(r *http.Request, r
 	if err := o.bindWaitTime(qWaitTime, qhkWaitTime, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -88,7 +88,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) BindRequest(r *http.Request, r
 // bindLastFinishedNS binds and validates parameter LastFinishedNS from query.
 func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindLastFinishedNS(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("lastFinishedNS", "query")
+		return errors.Required("lastFinishedNS", "query", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -97,6 +97,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindLastFinishedNS(rawData []s
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("lastFinishedNS", "query", raw); err != nil {
 		return err
 	}
@@ -119,7 +120,6 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindTaskNexusID(rawData []stri
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.TaskNexusID = raw
 
 	return nil
@@ -128,7 +128,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindTaskNexusID(rawData []stri
 // bindWaitTime binds and validates parameter WaitTime from query.
 func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindWaitTime(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("waitTime", "query")
+		return errors.Required("waitTime", "query", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -137,6 +137,7 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDParams) bindWaitTime(rawData []string,
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("waitTime", "query", raw); err != nil {
 		return err
 	}

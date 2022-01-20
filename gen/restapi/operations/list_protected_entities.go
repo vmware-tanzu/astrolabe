@@ -29,7 +29,7 @@ func NewListProtectedEntities(ctx *middleware.Context, handler ListProtectedEnti
 	return &ListProtectedEntities{Context: ctx, Handler: handler}
 }
 
-/*ListProtectedEntities swagger:route GET /astrolabe/{service} listProtectedEntities
+/* ListProtectedEntities swagger:route GET /astrolabe/{service} listProtectedEntities
 
 List protected entities for the service.  Results will be returned in
 canonical ID order (string sorted).  Fewer results may be returned than
@@ -46,17 +46,15 @@ type ListProtectedEntities struct {
 func (o *ListProtectedEntities) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewListProtectedEntitiesParams()
-
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
 	res := o.Handler.Handle(Params) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

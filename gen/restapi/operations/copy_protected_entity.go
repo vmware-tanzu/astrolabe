@@ -29,7 +29,7 @@ func NewCopyProtectedEntity(ctx *middleware.Context, handler CopyProtectedEntity
 	return &CopyProtectedEntity{Context: ctx, Handler: handler}
 }
 
-/*CopyProtectedEntity swagger:route POST /astrolabe/{service} copyProtectedEntity
+/* CopyProtectedEntity swagger:route POST /astrolabe/{service} copyProtectedEntity
 
 Copy a protected entity into the repository.  There is no option to
 embed data on this path, for a self-contained or partially
@@ -46,17 +46,15 @@ type CopyProtectedEntity struct {
 func (o *CopyProtectedEntity) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewCopyProtectedEntityParams()
-
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
 	res := o.Handler.Handle(Params) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

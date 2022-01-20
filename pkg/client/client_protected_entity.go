@@ -56,7 +56,8 @@ func (this ClientProtectedEntity) Snapshot(ctx context.Context, snapshotParams m
 	if err != nil {
 		return astrolabe.ProtectedEntitySnapshotID{}, errors.Wrap(err, "Failed in CreateSnapshot")
 	}
-	return astrolabe.NewProtectedEntitySnapshotIDFromModel(snapshotOK.GetPayload()), nil
+	mpesid := snapshotOK.GetPayload()
+	return astrolabe.NewProtectedEntitySnapshotIDFromModel(&mpesid), nil
 }
 
 func (this ClientProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolabe.ProtectedEntitySnapshotID, error) {
@@ -71,7 +72,7 @@ func (this ClientProtectedEntity) ListSnapshots(ctx context.Context) ([]astrolab
 	}
 	returnList := make([]astrolabe.ProtectedEntitySnapshotID, len(listSnapshotsOK.GetPayload().List))
 	for curModelSnapshotIDNum, curModelSnapshotID := range listSnapshotsOK.GetPayload().List {
-		curPEID, err := astrolabe.NewProtectedEntityIDFromModel(curModelSnapshotID)
+		curPEID, err := astrolabe.NewProtectedEntityIDFromModel(&curModelSnapshotID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Faield to parse %v", curModelSnapshotID)
 		}
