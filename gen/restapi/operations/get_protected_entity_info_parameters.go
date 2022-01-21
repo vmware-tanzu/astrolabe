@@ -14,7 +14,8 @@ import (
 )
 
 // NewGetProtectedEntityInfoParams creates a new GetProtectedEntityInfoParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetProtectedEntityInfoParams() GetProtectedEntityInfoParams {
 
 	return GetProtectedEntityInfoParams{}
@@ -59,7 +60,6 @@ func (o *GetProtectedEntityInfoParams) BindRequest(r *http.Request, route *middl
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -75,7 +75,6 @@ func (o *GetProtectedEntityInfoParams) bindProtectedEntityID(rawData []string, h
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ProtectedEntityID = raw
 
 	return nil
@@ -90,7 +89,6 @@ func (o *GetProtectedEntityInfoParams) bindService(rawData []string, hasKey bool
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

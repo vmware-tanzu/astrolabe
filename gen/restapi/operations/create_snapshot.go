@@ -29,7 +29,7 @@ func NewCreateSnapshot(ctx *middleware.Context, handler CreateSnapshotHandler) *
 	return &CreateSnapshot{Context: ctx, Handler: handler}
 }
 
-/*CreateSnapshot swagger:route POST /astrolabe/{service}/{protectedEntityID}/snapshots createSnapshot
+/* CreateSnapshot swagger:route POST /astrolabe/{service}/{protectedEntityID}/snapshots createSnapshot
 
 Creates a new snapshot for this protected entity
 
@@ -43,17 +43,15 @@ type CreateSnapshot struct {
 func (o *CreateSnapshot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
-		r = rCtx
+		*r = *rCtx
 	}
 	var Params = NewCreateSnapshotParams()
-
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
 	res := o.Handler.Handle(Params) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

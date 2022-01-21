@@ -41,9 +41,8 @@ func (o *ListProtectedEntitiesReader) ReadResponse(response runtime.ClientRespon
 			return nil, err
 		}
 		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -52,7 +51,7 @@ func NewListProtectedEntitiesOK() *ListProtectedEntitiesOK {
 	return &ListProtectedEntitiesOK{}
 }
 
-/*ListProtectedEntitiesOK handles this case with default header values.
+/* ListProtectedEntitiesOK describes a response with status code 200, with default header values.
 
 200 response
 */
@@ -63,7 +62,6 @@ type ListProtectedEntitiesOK struct {
 func (o *ListProtectedEntitiesOK) Error() string {
 	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesOK  %+v", 200, o.Payload)
 }
-
 func (o *ListProtectedEntitiesOK) GetPayload() *models.ProtectedEntityList {
 	return o.Payload
 }
@@ -85,7 +83,7 @@ func NewListProtectedEntitiesNotFound() *ListProtectedEntitiesNotFound {
 	return &ListProtectedEntitiesNotFound{}
 }
 
-/*ListProtectedEntitiesNotFound handles this case with default header values.
+/* ListProtectedEntitiesNotFound describes a response with status code 404, with default header values.
 
 404 response
 */
@@ -96,7 +94,6 @@ type ListProtectedEntitiesNotFound struct {
 func (o *ListProtectedEntitiesNotFound) Error() string {
 	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesNotFound  %+v", 404, o.Payload)
 }
-
 func (o *ListProtectedEntitiesNotFound) GetPayload() *models.NotFoundError {
 	return o.Payload
 }
@@ -118,7 +115,7 @@ func NewListProtectedEntitiesInternalServerError() *ListProtectedEntitiesInterna
 	return &ListProtectedEntitiesInternalServerError{}
 }
 
-/*ListProtectedEntitiesInternalServerError handles this case with default header values.
+/* ListProtectedEntitiesInternalServerError describes a response with status code 500, with default header values.
 
 500 response
 */
@@ -129,7 +126,6 @@ type ListProtectedEntitiesInternalServerError struct {
 func (o *ListProtectedEntitiesInternalServerError) Error() string {
 	return fmt.Sprintf("[GET /astrolabe/{service}][%d] listProtectedEntitiesInternalServerError  %+v", 500, o.Payload)
 }
-
 func (o *ListProtectedEntitiesInternalServerError) GetPayload() *models.ServerError {
 	return o.Payload
 }

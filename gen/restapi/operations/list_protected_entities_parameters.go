@@ -16,7 +16,8 @@ import (
 )
 
 // NewListProtectedEntitiesParams creates a new ListProtectedEntitiesParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListProtectedEntitiesParams() ListProtectedEntitiesParams {
 
 	return ListProtectedEntitiesParams{}
@@ -71,7 +72,6 @@ func (o *ListProtectedEntitiesParams) BindRequest(r *http.Request, route *middle
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -87,10 +87,10 @@ func (o *ListProtectedEntitiesParams) bindIdsAfter(rawData []string, hasKey bool
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
-
 	o.IdsAfter = &raw
 
 	return nil
@@ -105,6 +105,7 @@ func (o *ListProtectedEntitiesParams) bindMaxResults(rawData []string, hasKey bo
 
 	// Required: false
 	// AllowEmptyValue: false
+
 	if raw == "" { // empty values pass all other validations
 		return nil
 	}
@@ -127,7 +128,6 @@ func (o *ListProtectedEntitiesParams) bindService(rawData []string, hasKey bool,
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

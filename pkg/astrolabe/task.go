@@ -26,8 +26,9 @@ type TaskID struct {
 	id string
 }
 
-func (this TaskID) GetModelTaskID() models.TaskID {
-	return models.TaskID(this.id)
+func (this TaskID) GetModelTaskID() *models.TaskID {
+	mtid := models.TaskID(this.id)
+	return &mtid
 }
 
 func GenerateTaskID() TaskID {

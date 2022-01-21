@@ -14,7 +14,8 @@ import (
 )
 
 // NewListSnapshotsParams creates a new ListSnapshotsParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListSnapshotsParams() ListSnapshotsParams {
 
 	return ListSnapshotsParams{}
@@ -59,7 +60,6 @@ func (o *ListSnapshotsParams) BindRequest(r *http.Request, route *middleware.Mat
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -75,7 +75,6 @@ func (o *ListSnapshotsParams) bindProtectedEntityID(rawData []string, hasKey boo
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ProtectedEntityID = raw
 
 	return nil
@@ -90,7 +89,6 @@ func (o *ListSnapshotsParams) bindService(rawData []string, hasKey bool, formats
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

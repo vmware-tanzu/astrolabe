@@ -13,7 +13,8 @@ import (
 )
 
 // NewListTasksParams creates a new ListTasksParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewListTasksParams() ListTasksParams {
 
 	return ListTasksParams{}

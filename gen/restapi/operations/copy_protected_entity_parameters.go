@@ -6,6 +6,7 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"io"
 	"net/http"
 
@@ -19,7 +20,8 @@ import (
 )
 
 // NewCopyProtectedEntityParams creates a new CopyProtectedEntityParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewCopyProtectedEntityParams() CopyProtectedEntityParams {
 
 	return CopyProtectedEntityParams{}
@@ -76,7 +78,7 @@ func (o *CopyProtectedEntityParams) BindRequest(r *http.Request, route *middlewa
 		var body models.CopyParameters
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("body", "body"))
+				res = append(res, errors.Required("body", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("body", "body", "", err))
 			}
@@ -86,13 +88,19 @@ func (o *CopyProtectedEntityParams) BindRequest(r *http.Request, route *middlewa
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.Body = &body
 			}
 		}
 	} else {
-		res = append(res, errors.Required("body", "body"))
+		res = append(res, errors.Required("body", "body", ""))
 	}
+
 	qMode, qhkMode, _ := qs.GetOK("mode")
 	if err := o.bindMode(qMode, qhkMode, route.Formats); err != nil {
 		res = append(res, err)
@@ -102,7 +110,6 @@ func (o *CopyProtectedEntityParams) BindRequest(r *http.Request, route *middlewa
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -112,7 +119,7 @@ func (o *CopyProtectedEntityParams) BindRequest(r *http.Request, route *middlewa
 // bindMode binds and validates parameter Mode from query.
 func (o *CopyProtectedEntityParams) bindMode(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	if !hasKey {
-		return errors.Required("mode", "query")
+		return errors.Required("mode", "query", rawData)
 	}
 	var raw string
 	if len(rawData) > 0 {
@@ -121,10 +128,10 @@ func (o *CopyProtectedEntityParams) bindMode(rawData []string, hasKey bool, form
 
 	// Required: true
 	// AllowEmptyValue: false
+
 	if err := validate.RequiredString("mode", "query", raw); err != nil {
 		return err
 	}
-
 	o.Mode = raw
 
 	if err := o.validateMode(formats); err != nil {
@@ -137,7 +144,7 @@ func (o *CopyProtectedEntityParams) bindMode(rawData []string, hasKey bool, form
 // validateMode carries on validations for parameter Mode
 func (o *CopyProtectedEntityParams) validateMode(formats strfmt.Registry) error {
 
-	if err := validate.Enum("mode", "query", o.Mode, []interface{}{"create", "create_new", "update"}); err != nil {
+	if err := validate.EnumCase("mode", "query", o.Mode, []interface{}{"create", "create_new", "update"}, true); err != nil {
 		return err
 	}
 
@@ -153,7 +160,6 @@ func (o *CopyProtectedEntityParams) bindService(rawData []string, hasKey bool, f
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

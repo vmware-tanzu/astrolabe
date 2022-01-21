@@ -14,7 +14,8 @@ import (
 )
 
 // NewDeleteProtectedEntityParams creates a new DeleteProtectedEntityParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewDeleteProtectedEntityParams() DeleteProtectedEntityParams {
 
 	return DeleteProtectedEntityParams{}
@@ -59,7 +60,6 @@ func (o *DeleteProtectedEntityParams) BindRequest(r *http.Request, route *middle
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -75,7 +75,6 @@ func (o *DeleteProtectedEntityParams) bindProtectedEntityID(rawData []string, ha
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ProtectedEntityID = raw
 
 	return nil
@@ -90,7 +89,6 @@ func (o *DeleteProtectedEntityParams) bindService(rawData []string, hasKey bool,
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

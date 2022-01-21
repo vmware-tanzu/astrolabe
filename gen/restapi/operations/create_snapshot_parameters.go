@@ -6,18 +6,21 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 
 	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
 // NewCreateSnapshotParams creates a new CreateSnapshotParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewCreateSnapshotParams() CreateSnapshotParams {
 
 	return CreateSnapshotParams{}
@@ -68,11 +71,17 @@ func (o *CreateSnapshotParams) BindRequest(r *http.Request, route *middleware.Ma
 				res = append(res, err)
 			}
 
+			ctx := validate.WithOperationRequest(context.Background())
+			if err := body.ContextValidate(ctx, route.Formats); err != nil {
+				res = append(res, err)
+			}
+
 			if len(res) == 0 {
 				o.Params = body
 			}
 		}
 	}
+
 	rProtectedEntityID, rhkProtectedEntityID, _ := route.Params.GetOK("protectedEntityID")
 	if err := o.bindProtectedEntityID(rProtectedEntityID, rhkProtectedEntityID, route.Formats); err != nil {
 		res = append(res, err)
@@ -82,7 +91,6 @@ func (o *CreateSnapshotParams) BindRequest(r *http.Request, route *middleware.Ma
 	if err := o.bindService(rService, rhkService, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -98,7 +106,6 @@ func (o *CreateSnapshotParams) bindProtectedEntityID(rawData []string, hasKey bo
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.ProtectedEntityID = raw
 
 	return nil
@@ -113,7 +120,6 @@ func (o *CreateSnapshotParams) bindService(rawData []string, hasKey bool, format
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.Service = raw
 
 	return nil

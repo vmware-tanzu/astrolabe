@@ -29,9 +29,8 @@ func (o *GetAstrolabeTasksNexusTaskNexusIDReader) ReadResponse(response runtime.
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -40,7 +39,7 @@ func NewGetAstrolabeTasksNexusTaskNexusIDOK() *GetAstrolabeTasksNexusTaskNexusID
 	return &GetAstrolabeTasksNexusTaskNexusIDOK{}
 }
 
-/*GetAstrolabeTasksNexusTaskNexusIDOK handles this case with default header values.
+/* GetAstrolabeTasksNexusTaskNexusIDOK describes a response with status code 200, with default header values.
 
 200 response
 */
@@ -51,7 +50,6 @@ type GetAstrolabeTasksNexusTaskNexusIDOK struct {
 func (o *GetAstrolabeTasksNexusTaskNexusIDOK) Error() string {
 	return fmt.Sprintf("[GET /astrolabe/tasks/nexus/{taskNexusID}][%d] getAstrolabeTasksNexusTaskNexusIdOK  %+v", 200, o.Payload)
 }
-
 func (o *GetAstrolabeTasksNexusTaskNexusIDOK) GetPayload() *models.TaskNexusResponse {
 	return o.Payload
 }

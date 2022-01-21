@@ -56,8 +56,9 @@ func NewProtectedEntityIDFromString(peiString string) (returnPEI ProtectedEntity
 	return returnPEI, returnError
 }
 
-func NewProtectedEntityIDFromModel(mpei models.ProtectedEntityID) (ProtectedEntityID, error) {
-	return NewProtectedEntityIDFromString(string(mpei))
+func NewProtectedEntityIDFromModel(mpei *models.ProtectedEntityID) (ProtectedEntityID, error) {
+	mpeiString := string(*mpei)
+	return NewProtectedEntityIDFromString(mpeiString)
 }
 
 func NewProtectedEntityIDWithNamespace(peType string, name string, namespace string) ProtectedEntityID {
@@ -148,8 +149,9 @@ func (this ProtectedEntityID) IDWithSnapshot(snapshotID ProtectedEntitySnapshotI
 	return newID
 }
 
-func (this ProtectedEntityID) GetModelProtectedEntityID() models.ProtectedEntityID {
-	return models.ProtectedEntityID(this.String())
+func (this ProtectedEntityID) GetModelProtectedEntityID() *models.ProtectedEntityID {
+	mpei := models.ProtectedEntityID(this.String())
+	return &mpei
 }
 
 func (this ProtectedEntityID) MarshalJSON() ([]byte, error) {
@@ -175,8 +177,8 @@ func NewProtectedEntitySnapshotID(pesiString string) ProtectedEntitySnapshotID {
 	return returnPESI
 }
 
-func NewProtectedEntitySnapshotIDFromModel(mpei models.ProtectedEntitySnapshotID) ProtectedEntitySnapshotID {
-	return NewProtectedEntitySnapshotID(string(mpei))
+func NewProtectedEntitySnapshotIDFromModel(mpei *models.ProtectedEntitySnapshotID) ProtectedEntitySnapshotID {
+	return NewProtectedEntitySnapshotID(string(*mpei))
 }
 
 func (this ProtectedEntitySnapshotID) GetID() string {

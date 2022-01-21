@@ -14,7 +14,8 @@ import (
 )
 
 // NewGetTaskInfoParams creates a new GetTaskInfoParams object
-// no default values defined in spec.
+//
+// There are no default values defined in the spec.
 func NewGetTaskInfoParams() GetTaskInfoParams {
 
 	return GetTaskInfoParams{}
@@ -49,7 +50,6 @@ func (o *GetTaskInfoParams) BindRequest(r *http.Request, route *middleware.Match
 	if err := o.bindTaskID(rTaskID, rhkTaskID, route.Formats); err != nil {
 		res = append(res, err)
 	}
-
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -65,7 +65,6 @@ func (o *GetTaskInfoParams) bindTaskID(rawData []string, hasKey bool, formats st
 
 	// Required: true
 	// Parameter is provided by construction from the route
-
 	o.TaskID = raw
 
 	return nil

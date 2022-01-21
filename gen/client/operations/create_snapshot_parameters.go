@@ -18,69 +18,85 @@ import (
 	"github.com/vmware-tanzu/astrolabe/gen/models"
 )
 
-// NewCreateSnapshotParams creates a new CreateSnapshotParams object
-// with the default values initialized.
+// NewCreateSnapshotParams creates a new CreateSnapshotParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewCreateSnapshotParams() *CreateSnapshotParams {
-	var ()
 	return &CreateSnapshotParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewCreateSnapshotParamsWithTimeout creates a new CreateSnapshotParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewCreateSnapshotParamsWithTimeout(timeout time.Duration) *CreateSnapshotParams {
-	var ()
 	return &CreateSnapshotParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewCreateSnapshotParamsWithContext creates a new CreateSnapshotParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewCreateSnapshotParamsWithContext(ctx context.Context) *CreateSnapshotParams {
-	var ()
 	return &CreateSnapshotParams{
-
 		Context: ctx,
 	}
 }
 
 // NewCreateSnapshotParamsWithHTTPClient creates a new CreateSnapshotParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewCreateSnapshotParamsWithHTTPClient(client *http.Client) *CreateSnapshotParams {
-	var ()
 	return &CreateSnapshotParams{
 		HTTPClient: client,
 	}
 }
 
-/*CreateSnapshotParams contains all the parameters to send to the API endpoint
-for the create snapshot operation typically these are written to a http.Request
+/* CreateSnapshotParams contains all the parameters to send to the API endpoint
+   for the create snapshot operation.
+
+   Typically these are written to a http.Request.
 */
 type CreateSnapshotParams struct {
 
-	/*Params
-	  Parameters for the snapshot.
+	/* Params.
 
+	   Parameters for the snapshot.
 	*/
 	Params models.OperationParamList
-	/*ProtectedEntityID
-	  The protected entity ID to snapshot
 
+	/* ProtectedEntityID.
+
+	   The protected entity ID to snapshot
 	*/
 	ProtectedEntityID string
-	/*Service
-	  The service for the protected entity
 
+	/* Service.
+
+	   The service for the protected entity
 	*/
 	Service string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the create snapshot params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateSnapshotParams) WithDefaults() *CreateSnapshotParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the create snapshot params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *CreateSnapshotParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the create snapshot params
@@ -156,7 +172,6 @@ func (o *CreateSnapshotParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		return err
 	}
 	var res []error
-
 	if o.Params != nil {
 		if err := r.SetBodyParam(o.Params); err != nil {
 			return err

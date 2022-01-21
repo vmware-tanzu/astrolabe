@@ -35,9 +35,8 @@ func (o *GetProtectedEntityInfoReader) ReadResponse(response runtime.ClientRespo
 			return nil, err
 		}
 		return nil, result
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -46,7 +45,7 @@ func NewGetProtectedEntityInfoOK() *GetProtectedEntityInfoOK {
 	return &GetProtectedEntityInfoOK{}
 }
 
-/*GetProtectedEntityInfoOK handles this case with default header values.
+/* GetProtectedEntityInfoOK describes a response with status code 200, with default header values.
 
 200 response
 */
@@ -57,7 +56,6 @@ type GetProtectedEntityInfoOK struct {
 func (o *GetProtectedEntityInfoOK) Error() string {
 	return fmt.Sprintf("[GET /astrolabe/{service}/{protectedEntityID}][%d] getProtectedEntityInfoOK  %+v", 200, o.Payload)
 }
-
 func (o *GetProtectedEntityInfoOK) GetPayload() *models.ProtectedEntityInfo {
 	return o.Payload
 }
@@ -79,7 +77,7 @@ func NewGetProtectedEntityInfoNotFound() *GetProtectedEntityInfoNotFound {
 	return &GetProtectedEntityInfoNotFound{}
 }
 
-/*GetProtectedEntityInfoNotFound handles this case with default header values.
+/* GetProtectedEntityInfoNotFound describes a response with status code 404, with default header values.
 
 404 (Not Found) error
 */

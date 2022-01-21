@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
+
 	"github.com/go-openapi/strfmt"
 )
 
@@ -16,5 +18,10 @@ type ProtectedEntitySnapshotID string
 
 // Validate validates this protected entity snapshot ID
 func (m ProtectedEntitySnapshotID) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this protected entity snapshot ID based on context it is used
+func (m ProtectedEntitySnapshotID) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

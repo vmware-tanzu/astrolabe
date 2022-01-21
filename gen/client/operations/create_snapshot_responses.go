@@ -29,9 +29,8 @@ func (o *CreateSnapshotReader) ReadResponse(response runtime.ClientResponse, con
 			return nil, err
 		}
 		return result, nil
-
 	default:
-		return nil, runtime.NewAPIError("unknown error", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -40,7 +39,7 @@ func NewCreateSnapshotOK() *CreateSnapshotOK {
 	return &CreateSnapshotOK{}
 }
 
-/*CreateSnapshotOK handles this case with default header values.
+/* CreateSnapshotOK describes a response with status code 200, with default header values.
 
 Snapshot created successfully, returns the new snapshot ID
 */
@@ -51,7 +50,6 @@ type CreateSnapshotOK struct {
 func (o *CreateSnapshotOK) Error() string {
 	return fmt.Sprintf("[POST /astrolabe/{service}/{protectedEntityID}/snapshots][%d] createSnapshotOK  %+v", 200, o.Payload)
 }
-
 func (o *CreateSnapshotOK) GetPayload() models.ProtectedEntitySnapshotID {
 	return o.Payload
 }

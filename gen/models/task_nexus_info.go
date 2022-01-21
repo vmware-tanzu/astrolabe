@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -44,7 +45,6 @@ func (m *TaskNexusInfo) Validate(formats strfmt.Registry) error {
 }
 
 func (m *TaskNexusInfo) validateAssociatedTasks(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.AssociatedTasks) { // not required
 		return nil
 	}
@@ -54,6 +54,8 @@ func (m *TaskNexusInfo) validateAssociatedTasks(formats strfmt.Registry) error {
 		if err := m.AssociatedTasks[i].Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("associatedTasks" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("associatedTasks" + "." + strconv.Itoa(i))
 			}
 			return err
 		}
@@ -64,7 +66,6 @@ func (m *TaskNexusInfo) validateAssociatedTasks(formats strfmt.Registry) error {
 }
 
 func (m *TaskNexusInfo) validateID(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ID) { // not required
 		return nil
 	}
@@ -72,6 +73,58 @@ func (m *TaskNexusInfo) validateID(formats strfmt.Registry) error {
 	if err := m.ID.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("id")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("id")
+		}
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this task nexus info based on the context it is used
+func (m *TaskNexusInfo) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateAssociatedTasks(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateID(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *TaskNexusInfo) contextValidateAssociatedTasks(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.AssociatedTasks); i++ {
+
+		if err := m.AssociatedTasks[i].ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("associatedTasks" + "." + strconv.Itoa(i))
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("associatedTasks" + "." + strconv.Itoa(i))
+			}
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+func (m *TaskNexusInfo) contextValidateID(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.ID.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("id")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("id")
 		}
 		return err
 	}

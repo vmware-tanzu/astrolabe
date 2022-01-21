@@ -17,69 +17,87 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewListProtectedEntitiesParams creates a new ListProtectedEntitiesParams object
-// with the default values initialized.
+// NewListProtectedEntitiesParams creates a new ListProtectedEntitiesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewListProtectedEntitiesParams() *ListProtectedEntitiesParams {
-	var ()
 	return &ListProtectedEntitiesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewListProtectedEntitiesParamsWithTimeout creates a new ListProtectedEntitiesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewListProtectedEntitiesParamsWithTimeout(timeout time.Duration) *ListProtectedEntitiesParams {
-	var ()
 	return &ListProtectedEntitiesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewListProtectedEntitiesParamsWithContext creates a new ListProtectedEntitiesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewListProtectedEntitiesParamsWithContext(ctx context.Context) *ListProtectedEntitiesParams {
-	var ()
 	return &ListProtectedEntitiesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewListProtectedEntitiesParamsWithHTTPClient creates a new ListProtectedEntitiesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewListProtectedEntitiesParamsWithHTTPClient(client *http.Client) *ListProtectedEntitiesParams {
-	var ()
 	return &ListProtectedEntitiesParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListProtectedEntitiesParams contains all the parameters to send to the API endpoint
-for the list protected entities operation typically these are written to a http.Request
+/* ListProtectedEntitiesParams contains all the parameters to send to the API endpoint
+   for the list protected entities operation.
+
+   Typically these are written to a http.Request.
 */
 type ListProtectedEntitiesParams struct {
 
-	/*IdsAfter
-	  Results will be returned that come after this ID
+	/* IdsAfter.
 
+	   Results will be returned that come after this ID
 	*/
 	IdsAfter *string
-	/*MaxResults
-	  The maximum number of results to return (fewer results may be returned)
 
+	/* MaxResults.
+
+	   The maximum number of results to return (fewer results may be returned)
+
+	   Format: int32
 	*/
 	MaxResults *int32
-	/*Service
-	  The service to list protected entities from
 
+	/* Service.
+
+	   The service to list protected entities from
 	*/
 	Service string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the list protected entities params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListProtectedEntitiesParams) WithDefaults() *ListProtectedEntitiesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the list protected entities params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ListProtectedEntitiesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the list protected entities params
@@ -160,32 +178,34 @@ func (o *ListProtectedEntitiesParams) WriteToRequest(r runtime.ClientRequest, re
 
 		// query param idsAfter
 		var qrIdsAfter string
+
 		if o.IdsAfter != nil {
 			qrIdsAfter = *o.IdsAfter
 		}
 		qIdsAfter := qrIdsAfter
 		if qIdsAfter != "" {
+
 			if err := r.SetQueryParam("idsAfter", qIdsAfter); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.MaxResults != nil {
 
 		// query param maxResults
 		var qrMaxResults int32
+
 		if o.MaxResults != nil {
 			qrMaxResults = *o.MaxResults
 		}
 		qMaxResults := swag.FormatInt32(qrMaxResults)
 		if qMaxResults != "" {
+
 			if err := r.SetQueryParam("maxResults", qMaxResults); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// path param service
