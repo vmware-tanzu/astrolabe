@@ -17,6 +17,9 @@ const (
 
 	// Poll is how often to Poll an API object.
 	Poll = 2 * time.Second
+
+	// MigratedCSIVolumeAnnotation is the annotation on a pv provisoned by in-tree vcp but migrated to vsphere csi
+	MigratedCSIVolumeAnnotation = "pv.kubernetes.io/migrated-to"
 )
 
 // WaitForPersistentVolumeClaimPhase waits for a PersistentVolumeClaim to be in a specific phase or until timeout occurs, whichever comes first.
