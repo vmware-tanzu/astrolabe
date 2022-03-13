@@ -7,7 +7,7 @@ Astrolabe shares governance with the Velero project.
 
 | Maintainer | GitHub ID | Affiliation |
 | --------------- | --------- | ----------- |
-| Dave Smith-Uchida | [dsu-igeek](https://github.com/dsu-igeek) | [VMware](https://www.github.com/vmware/) |
+| Dave Smith-Uchida | [dsu-igeek](https://github.com/dsu-igeek) | [Kasten](https://github.com/kastenhq/) |
 | Xing Yang | [xing-yang](https://github.com/xing-yang) | [VMware](https://www.github.com/vmware/) |
 | Lintong Jiang | [lintongj](https://github.com/lintongj) | [VMware](https://www.github.com/vmware/)|
 | Deepak Kinni | [deepakkinni](https://github.com/deepakkinni) | [VMware](https://www.github.com/vmware)|
