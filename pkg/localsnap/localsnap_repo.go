@@ -222,7 +222,7 @@ func (this LocalSnapshotRepo) GetPEInfoReader(ctx context.Context, peid astrolab
 	returnReader, err := os.Open(peInfoPath)
 	if err != nil {
 		err = errors.Wrap(err, "Could not open data stream")
-		return err
+		return nil, err
 	}
 	return returnReader, nil
 }
