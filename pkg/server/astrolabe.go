@@ -18,7 +18,7 @@ package server
 
 import (
 	"context"
-	"github.com/labstack/echo"
+	echo "github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/vmware-tanzu/astrolabe/pkg/astrolabe"
 	"net/http"
